@@ -53,7 +53,6 @@ function BlockShape({
   landed = false,
   perfect = false,
   grew = false,
-  motionScale = 1,
 }: {
   block: Block
   y: number
@@ -61,7 +60,6 @@ function BlockShape({
   landed?: boolean
   perfect?: boolean
   grew?: boolean
-  motionScale?: number
 }) {
   const bevel = 10
   const faceHeight = BLOCK_HEIGHT - bevel
@@ -75,7 +73,7 @@ function BlockShape({
   return (
     <motion.g
       className={classes || undefined}
-      initial={landed ? { opacity: 0.74, y: -13 * motionScale, scaleY: 0.94, scaleX: grew ? 0.86 : 1 } : false}
+      initial={landed ? { opacity: 0.74, y: -13, scaleY: 0.94, scaleX: grew ? 0.86 : 1 } : false}
       animate={{ opacity: 1, y: 0, scaleY: 1, scaleX: 1 }}
       transition={landed
         ? { type: 'spring', stiffness: 460, damping: 25, mass: 0.65 }
@@ -111,7 +109,7 @@ function Lantern({ x, y, lit }: { x: number; y: number; lit: boolean }) {
   )
 }
 
-function GameScene({ game, height, scale }: { game: GameState; height: number; scale: number }) {
+function GameScene({ game, height }: { game: GameState; height: number }) {
   const groundY = height - 105
   const activeY = groundY - (game.stack.length + 1) * BLOCK_HEIGHT
   const targetY = height * 0.43
@@ -196,7 +194,7 @@ function GameScene({ game, height, scale }: { game: GameState; height: number; s
       {/* The beacon island and tower follow the camera as the stack climbs. */}
       <motion.g
         initial={false}
-        animate={{ y: cameraShift * scale }}
+        animate={{ y: cameraShift }}
         transition={{ type: 'spring', stiffness: 78, damping: 27, mass: 0.85 }}
       >
         <ellipse cx="500" cy={groundY + 12} rx="276" ry="36" fill="#132a3e" opacity=".38" />
@@ -219,14 +217,13 @@ function GameScene({ game, height, scale }: { game: GameState; height: number; s
             landed={index === game.stack.length - 1 && game.stack.length > 1}
             perfect={index === game.stack.length - 1 && game.lastDropWasPerfect}
             grew={index === game.stack.length - 1 && game.lastDropGrew}
-            motionScale={scale}
           />
         ))}
         {game.fallingPieces.map((piece) => (
           <motion.g
             key={`${piece.id}-${piece.x}`}
             initial={{ opacity: 1, y: 0, rotate: 0 }}
-            animate={{ opacity: 0, y: height * 0.3 * scale, rotate: piece.direction * 32 }}
+            animate={{ opacity: 0, y: height * 0.3, rotate: piece.direction * 32 }}
             transition={{ duration: 0.82, ease: 'easeIn' }}
             style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
           >
@@ -274,7 +271,6 @@ function GameScene({ game, height, scale }: { game: GameState; height: number; s
 function App() {
   const [game, setGame] = useState(createGame)
   const [sceneHeight, setSceneHeight] = useState(760)
-  const [sceneScale, setSceneScale] = useState(1)
   const [perfectToast, setPerfectToast] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(readSoundPreference)
   const stageRef = useRef<HTMLDivElement>(null)
@@ -374,7 +370,6 @@ function App() {
       const { width, height } = entry.contentRect
       if (width > 0 && height > 0) {
         setSceneHeight(Math.round((WORLD_WIDTH * height) / width))
-        setSceneScale(width / WORLD_WIDTH)
       }
     })
     resizeObserver.observe(stage)
@@ -495,7 +490,7 @@ function App() {
           ref={stageRef}
           onPointerDown={handlePlace}
         >
-          <GameScene game={game} height={sceneHeight} scale={sceneScale} />
+          <GameScene game={game} height={sceneHeight} />
 
           <div className="height-readout" aria-live="polite">
             <span>Height</span>
