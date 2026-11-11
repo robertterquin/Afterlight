@@ -3,12 +3,15 @@ import './App.css'
 import {
   advanceGame,
   BLOCK_HEIGHT,
+  createDailyChallenge,
   createGame,
   endGame,
+  formatDailyDate,
   heightOf,
   pauseGame,
   placeBlock,
   resumeGame,
+  SIMULATION_HZ,
   startGame,
   WORLD_WIDTH,
   type Block,
@@ -277,13 +280,36 @@ function App() {
     }
   }, [])
 
-  const start = useCallback(() => commitGame(startGame(gameRef.current)), [commitGame])
-  const retry = useCallback(() => commitGame(startGame(createGame())), [commitGame])
+  const start = useCallback(() => {
+    const current = gameRef.current
+    if (current.phase === 'ready') {
+      commitGame(startGame(createGame(createDailyChallenge())))
+    }
+  }, [commitGame])
+  const retry = useCallback(() => {
+    commitGame(startGame(createGame(createDailyChallenge())))
+  }, [commitGame])
   const toggleSound = useCallback(() => {
     const next = !soundEnabledRef.current
     soundEnabledRef.current = next
     setSoundEnabled(next)
   }, [])
+
+  useEffect(() => {
+    if (game.phase !== 'ready') return
+
+    const now = new Date()
+    const nextUtcMidnight = Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + 1,
+    )
+    const timer = window.setTimeout(() => {
+      commitGame(createGame(createDailyChallenge()))
+    }, nextUtcMidnight - now.getTime() + 50)
+
+    return () => window.clearTimeout(timer)
+  }, [commitGame, game.challenge.date, game.phase])
 
   useEffect(() => {
     try {
@@ -311,12 +337,22 @@ function App() {
     if (game.phase !== 'playing') return
 
     let animationFrame = 0
-    let previousTime = 0
+    let previousTime: number | null = null
+    let accumulator = 0
+    const stepMilliseconds = 1000 / SIMULATION_HZ
     const tick = (time: number) => {
-      if (previousTime === 0) previousTime = time
-      const delta = (time - previousTime) / 1000
-      previousTime = time
-      setGame((current) => advanceGame(current, delta))
+      if (previousTime === null) previousTime = time
+      else {
+        accumulator += Math.min(time - previousTime, 250)
+        previousTime = time
+
+        let steps = 0
+        while (accumulator >= stepMilliseconds && steps < 15) {
+          setGame((current) => advanceGame(current))
+          accumulator -= stepMilliseconds
+          steps += 1
+        }
+      }
       animationFrame = requestAnimationFrame(tick)
     }
     animationFrame = requestAnimationFrame(tick)
@@ -404,6 +440,18 @@ function App() {
           <div className="height-readout" aria-live="polite">
             <span>Height</span>
             <strong>{String(height).padStart(2, '0')}</strong>
+          </div>
+
+          <div
+            className="daily-readout"
+            aria-label={`Daily challenge ${game.challenge.date}. ${game.windPercent === 0 ? 'Wind calm' : `Wind ${game.windPercent > 0 ? 'plus ' : 'minus '}${Math.abs(game.windPercent)} percent`}.`}
+          >
+            <span className="daily-date">Daily · {formatDailyDate(game.challenge.date)}</span>
+            <strong className="wind-value">
+              {game.windPercent === 0
+                ? 'Wind calm'
+                : `Wind ${game.windPercent > 0 ? '+' : '−'}${Math.abs(game.windPercent)}%`}
+            </strong>
           </div>
 
           {game.phase === 'playing' && (

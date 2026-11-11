@@ -16,4 +16,10 @@ npm run dev
 - Use the pause button or **Escape** to pause and resume.
 - Use the sound button to mute or enable placement feedback; the preference is saved in this browser.
 
-The prototype includes block overlap, perfect placements, height scoring, a speed increase every five stones, miss detection, replay, placement sounds, and settling animations. Every five perfect placements lights another beacon detail; this is visual progress only. Daily seeds and the online leaderboard are planned for later phases.
+The prototype includes block overlap, perfect placements, height scoring, a speed increase every five stones, miss detection, replay, placement sounds, and settling animations. Every five perfect placements lights another beacon detail; this is visual progress only.
+
+## Daily challenge
+
+The challenge date uses UTC (`YYYY-MM-DD`) and changes at 00:00 UTC. FNV-1a hashes that date into the daily seed. Wind changes every five floors: each segment uses Mulberry32 seeded with the daily seed XOR the segment number multiplied by `0x9e3779b9`, then maps its first value to an integer from −8% to +8%. The wind modifier is applied before the 2.2× speed cap.
+
+The game simulation advances at a fixed 60 ticks per second. Each placement, including the final miss, records its simulation tick in the run state so a later server can replay the inputs against the same daily seed.
