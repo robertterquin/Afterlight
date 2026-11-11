@@ -1,0 +1,450 @@
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import './App.css'
+import {
+  advanceGame,
+  BLOCK_HEIGHT,
+  createGame,
+  endGame,
+  heightOf,
+  pauseGame,
+  placeBlock,
+  resumeGame,
+  startGame,
+  WORLD_WIDTH,
+  type Block,
+  type GameState,
+} from './game'
+
+const starPositions = [
+  [88, 0.18], [194, 0.28], [286, 0.14], [372, 0.34], [456, 0.22],
+  [598, 0.16], [704, 0.3], [792, 0.2], [912, 0.15], [956, 0.36],
+  [128, 0.42], [516, 0.43], [844, 0.4], [650, 0.39],
+] as const
+
+type FeedbackSound = 'place' | 'perfect' | 'miss'
+
+function readSoundPreference() {
+  try {
+    return window.localStorage.getItem('afterlight.sound') !== 'off'
+  } catch {
+    return true
+  }
+}
+
+function LighthouseMark() {
+  return (
+    <svg className="brand-mark" viewBox="0 0 38 38" aria-hidden="true">
+      <path d="M5 33h28l-4-5H9z" fill="#e5b884" />
+      <path d="M11 28V11l8-6 8 6v17z" fill="#dcebd7" />
+      <path d="M15 14h8v7h-8z" fill="#e5b884" />
+      <path d="M19 2v-1M9 7 6 4m23 3 3-3" stroke="#e5b884" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function BlockShape({
+  block,
+  y,
+  active = false,
+  landed = false,
+  perfect = false,
+}: {
+  block: Block
+  y: number
+  active?: boolean
+  landed?: boolean
+  perfect?: boolean
+}) {
+  const bevel = 10
+  const faceHeight = BLOCK_HEIGHT - bevel
+  const top = active ? '#fff0c9' : '#dcebd6'
+  const front = active ? '#dda875' : '#78aa9c'
+  const side = active ? '#ad735e' : '#47757a'
+  const classes = [active && 'moving-block', landed && 'stone-settle', perfect && 'perfect-stone']
+    .filter(Boolean)
+    .join(' ')
+
+  return (
+    <g className={classes || undefined}>
+      <polygon
+        points={`${block.x},${y + bevel} ${block.x + bevel},${y} ${block.x + block.width + bevel},${y} ${block.x + block.width},${y + bevel}`}
+        fill={top}
+      />
+      <rect x={block.x} y={y + bevel} width={block.width} height={faceHeight} rx="2" fill={front} />
+      <polygon
+        points={`${block.x + block.width},${y + bevel} ${block.x + block.width + bevel},${y} ${block.x + block.width + bevel},${y + faceHeight - 2} ${block.x + block.width},${y + BLOCK_HEIGHT}`}
+        fill={side}
+      />
+      {block.width > 85 && (
+        <g fill={active ? '#fff0ce' : '#ffe0aa'} opacity=".88">
+          <rect x={block.x + block.width * 0.24} y={y + 22} width="11" height="14" rx="2" />
+          <rect x={block.x + block.width * 0.58} y={y + 22} width="11" height="14" rx="2" />
+        </g>
+      )}
+    </g>
+  )
+}
+
+function Lantern({ x, y, lit }: { x: number; y: number; lit: boolean }) {
+  return (
+    <g className={lit ? 'lantern is-lit' : 'lantern'}>
+      {lit && <circle cx={x} cy={y} r="10" fill="#ffd995" opacity=".55" filter="url(#soft-bloom)" />}
+      <circle cx={x} cy={y} r="3" fill={lit ? '#ffe8b9' : '#5c777b'} />
+      <circle cx={x} cy={y} r="1.25" fill={lit ? '#fff5d7' : '#819391'} />
+    </g>
+  )
+}
+
+function GameScene({ game, height }: { game: GameState; height: number }) {
+  const groundY = height - 105
+  const activeY = groundY - (game.stack.length + 1) * BLOCK_HEIGHT
+  const targetY = height * 0.43
+  const cameraShift = targetY - activeY
+  const horizon = height * 0.59
+
+  return (
+    <svg
+      className="game-scene"
+      viewBox={`0 0 ${WORLD_WIDTH} ${height}`}
+      preserveAspectRatio="none"
+      role="img"
+      aria-label={`Afterlight tower, height ${heightOf(game)}`}
+    >
+      <defs>
+        <linearGradient id="sky" x2="0" y2="1">
+          <stop stopColor="#17263a" />
+          <stop offset=".42" stopColor="#4b526d" />
+          <stop offset=".76" stopColor="#bb8c8c" />
+          <stop offset="1" stopColor="#365f6c" />
+        </linearGradient>
+        <linearGradient id="sea" x2="0" y2="1">
+          <stop stopColor="#4b7780" />
+          <stop offset="1" stopColor="#142e42" />
+        </linearGradient>
+        <radialGradient id="moonlight">
+          <stop stopColor="#f6d9b6" stopOpacity=".48" />
+          <stop offset="1" stopColor="#f6d9b6" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="ray" x2="0" y2="1">
+          <stop stopColor="#ffe5b5" stopOpacity="0" />
+          <stop offset="1" stopColor="#ffe5b5" stopOpacity=".22" />
+        </linearGradient>
+        <filter id="soft-bloom" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="5" />
+        </filter>
+      </defs>
+
+      <rect width={WORLD_WIDTH} height={height} fill="url(#sky)" />
+      <circle cx="820" cy={height * 0.27} r="150" fill="url(#moonlight)" />
+      <circle cx="820" cy={height * 0.27} r="42" fill="#f1d9ba" opacity=".92" />
+      <path d={`M830 ${height * 0.27 - 39}a42 42 0 1 0 28 68 38 38 0 0 1-28-68z`} fill="#d1aa99" opacity=".25" />
+
+      {starPositions.map(([x, y], index) => (
+        <circle key={index} cx={x} cy={height * y} r={index % 3 === 0 ? 1.7 : 1.2} fill="#f5e8ce" opacity={index % 2 ? '.56' : '.8'} />
+      ))}
+      <path d={`M0 ${horizon}q130 -80 250 -26 130 -94 250 -10 140 -91 270 -8 110 -59 230 18v150H0z`} fill="#53536c" opacity=".72" />
+      <path d={`M0 ${horizon + 72}q120 -55 235 -8 111 -72 227 -5 131 -74 253 -9 124 -62 285 -3v140H0z`} fill="#344b61" opacity=".92" />
+
+      {/* Far islands */}
+      <g transform={`translate(0 ${height * 0.45})`}>
+        <path d="M58 70q20-40 65-31 38-34 78 0 47-8 68 32l-18 18q-42 4-63 27l-31-4-34 24-23-15-36 5-13-25-26-7z" fill="#294354" />
+        <path d="M72 67q24-28 62-22 40-33 74 0 41-7 59 26-29 12-61 6-39 14-72 0-33 10-62-10z" fill="#91a89b" />
+        <path d="M131 52h22v26h-22zM126 53l16-15 16 15z" fill="#e2bd98" />
+        <path d="M92 59v-20m-7 12 7-13 7 13m123 4V37m-7 12 7-13 7 13" stroke="#294354" strokeWidth="3" fill="none" strokeLinecap="round" />
+        <Lantern x={95} y={49} lit={Math.floor(game.perfects / 5) >= 1} />
+        <Lantern x={142} y={66} lit={Math.floor(game.perfects / 5) >= 2} />
+        <Lantern x={215} y={47} lit={Math.floor(game.perfects / 5) >= 3} />
+      </g>
+      <g transform={`translate(0 ${height * 0.41})`}>
+        <path d="M760 82q24-42 67-34 42-36 82-1 44-8 71 33l-18 20q-43 7-64 26l-33-6-35 25-23-14-36 4-13-24-27-7z" fill="#294354" />
+        <path d="M774 78q24-30 62-25 42-34 78 0 41-6 58 28-28 11-60 4-39 15-72 1-34 9-66-8z" fill="#9db19f" />
+        <path d="M835 64h26v30h-26zM829 65l19-18 19 18z" fill="#e4c19a" />
+        <path d="M885 66V43m-8 13 8-14 8 14m37 12V47m-7 12 7-13 7 13" stroke="#294354" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+        <Lantern x={848} y={80} lit={Math.floor(game.perfects / 5) >= 4} />
+        <Lantern x={887} y={57} lit={Math.floor(game.perfects / 5) >= 5} />
+        <Lantern x={923} y={60} lit={Math.floor(game.perfects / 5) >= 6} />
+      </g>
+
+      {/* The beacon island and tower follow the camera as the stack climbs. */}
+      <g transform={`translate(0 ${cameraShift})`}>
+        <ellipse cx="500" cy={groundY + 12} rx="276" ry="36" fill="#132a3e" opacity=".38" />
+        <path d={`M224 ${groundY - 8}q38-58 116-48 50-49 117-28 60-47 125-12 77-32 134 20 73 2 103 56l-34 30q-57-4-92 26l-57-13-66 42-53-20-70 34-44-25-75 17-32-31-64-11z`} fill="#294354" />
+        <path d={`M240 ${groundY - 14}q46-45 108-32 55-49 118-24 61-46 122-10 71-25 124 21 60 5 88 45-44 19-104 10-66 23-122 4-67 22-127 3-74 22-123-1-42 10-84-16z`} fill="#9fb29d" />
+        <path d={`M267 ${groundY + 14}q69-19 127 0 69-19 132 0 66-20 133 4 41 5 78-3l-35 29q-49 1-77 21l-58-14-63 41-52-21-66 33-43-26-74 16-31-28z`} fill="#718f88" />
+        <g fill="#294657">
+          <path d={`M340 ${groundY - 42}l15-34 15 34zM383 ${groundY - 41}l12-26 12 26zM710 ${groundY - 42}l16-36 16 36zM753 ${groundY - 41}l11-25 12 25z`} />
+          <path d={`M347 ${groundY - 42}v17m42-17v17m344-17v17m41-17v17`} stroke="#294657" strokeWidth="4" />
+        </g>
+        <Lantern x={355} y={groundY - 65} lit={Math.floor(game.perfects / 5) >= 7} />
+        <Lantern x={397} y={groundY - 62} lit={Math.floor(game.perfects / 5) >= 8} />
+        <Lantern x={726} y={groundY - 67} lit={Math.floor(game.perfects / 5) >= 9} />
+
+        {game.stack.map((block, index) => (
+          <BlockShape
+            key={index}
+            block={block}
+            y={groundY - (index + 1) * BLOCK_HEIGHT}
+            landed={index === game.stack.length - 1 && game.stack.length > 1}
+            perfect={index === game.stack.length - 1 && game.lastDropWasPerfect}
+          />
+        ))}
+        {game.moving && (
+          <>
+            {game.lastDropWasPerfect && (
+              <path
+                key={game.stack.length}
+                className="perfect-ray"
+                d={`M500 ${groundY - (game.stack.length + 1) * BLOCK_HEIGHT}L455 ${groundY - (game.stack.length + 1) * BLOCK_HEIGHT - 130}Q500 ${groundY - (game.stack.length + 1) * BLOCK_HEIGHT - 100} 545 ${groundY - (game.stack.length + 1) * BLOCK_HEIGHT - 130}Z`}
+                fill="url(#ray)"
+              />
+            )}
+            <BlockShape
+              block={game.moving}
+              y={groundY - (game.stack.length + 1) * BLOCK_HEIGHT}
+              active
+            />
+          </>
+        )}
+        {game.lastDropWasPerfect && game.stack.length > 1 && (
+          <circle
+            key={game.stack.length}
+            className="perfect-pulse"
+            cx={game.stack.at(-1)!.x + game.stack.at(-1)!.width / 2}
+            cy={groundY - game.stack.length * BLOCK_HEIGHT + BLOCK_HEIGHT / 2}
+            r="18"
+          />
+        )}
+      </g>
+
+      <path d={`M0 ${height - 58}q112-32 224 0 130-31 264 1 133-35 268 0 111-30 244 4v${58}`} fill="url(#sea)" opacity=".88" />
+      <path d={`M418 ${height - 45}h166m-140 13h116m-96 12h76`} stroke="#efd2ad" strokeWidth="1.6" opacity=".2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function App() {
+  const [game, setGame] = useState(createGame)
+  const [sceneHeight, setSceneHeight] = useState(760)
+  const [perfectToast, setPerfectToast] = useState(false)
+  const [soundEnabled, setSoundEnabled] = useState(readSoundPreference)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const gameRef = useRef(game)
+  const soundEnabledRef = useRef(soundEnabled)
+  const audioContextRef = useRef<AudioContext | null>(null)
+
+  useLayoutEffect(() => {
+    gameRef.current = game
+    soundEnabledRef.current = soundEnabled
+  }, [game, soundEnabled])
+
+  const commitGame = useCallback((next: GameState) => {
+    gameRef.current = next
+    setGame(next)
+  }, [])
+
+  const playFeedback = useCallback((kind: FeedbackSound) => {
+    if (!soundEnabledRef.current || typeof window === 'undefined') return
+
+    const AudioContextConstructor = window.AudioContext
+    if (!AudioContextConstructor) return
+
+    try {
+      const context = audioContextRef.current ?? new AudioContextConstructor()
+      audioContextRef.current = context
+      if (context.state === 'suspended') void context.resume().catch(() => undefined)
+
+      const oscillator = context.createOscillator()
+      const gain = context.createGain()
+      const now = context.currentTime
+      const settings = {
+        place: { start: 235, end: 285, duration: 0.075, volume: 0.035, type: 'sine' as OscillatorType },
+        perfect: { start: 620, end: 930, duration: 0.2, volume: 0.06, type: 'sine' as OscillatorType },
+        miss: { start: 150, end: 88, duration: 0.16, volume: 0.045, type: 'triangle' as OscillatorType },
+      }[kind]
+
+      oscillator.type = settings.type
+      oscillator.frequency.setValueAtTime(settings.start, now)
+      oscillator.frequency.exponentialRampToValueAtTime(settings.end, now + settings.duration)
+      gain.gain.setValueAtTime(0.0001, now)
+      gain.gain.exponentialRampToValueAtTime(settings.volume, now + 0.012)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + settings.duration)
+      oscillator.connect(gain)
+      gain.connect(context.destination)
+      oscillator.start(now)
+      oscillator.stop(now + settings.duration + 0.015)
+    } catch {
+      // Audio is optional; gameplay remains available if the browser blocks it.
+    }
+  }, [])
+
+  const start = useCallback(() => commitGame(startGame(gameRef.current)), [commitGame])
+  const retry = useCallback(() => commitGame(startGame(createGame())), [commitGame])
+  const toggleSound = useCallback(() => {
+    const next = !soundEnabledRef.current
+    soundEnabledRef.current = next
+    setSoundEnabled(next)
+  }, [])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('afterlight.sound', soundEnabled ? 'on' : 'off')
+    } catch {
+      // The preference still applies for this session when storage is unavailable.
+    }
+  }, [soundEnabled])
+
+  useEffect(() => {
+    const stage = stageRef.current
+    if (!stage) return
+
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      if (width > 0 && height > 0) {
+        setSceneHeight(Math.round((WORLD_WIDTH * height) / width))
+      }
+    })
+    resizeObserver.observe(stage)
+    return () => resizeObserver.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (game.phase !== 'playing') return
+
+    let animationFrame = 0
+    let previousTime = 0
+    const tick = (time: number) => {
+      if (previousTime === 0) previousTime = time
+      const delta = (time - previousTime) / 1000
+      previousTime = time
+      setGame((current) => advanceGame(current, delta))
+      animationFrame = requestAnimationFrame(tick)
+    }
+    animationFrame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(animationFrame)
+  }, [game.phase])
+
+  useEffect(() => {
+    if (!game.lastDropWasPerfect) return
+    setPerfectToast(true)
+    const timer = window.setTimeout(() => setPerfectToast(false), 700)
+    return () => window.clearTimeout(timer)
+  }, [game.lastDropWasPerfect, game.stack.length])
+
+  const handlePlace = useCallback(() => {
+    const current = gameRef.current
+    const next = placeBlock(current)
+    if (next === current) return
+
+    commitGame(next)
+    if (next.phase === 'over') playFeedback('miss')
+    else if (next.stack.length > current.stack.length) {
+      playFeedback(next.lastDropWasPerfect ? 'perfect' : 'place')
+    }
+  }, [commitGame, playFeedback])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target
+      if (target instanceof HTMLElement && target.closest('button')) return
+
+      if (event.code === 'Space') {
+        event.preventDefault()
+        if (gameRef.current.phase === 'ready') start()
+        else handlePlace()
+      } else if (event.code === 'Escape') {
+        const current = gameRef.current
+        if (current.phase === 'playing') commitGame(pauseGame(current))
+        if (current.phase === 'paused') commitGame(resumeGame(current))
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [commitGame, handlePlace, start])
+
+  const height = heightOf(game)
+
+  return (
+    <main className="app-shell">
+      <header className="topbar">
+        <a className="brand" href="#top" aria-label="Afterlight home">
+          <LighthouseMark />
+          <span>AFTERLIGHT</span>
+        </a>
+        <div className="topbar-actions">
+          <button
+            className="icon-button"
+            type="button"
+            onClick={toggleSound}
+            aria-label={soundEnabled ? 'Mute sound' : 'Turn sound on'}
+            aria-pressed={soundEnabled}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              {soundEnabled
+                ? <path d="M4 10v4h4l5 4V6l-5 4H4zm12-2a6 6 0 0 1 0 8m2-11a10 10 0 0 1 0 14" />
+                : <path d="M4 10v4h4l5 4V6l-5 4H4zm12 1 5 5m0-5-5 5" />}
+            </svg>
+          </button>
+          {game.phase === 'playing' && (
+            <button className="icon-button" type="button" onClick={() => commitGame(pauseGame(gameRef.current))} aria-label="Pause game">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14m8-14v14" /></svg>
+            </button>
+          )}
+        </div>
+      </header>
+
+      <section className="play-layout" aria-label="Afterlight game">
+        <div
+          className={`stage ${game.phase === 'playing' ? 'is-playing' : ''}`}
+          ref={stageRef}
+          onPointerDown={handlePlace}
+        >
+          <GameScene game={game} height={sceneHeight} />
+
+          <div className="height-readout" aria-live="polite">
+            <span>Height</span>
+            <strong>{String(height).padStart(2, '0')}</strong>
+          </div>
+
+          {game.phase === 'playing' && (
+            <div className="play-prompt" aria-hidden="true">
+              <span className="tap-dot"><i /></span>
+              <span>Tap to place</span>
+              <kbd>SPACE</kbd>
+            </div>
+          )}
+
+          {perfectToast && game.phase === 'playing' && (
+            <div className="perfect-toast" role="status">Perfect</div>
+          )}
+
+          {game.phase === 'ready' && (
+            <div className="state-card ready-card">
+              <button className="primary-button" type="button" onClick={start}>Start climb</button>
+              <span className="keyboard-hint">or press Space</span>
+            </div>
+          )}
+
+          {game.phase === 'paused' && (
+            <div className="state-card" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+              <h1 id="pause-title">Paused</h1>
+              <button className="primary-button" type="button" onClick={() => setGame((current) => resumeGame(current))}>Resume</button>
+              <button className="text-button" type="button" onClick={() => setGame((current) => endGame(current))}>End run</button>
+            </div>
+          )}
+
+          {game.phase === 'over' && (
+            <div className="state-card" role="dialog" aria-modal="true" aria-labelledby="over-title">
+              <h1 id="over-title">Run over</h1>
+              <p className="result-line"><strong>{height}</strong> {height === 1 ? 'stone' : 'stones'} placed</p>
+              {game.perfects > 0 && <p className="result-detail">{game.perfects} perfect {game.perfects === 1 ? 'landing' : 'landings'}</p>}
+              <button className="primary-button" type="button" onClick={retry}>Try again</button>
+            </div>
+          )}
+        </div>
+      </section>
+    </main>
+  )
+}
+
+export default App

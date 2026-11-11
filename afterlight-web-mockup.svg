@@ -1,0 +1,230 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Afterlight — refined web game mockup</title>
+  <desc id="desc">A quiet twilight game screen: a luminous block tower connects floating islands, with a compact daily leaderboard.</desc>
+  <defs>
+    <linearGradient id="page" x2="0" y2="1">
+      <stop stop-color="#0a1926"/><stop offset="1" stop-color="#122738"/>
+    </linearGradient>
+    <linearGradient id="sky" x2="0" y2="1">
+      <stop stop-color="#17263a"/><stop offset=".37" stop-color="#3f4d69"/>
+      <stop offset=".68" stop-color="#9b7481"/><stop offset=".86" stop-color="#e1a77f"/>
+      <stop offset="1" stop-color="#315c6b"/>
+    </linearGradient>
+    <linearGradient id="sea" x2="0" y2="1">
+      <stop stop-color="#456f7b"/><stop offset="1" stop-color="#142e42"/>
+    </linearGradient>
+    <linearGradient id="stoneTop" x2="0" y2="1">
+      <stop stop-color="#e5f0d8"/><stop offset="1" stop-color="#b8d8bd"/>
+    </linearGradient>
+    <linearGradient id="stoneFace" x2="0" y2="1">
+      <stop stop-color="#85b6a6"/><stop offset="1" stop-color="#5d928d"/>
+    </linearGradient>
+    <linearGradient id="stoneEdge" x2="0" y2="1">
+      <stop stop-color="#63968e"/><stop offset="1" stop-color="#416e78"/>
+    </linearGradient>
+    <linearGradient id="goldTop" x2="0" y2="1">
+      <stop stop-color="#fff0c9"/><stop offset="1" stop-color="#edc18d"/>
+    </linearGradient>
+    <linearGradient id="goldFace" x2="0" y2="1">
+      <stop stop-color="#dba975"/><stop offset="1" stop-color="#b87e61"/>
+    </linearGradient>
+    <radialGradient id="moonGlow">
+      <stop stop-color="#f5d9b4" stop-opacity=".5"/><stop offset="1" stop-color="#f5d9b4" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="beaconGlow">
+      <stop stop-color="#ffe4b4" stop-opacity=".62"/><stop offset="1" stop-color="#ffe4b4" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="beaconRay" x2="0" y2="1">
+      <stop stop-color="#ffe3b0" stop-opacity="0"/><stop offset=".8" stop-color="#ffe3b0" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#ffe3b0" stop-opacity=".46"/>
+    </linearGradient>
+    <filter id="bloom" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="24"/></filter>
+    <filter id="soft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="9"/></filter>
+    <clipPath id="playfield"><rect x="48" y="88" width="1100" height="864" rx="28"/></clipPath>
+    <style>
+      .ui { font-family: 'Avenir Next', 'Segoe UI', sans-serif; }
+      .display { font-family: 'Georgia', 'Times New Roman', serif; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#page)"/>
+  <circle cx="778" cy="480" r="500" fill="#243e50" opacity=".12"/>
+
+  <!-- Quiet game chrome -->
+  <g class="ui">
+    <g transform="translate(59 24)">
+      <path d="M3 30h28l-4-5H7z" fill="#e6b783"/>
+      <path d="M9 25V9l8-6 8 6v16z" fill="#dcebd7"/>
+      <path d="M14 12h7v6h-7z" fill="#e6b783"/>
+      <path d="M17 0v-3M8 4 5 1m21 3 3-3" stroke="#e6b783" stroke-width="1.5" stroke-linecap="round"/>
+    </g>
+    <text x="101" y="46" fill="#eef0e6" font-size="16" font-weight="700" letter-spacing="2.2">AFTERLIGHT</text>
+    <circle cx="1480" cy="39" r="19" fill="#152b3b" stroke="#526b75" stroke-opacity=".5"/>
+    <path d="M1472 36h4l6-5v16l-6-5h-4z" fill="none" stroke="#c6d2ca" stroke-width="1.4" stroke-linejoin="round"/>
+    <path d="M1485 34q6 5 0 10" fill="none" stroke="#c6d2ca" stroke-width="1.3" stroke-linecap="round"/>
+    <circle cx="1530" cy="39" r="19" fill="#152b3b" stroke="#526b75" stroke-opacity=".5"/>
+    <path d="M1526 31v16m8-16v16" stroke="#c6d2ca" stroke-width="2" stroke-linecap="round"/>
+  </g>
+
+  <!-- Main game world -->
+  <g clip-path="url(#playfield)">
+    <rect x="48" y="88" width="1100" height="864" fill="url(#sky)"/>
+    <circle cx="876" cy="355" r="190" fill="url(#moonGlow)"/>
+    <circle cx="876" cy="355" r="47" fill="#f2d8b5" opacity=".94"/>
+    <path d="M888 314a47 47 0 1 0 31 76 43 43 0 0 1-31-76z" fill="#d2aa99" opacity=".28"/>
+
+    <!-- Dust and distant stars -->
+    <g fill="#f4e7cc">
+      <circle cx="153" cy="233" r="1.4" opacity=".78"/><circle cx="232" cy="317" r="1" opacity=".62"/>
+      <circle cx="324" cy="197" r="1.2" opacity=".72"/><circle cx="415" cy="287" r="1.5" opacity=".7"/>
+      <circle cx="516" cy="220" r="1" opacity=".76"/><circle cx="654" cy="166" r="1.4" opacity=".75"/>
+      <circle cx="744" cy="270" r="1.2" opacity=".72"/><circle cx="1009" cy="231" r="1.2" opacity=".7"/>
+      <circle cx="1078" cy="370" r="1.3" opacity=".7"/><circle cx="966" cy="165" r="1" opacity=".7"/>
+      <circle cx="283" cy="424" r="1" opacity=".55"/><circle cx="710" cy="380" r="1.3" opacity=".67"/>
+      <circle cx="188" cy="391" r="1.2" opacity=".62"/><circle cx="1042" cy="447" r="1" opacity=".7"/>
+    </g>
+    <g stroke="#f4e7cc" stroke-width="1" opacity=".58" stroke-linecap="round">
+      <path d="M367 233v7m-3.5-3.5h7"/><path d="M1020 322v6m-3-3h6"/><path d="M585 348v6m-3-3h6"/>
+    </g>
+
+    <!-- Layered dusk ridges -->
+    <path d="M48 590q104-72 208-23 95-81 197-16 108-88 220-8 116-82 223-12 114-66 252 14v155H48z" fill="#55546f" opacity=".68"/>
+    <path d="M48 670q119-64 225-20 100-65 205-4 105-74 224-8 115-68 224-9 99-50 222-6v131H48z" fill="#354b61" opacity=".89"/>
+    <path d="M48 741q129-40 237 9 102-43 216 6 117-46 226 1 107-43 213-3 92-33 208 5v98H48z" fill="#2a4359"/>
+
+    <!-- Left island: small lantern village -->
+    <g>
+      <ellipse cx="224" cy="588" rx="135" ry="20" fill="#142b40" opacity=".3"/>
+      <path d="M96 548q28-48 77-39 46-42 97-3 49-12 79 35l-18 23q-49 4-72 31l-36-4-41 27-26-17-43 7-15-30-31-8z" fill="#253f54"/>
+      <path d="M108 544q29-35 73-30 47-39 87-1 48-9 70 33-34 15-71 7-44 18-83 0-38 12-76-9z" fill="#91a99c"/>
+      <path d="M174 532h26v29h-26z" fill="#d4ad87"/><path d="M168 533l19-18 19 18z" fill="#ead1a9"/>
+      <path d="M210 540h18v21h-18z" fill="#c69b7c"/><path d="M207 540l12-12 12 12z" fill="#e2c5a0"/>
+      <rect x="183" y="542" width="6" height="10" rx="3" fill="#fff0c8"/><rect x="216" y="547" width="5" height="8" rx="2.5" fill="#ffdfa7"/>
+      <path d="M137 530v-25m-9 14 9-16 9 16m135 1v-23m-8 13 8-15 8 15" fill="none" stroke="#294555" stroke-width="3.5" stroke-linecap="round"/>
+      <circle cx="141" cy="523" r="2.5" fill="#f7d69e"/><circle cx="272" cy="525" r="2.5" fill="#f7d69e"/>
+      <path d="M120 575l-7 23m14-24-2 30m152-27 8 23m-17-24 2 31" stroke="#21394d" stroke-width="2" opacity=".65" stroke-linecap="round"/>
+    </g>
+
+    <!-- Right island: the beacon's destination -->
+    <g>
+      <ellipse cx="955" cy="557" rx="128" ry="18" fill="#172d40" opacity=".28"/>
+      <path d="M832 516q29-46 78-37 47-39 91-1 51-10 81 35l-21 23q-46 7-71 29l-35-7-39 29-26-17-41 4-14-28-31-8z" fill="#294355"/>
+      <path d="M845 511q30-34 73-28 48-39 89 0 47-7 66 34-30 13-69 5-43 18-83 1-38 11-76-12z" fill="#a1b4a0"/>
+      <path d="M911 500h28v32h-28z" fill="#d7ad82"/><path d="M905 501l20-19 20 19z" fill="#f2d7ae"/>
+      <rect x="921" y="510" width="7" height="13" rx="3.5" fill="#fff0c8"/>
+      <path d="M979 504v-26m-9 15 9-17 9 17m38 13v-22m-8 12 8-15 8 15" fill="none" stroke="#2b4857" stroke-width="3.5" stroke-linecap="round"/>
+      <circle cx="981" cy="496" r="2.6" fill="#ffe2a8"/><circle cx="1017" cy="499" r="2.3" fill="#ffe2a8"/>
+      <path d="M857 544l-6 22m19-22-1 30m143-28 7 21m-20-24 2 29" stroke="#243e51" stroke-width="2" opacity=".63" stroke-linecap="round"/>
+    </g>
+
+    <!-- Fine signal paths; light travels outward from the tower -->
+    <path d="M586 483Q450 434 273 535" stroke="#ffe6b7" stroke-width="15" opacity=".075" fill="none" filter="url(#soft)"/>
+    <path d="M597 479Q764 420 914 500" stroke="#ffe6b7" stroke-width="15" opacity=".075" fill="none" filter="url(#soft)"/>
+    <path d="M586 483Q450 434 273 535M597 479Q764 420 914 500" stroke="#ffe6b7" stroke-width="1.5" opacity=".29" fill="none"/>
+
+    <!-- Central island and its roots -->
+    <ellipse cx="595" cy="831" rx="304" ry="44" fill="#112b3f" opacity=".38"/>
+    <path d="M301 795q38-62 124-53 57-53 128-31 66-52 138-14 82-35 145 22 79 2 112 62l-37 34q-63-4-100 30l-62-15-72 47-58-22-77 38-48-28-82 20-35-35-70-12z" fill="#253f54"/>
+    <path d="M319 781q49-49 116-35 59-54 128-27 65-50 132-12 77-27 134 23 65 5 96 49-47 21-113 11-72 25-133 4-72 25-138 3-80 24-133-1-47 12-89-15z" fill="#a3b6a0"/>
+    <path d="M332 799q78-20 139 0 78-21 143-1 73-23 147 5 45 6 86-3l-39 31q-56 1-84 23l-63-15-70 45-58-23-73 37-48-29-81 18-35-31z" fill="#78968d"/>
+    <path d="M390 826l-12 46m28-47-2 59m382-51 13 47m-30-46 2 56m-230-41-4 49" stroke="#233e51" stroke-width="3" opacity=".58" stroke-linecap="round"/>
+    <g fill="#294657">
+      <path d="M390 760l17-39 17 39zM436 763l13-29 14 29zM755 760l18-41 18 41zM801 763l12-28 13 28z"/>
+      <path d="M397 761v20m50-18v20m319-23v21m43-20v20" stroke="#294657" stroke-width="4"/>
+    </g>
+    <g fill="#ffe0a7"><circle cx="407" cy="744" r="2.5"/><circle cx="450" cy="747" r="2"/><circle cx="766" cy="742" r="2.5"/><circle cx="807" cy="746" r="2"/></g>
+    <path d="M365 808q54 9 102 0m224 22q69-12 132 1m-377 29q44-8 84 0" stroke="#d2e0cd" stroke-width="2" opacity=".29" fill="none" stroke-linecap="round"/>
+
+    <!-- Tower bloom -->
+    <circle cx="592" cy="476" r="88" fill="url(#beaconGlow)" opacity=".72" filter="url(#bloom)"/>
+    <path d="M575 482L552 343Q590 384 628 343L606 482Z" fill="url(#beaconRay)"/>
+    <circle cx="591" cy="482" r="14" fill="#ffe5b4" opacity=".42" filter="url(#soft)"/>
+
+    <!-- Eight placed stones, subtly faceted -->
+    <g>
+      <g><path d="M477 775l11-9h210l-11 9z" fill="url(#stoneTop)"/><path d="M477 775h210v35H477z" fill="url(#stoneFace)"/><path d="M687 775l11-9v35l-11 5z" fill="url(#stoneEdge)"/><path d="M496 785h10v13h-10zm35 0h10v13h-10zm35 0h10v13h-10zm35 0h10v13h-10zm35 0h10v13h-10z" fill="#ffdfaa" opacity=".83"/></g>
+      <g><path d="M485 735l10-9h192l-10 9z" fill="url(#stoneTop)"/><path d="M485 735h192v35H485z" fill="url(#stoneFace)"/><path d="M677 735l10-9v35l-10 5z" fill="url(#stoneEdge)"/><path d="M506 745h10v13h-10zm35 0h10v13h-10zm35 0h10v13h-10zm35 0h10v13h-10z" fill="#ffdfaa" opacity=".84"/></g>
+      <g><path d="M493 695l9-9h173l-9 9z" fill="url(#stoneTop)"/><path d="M493 695h173v35H493z" fill="url(#stoneFace)"/><path d="M666 695l9-9v35l-9 5z" fill="url(#stoneEdge)"/><path d="M514 705h10v13h-10zm34 0h10v13h-10zm34 0h10v13h-10zm34 0h10v13h-10z" fill="#ffdfaa" opacity=".84"/></g>
+      <g><path d="M502 655l9-9h151l-9 9z" fill="url(#stoneTop)"/><path d="M502 655h151v35H502z" fill="url(#stoneFace)"/><path d="M653 655l9-9v35l-9 5z" fill="url(#stoneEdge)"/><path d="M522 665h10v13h-10zm34 0h10v13h-10zm34 0h10v13h-10z" fill="#ffdfaa" opacity=".85"/></g>
+      <g><path d="M510 615l8-9h135l-8 9z" fill="url(#stoneTop)"/><path d="M510 615h135v35H510z" fill="url(#stoneFace)"/><path d="M645 615l8-9v35l-8 5z" fill="url(#stoneEdge)"/><path d="M530 625h10v13h-10zm34 0h10v13h-10zm34 0h10v13h-10z" fill="#ffe3b2" opacity=".86"/></g>
+      <g><path d="M518 575l8-9h119l-8 9z" fill="url(#stoneTop)"/><path d="M518 575h119v35H518z" fill="url(#stoneFace)"/><path d="M637 575l8-9v35l-8 5z" fill="url(#stoneEdge)"/><path d="M537 585h10v13h-10zm34 0h10v13h-10zm34 0h10v13h-10z" fill="#ffe5b5" opacity=".88"/></g>
+      <g><path d="M526 535l7-9h103l-7 9z" fill="url(#stoneTop)"/><path d="M526 535h103v35H526z" fill="url(#stoneFace)"/><path d="M629 535l7-9v35l-7 5z" fill="url(#stoneEdge)"/><path d="M545 545h10v13h-10zm34 0h10v13h-10zm34 0h10v13h-10z" fill="#ffe8bc" opacity=".88"/></g>
+      <g><path d="M534 495l7-9h87l-7 9z" fill="url(#stoneTop)"/><path d="M534 495h87v35h-87z" fill="url(#stoneFace)"/><path d="M621 495l7-9v35l-7 5z" fill="url(#stoneEdge)"/><path d="M553 505h10v13h-10zm34 0h10v13h-10z" fill="#fff0c9"/></g>
+    </g>
+
+    <!-- Incoming block and a quiet motion trace -->
+    <path d="M533 493h96" stroke="#fff0d0" stroke-width="1" stroke-dasharray="3 7" opacity=".53"/>
+    <path d="M665 454h81" stroke="#ffe6bd" stroke-width="1" stroke-dasharray="2 8" opacity=".37"/>
+    <g><path d="M667 461l7-8h82l-7 8z" fill="url(#goldTop)"/><path d="M667 461h82v30h-82z" fill="url(#goldFace)"/><path d="M749 461l7-8v30l-7 5z" fill="#a86d59"/><path d="M685 471h9v10h-9zm31 0h9v10h-9z" fill="#fff0cd" opacity=".82"/></g>
+    <path d="M774 447q28-8 51 0m-38 10q18-5 31 1" stroke="#f2d1ae" stroke-width="1.7" fill="none" stroke-linecap="round" opacity=".59"/>
+    <path d="M830 447l7-1-4 6" fill="none" stroke="#f2d1ae" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" opacity=".59"/>
+
+    <!-- Sea and softened reflection -->
+    <path d="M48 863q132-39 253-3 142-36 278 0 142-35 283 0 144-36 286 3v89H48z" fill="url(#sea)"/>
+    <path d="M490 865q104 15 206 0l-28 85H516z" fill="#f4c99d" opacity=".08"/>
+    <path d="M506 875h169m-145 14h126m-108 14h91m-159 14h225" stroke="#f2d6b0" stroke-width="1.6" opacity=".2" stroke-linecap="round"/>
+  </g>
+  <rect x="48" y="88" width="1100" height="864" rx="28" fill="none" stroke="#d4dfd2" stroke-opacity=".16"/>
+
+  <!-- Essential play information only -->
+  <g class="ui">
+    <text x="88" y="143" fill="#d9e5d8" font-size="10" letter-spacing="1.5">HEIGHT</text>
+    <text class="display" x="84" y="203" fill="#fff0d8" font-size="57">08</text>
+    <rect x="474" y="881" width="244" height="48" rx="24" fill="#142f42" fill-opacity=".91" stroke="#dbe3d4" stroke-opacity=".23"/>
+    <circle cx="502" cy="905" r="12" fill="#edc18e"/>
+    <path d="M500 899q5-1 5 4l-1 6q0 2-2 2h-2l-3-4q-2-3 0-4 1 0 3 2z" fill="#284252"/>
+    <text x="524" y="910" fill="#f1eee3" font-size="13" font-weight="600">Tap to place</text>
+    <path d="M628 897h1v16" stroke="#68828b" stroke-width="1"/>
+    <rect x="645" y="894" width="52" height="22" rx="6" fill="#e1e5d9" fill-opacity=".1" stroke="#cfd9d1" stroke-opacity=".23"/>
+    <text x="671" y="909" fill="#d0dbd3" font-size="9" letter-spacing=".6" text-anchor="middle">SPACE</text>
+  </g>
+
+  <!-- Compact daily leaderboard -->
+  <rect x="1180" y="238" width="372" height="574" rx="26" fill="#142b3d" stroke="#b6c8bc" stroke-opacity=".16"/>
+  <g class="ui">
+    <text x="1212" y="281" fill="#8fa8aa" font-size="10" letter-spacing="1.4">12 NOVEMBER</text>
+    <text x="1212" y="321" fill="#f0eee4" font-size="24" font-weight="600">Daily board</text>
+    <text x="1519" y="281" fill="#9db1ac" font-size="11" text-anchor="end">84 players</text>
+    <text x="1212" y="347" fill="#a9b9b2" font-size="12">Same wind for everyone</text>
+    <path d="M1212 372h308" stroke="#3c5362" stroke-width="1"/>
+    <text x="1212" y="399" fill="#829a9f" font-size="10" letter-spacing="1">PLAYER</text>
+    <text x="1519" y="399" fill="#829a9f" font-size="10" letter-spacing="1" text-anchor="end">HEIGHT</text>
+
+    <g>
+      <circle cx="1228" cy="445" r="15" fill="#d8ad7e"/>
+      <path d="M1228 435l3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" fill="#fff0ce"/>
+      <circle cx="1268" cy="445" r="16" fill="#849f91"/>
+      <path d="M1268 434q7 7 0 21-7-14 0-21zm-9 14q7 0 10 7-8 2-10-7zm17-3q-7 0-9 7 7 1 9-7z" fill="#e9eee0"/>
+      <text x="1295" y="450" fill="#edf0e6" font-size="14" font-weight="600">mosslight</text>
+      <text x="1519" y="451" fill="#f1e6d2" font-size="18" text-anchor="end">31</text>
+    </g>
+    <path d="M1212 478h308" stroke="#2b4355" stroke-width="1"/>
+    <g>
+      <circle cx="1228" cy="520" r="15" fill="#84969b"/>
+      <text x="1228" y="524" fill="#f5f0e5" font-size="11" text-anchor="middle" font-weight="700">2</text>
+      <circle cx="1268" cy="520" r="16" fill="#806f90"/>
+      <path d="M1268 509l2 8 8 3-8 2-2 8-2-8-8-2 8-3z" fill="#eee2f0"/>
+      <text x="1295" y="525" fill="#dce5dc" font-size="14">moonmoss</text>
+      <text x="1519" y="526" fill="#dce5dc" font-size="18" text-anchor="end">28</text>
+    </g>
+    <path d="M1212 553h308" stroke="#2b4355" stroke-width="1"/>
+    <g>
+      <circle cx="1228" cy="595" r="15" fill="#8e7568"/>
+      <text x="1228" y="599" fill="#f5f0e5" font-size="11" text-anchor="middle" font-weight="700">3</text>
+      <circle cx="1268" cy="595" r="16" fill="#cb8b75"/>
+      <path d="M1259 600q9-18 18 0-9-5-18 0z" fill="#fff0d7"/>
+      <text x="1295" y="600" fill="#dce5dc" font-size="14">littlecomet</text>
+      <text x="1519" y="601" fill="#dce5dc" font-size="18" text-anchor="end">26</text>
+    </g>
+
+    <path d="M1212 633h308" stroke="#3c5362" stroke-width="1"/>
+    <rect x="1204" y="652" width="324" height="75" rx="16" fill="#213d4f" stroke="#d4ad7d" stroke-opacity=".5"/>
+    <rect x="1219" y="671" width="39" height="36" rx="12" fill="#d6ae80"/>
+    <text x="1238.5" y="695" fill="#253e4c" font-size="14" font-weight="700" text-anchor="middle">18</text>
+    <text x="1274" y="683" fill="#f0eee4" font-size="14" font-weight="600">you</text>
+    <text x="1274" y="705" fill="#aabbb5" font-size="11">Today's best</text>
+    <text x="1510" y="697" fill="#f0e7d8" font-size="18" text-anchor="end">14</text>
+  </g>
+
+  <rect x="1180" y="238" width="372" height="574" rx="26" fill="none" stroke="#d5e0d3" stroke-opacity=".04"/>
+</svg>
