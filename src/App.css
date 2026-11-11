@@ -76,6 +76,12 @@
   animation: stone-land .32s cubic-bezier(.18, .78, .25, 1.18) both;
 }
 
+.block-grow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: block-expand .4s cubic-bezier(.18, .78, .25, 1.12) both;
+}
+
 .perfect-stone {
   filter: drop-shadow(0 0 7px rgba(255, 220, 159, .56));
 }
@@ -104,6 +110,12 @@
 @keyframes stone-land {
   from { opacity: .68; transform: translateY(-13px) scaleY(.94); }
   to { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+
+@keyframes block-expand {
+  from { transform: scaleX(.9); }
+  68% { transform: scaleX(1.045); }
+  to { transform: scaleX(1); }
 }
 
 @keyframes ray-flash {

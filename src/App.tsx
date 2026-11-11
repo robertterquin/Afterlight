@@ -69,21 +69,23 @@ function BlockShape({
 
   return (
     <g className={classes || undefined}>
-      <polygon
-        points={`${block.x},${y + bevel} ${block.x + bevel},${y} ${block.x + block.width + bevel},${y} ${block.x + block.width},${y + bevel}`}
-        fill={top}
-      />
-      <rect x={block.x} y={y + bevel} width={block.width} height={faceHeight} rx="2" fill={front} />
-      <polygon
-        points={`${block.x + block.width},${y + bevel} ${block.x + block.width + bevel},${y} ${block.x + block.width + bevel},${y + faceHeight - 2} ${block.x + block.width},${y + BLOCK_HEIGHT}`}
-        fill={side}
-      />
-      {block.width > 85 && (
-        <g fill={active ? '#fff0ce' : '#ffe0aa'} opacity=".88">
-          <rect x={block.x + block.width * 0.24} y={y + 22} width="11" height="14" rx="2" />
-          <rect x={block.x + block.width * 0.58} y={y + 22} width="11" height="14" rx="2" />
-        </g>
-      )}
+      <g className={perfect ? 'block-grow' : undefined}>
+        <polygon
+          points={`${block.x},${y + bevel} ${block.x + bevel},${y} ${block.x + block.width + bevel},${y} ${block.x + block.width},${y + bevel}`}
+          fill={top}
+        />
+        <rect x={block.x} y={y + bevel} width={block.width} height={faceHeight} rx="2" fill={front} />
+        <polygon
+          points={`${block.x + block.width},${y + bevel} ${block.x + block.width + bevel},${y} ${block.x + block.width + bevel},${y + faceHeight - 2} ${block.x + block.width},${y + BLOCK_HEIGHT}`}
+          fill={side}
+        />
+        {block.width > 85 && (
+          <g fill={active ? '#fff0ce' : '#ffe0aa'} opacity=".88">
+            <rect x={block.x + block.width * 0.24} y={y + 22} width="11" height="14" rx="2" />
+            <rect x={block.x + block.width * 0.58} y={y + 22} width="11" height="14" rx="2" />
+          </g>
+        )}
+      </g>
     </g>
   )
 }

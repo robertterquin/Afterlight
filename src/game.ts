@@ -9,6 +9,8 @@ const LANE_LEFT = 90
 const LANE_RIGHT = 910
 const PERFECT_TOLERANCE = 5
 const MAX_SPEED = STARTING_SPEED * 2.2
+const PERFECT_GROWTH = 12
+const MAX_BLOCK_WIDTH = STARTING_WIDTH + 120
 const FLOORS_PER_WIND_CHANGE = 5
 
 export type Phase = 'ready' | 'playing' | 'paused' | 'over'
@@ -37,6 +39,7 @@ export type GameState = {
   tick: number
   placementTicks: number[]
   perfects: number
+  perfectStreak: number
   lastDropWasPerfect: boolean
 }
 
@@ -98,6 +101,7 @@ export const createGame = (challenge = createDailyChallenge()): GameState => ({
   tick: 0,
   placementTicks: [],
   perfects: 0,
+  perfectStreak: 0,
   lastDropWasPerfect: false,
 })
 
@@ -155,6 +159,7 @@ export const placeBlock = (game: GameState): GameState => {
       phase: 'over',
       moving: null,
       placementTicks,
+      perfectStreak: 0,
       lastDropWasPerfect: false,
     }
   }
@@ -162,9 +167,16 @@ export const placeBlock = (game: GameState): GameState => {
   const previousCenter = previous.x + previous.width / 2
   const movingCenter = game.moving.x + game.moving.width / 2
   const perfect = Math.abs(previousCenter - movingCenter) <= PERFECT_TOLERANCE
-  const landed: Block = perfect
-    ? { x: previous.x, width: previous.width }
-    : { x: overlapLeft, width: overlap }
+  const perfectStreak = perfect ? game.perfectStreak + 1 : 0
+  let landed: Block
+  if (perfect) {
+    const width = Math.min(MAX_BLOCK_WIDTH, previous.width + PERFECT_GROWTH)
+    const center = previous.x + previous.width / 2
+    const x = Math.max(LANE_LEFT, Math.min(center - width / 2, LANE_RIGHT - width))
+    landed = { x, width }
+  } else {
+    landed = { x: overlapLeft, width: overlap }
+  }
   const stack = [...game.stack, landed]
   const height = stack.length - 1
   const windPercent = windPercentAtHeight(game.challenge.seed, height)
@@ -179,6 +191,7 @@ export const placeBlock = (game: GameState): GameState => {
     windPercent,
     placementTicks,
     perfects: game.perfects + Number(perfect),
+    perfectStreak,
     lastDropWasPerfect: perfect,
     moving: { x: nextX, width: landed.width, direction },
   }

@@ -16,7 +16,7 @@ npm run dev
 - Use the pause button or **Escape** to pause and resume.
 - Use the sound button to mute or enable placement feedback; the preference is saved in this browser.
 
-The prototype includes block overlap, perfect placements, height scoring, a speed increase every five stones, miss detection, replay, placement sounds, and settling animations. Every five perfect placements lights another beacon detail; this is visual progress only.
+The prototype includes block overlap, perfect placements, height scoring, a speed increase every five stones, miss detection, replay, placement sounds, and settling animations. Consecutive perfect placements grow the new block by 12 logical units, up to 340; a non-perfect placement resets the streak. Every five perfect placements also lights another beacon detail; this is visual progress only.
 
 ## Daily challenge
 
