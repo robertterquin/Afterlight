@@ -51,12 +51,14 @@ function BlockShape({
   active = false,
   landed = false,
   perfect = false,
+  grew = false,
 }: {
   block: Block
   y: number
   active?: boolean
   landed?: boolean
   perfect?: boolean
+  grew?: boolean
 }) {
   const bevel = 10
   const faceHeight = BLOCK_HEIGHT - bevel
@@ -69,7 +71,7 @@ function BlockShape({
 
   return (
     <g className={classes || undefined}>
-      <g className={perfect ? 'block-grow' : undefined}>
+      <g className={grew ? 'block-grow' : undefined}>
         <polygon
           points={`${block.x},${y + bevel} ${block.x + bevel},${y} ${block.x + block.width + bevel},${y} ${block.x + block.width},${y + bevel}`}
           fill={top}
@@ -191,6 +193,7 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
             y={groundY - (index + 1) * BLOCK_HEIGHT}
             landed={index === game.stack.length - 1 && game.stack.length > 1}
             perfect={index === game.stack.length - 1 && game.lastDropWasPerfect}
+            grew={index === game.stack.length - 1 && game.lastDropGrew}
           />
         ))}
         {game.moving && (

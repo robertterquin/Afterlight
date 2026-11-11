@@ -13,7 +13,7 @@ Players stack moving stone platforms to raise a beacon between floating islands.
 - A run starts when the player selects **Start climb**. One platform then moves horizontally above the tower.
 - The platform reverses at the playfield edges. Players place it with tap, click, or Space.
 - On placement, only the horizontal overlap with the previous platform remains. The overhang falls away.
-- A placement is **perfect** when its center is within 5 logical units of the previous platform's center. A perfect placement snaps into alignment and adds 12 logical units to the new platform, up to a 340-unit cap. Each consecutive perfect landing grows it again.
+- A placement is **perfect** when its center is within 5 logical units of the previous platform's center. A perfect placement snaps into alignment. Every fifth consecutive perfect landing adds 60 logical units to the new platform, up to a 340-unit cap.
 - A non-perfect placement keeps the overlap width and resets the current perfect streak.
 - If the proposed overlap is under 48 logical units, the drop misses and the run ends without counting that platform. The foundation is not included in the height score.
 - Height is the primary score. The best single run for each player is submitted for that day; retries are unlimited.

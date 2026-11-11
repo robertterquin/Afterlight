@@ -9,7 +9,8 @@ const LANE_LEFT = 90
 const LANE_RIGHT = 910
 const PERFECT_TOLERANCE = 5
 const MAX_SPEED = STARTING_SPEED * 2.2
-const PERFECT_GROWTH = 12
+const PERFECTS_PER_GROWTH = 5
+const PERFECT_GROWTH = 60
 const MAX_BLOCK_WIDTH = STARTING_WIDTH + 120
 const FLOORS_PER_WIND_CHANGE = 5
 
@@ -41,6 +42,7 @@ export type GameState = {
   perfects: number
   perfectStreak: number
   lastDropWasPerfect: boolean
+  lastDropGrew: boolean
 }
 
 export const getUtcDate = (date = new Date()) => date.toISOString().slice(0, 10)
@@ -103,6 +105,7 @@ export const createGame = (challenge = createDailyChallenge()): GameState => ({
   perfects: 0,
   perfectStreak: 0,
   lastDropWasPerfect: false,
+  lastDropGrew: false,
 })
 
 export const heightOf = (game: GameState) => game.stack.length - 1
@@ -161,6 +164,7 @@ export const placeBlock = (game: GameState): GameState => {
       placementTicks,
       perfectStreak: 0,
       lastDropWasPerfect: false,
+      lastDropGrew: false,
     }
   }
 
@@ -168,12 +172,17 @@ export const placeBlock = (game: GameState): GameState => {
   const movingCenter = game.moving.x + game.moving.width / 2
   const perfect = Math.abs(previousCenter - movingCenter) <= PERFECT_TOLERANCE
   const perfectStreak = perfect ? game.perfectStreak + 1 : 0
+  const growthStep = perfect && perfectStreak % PERFECTS_PER_GROWTH === 0
   let landed: Block
+  let lastDropGrew = false
   if (perfect) {
-    const width = Math.min(MAX_BLOCK_WIDTH, previous.width + PERFECT_GROWTH)
+    const width = growthStep
+      ? Math.min(MAX_BLOCK_WIDTH, previous.width + PERFECT_GROWTH)
+      : previous.width
     const center = previous.x + previous.width / 2
     const x = Math.max(LANE_LEFT, Math.min(center - width / 2, LANE_RIGHT - width))
     landed = { x, width }
+    lastDropGrew = width > previous.width
   } else {
     landed = { x: overlapLeft, width: overlap }
   }
@@ -193,6 +202,7 @@ export const placeBlock = (game: GameState): GameState => {
     perfects: game.perfects + Number(perfect),
     perfectStreak,
     lastDropWasPerfect: perfect,
+    lastDropGrew,
     moving: { x: nextX, width: landed.width, direction },
   }
 }
