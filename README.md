@@ -18,6 +18,10 @@ npm run dev
 
 The prototype includes block overlap, perfect placements, height scoring, a speed increase every five stones, miss detection, replay, placement sounds, and settling animations. Every fifth consecutive perfect landing grows the new block by 60 logical units, up to 340; a non-perfect placement resets the streak. Every five perfect placements also lights another beacon detail; this is visual progress only.
 
+## Animation
+
+Motion for React powers the camera easing, block landings, falling overhangs, and state-panel transitions. CSS adds subtle star and water movement. Transform animations respect the device's reduced-motion setting.
+
 ## Daily challenge
 
 The challenge date uses UTC (`YYYY-MM-DD`) and changes at 00:00 UTC. FNV-1a hashes that date into the daily seed. Wind changes every five floors: each segment uses Mulberry32 seeded with the daily seed XOR the segment number multiplied by `0x9e3779b9`, then maps its first value to an integer from −8% to +8%. The wind modifier is applied before the 2.2× speed cap.

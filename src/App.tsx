@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import './App.css'
 import {
   advanceGame,
@@ -52,6 +53,7 @@ function BlockShape({
   landed = false,
   perfect = false,
   grew = false,
+  motionScale = 1,
 }: {
   block: Block
   y: number
@@ -59,19 +61,27 @@ function BlockShape({
   landed?: boolean
   perfect?: boolean
   grew?: boolean
+  motionScale?: number
 }) {
   const bevel = 10
   const faceHeight = BLOCK_HEIGHT - bevel
   const top = active ? '#fff0c9' : '#dcebd6'
   const front = active ? '#dda875' : '#78aa9c'
   const side = active ? '#ad735e' : '#47757a'
-  const classes = [active && 'moving-block', landed && 'stone-settle', perfect && 'perfect-stone']
+  const classes = [active && 'moving-block', perfect && 'perfect-stone']
     .filter(Boolean)
     .join(' ')
 
   return (
-    <g className={classes || undefined}>
-      <g className={grew ? 'block-grow' : undefined}>
+    <motion.g
+      className={classes || undefined}
+      initial={landed ? { opacity: 0.74, y: -13 * motionScale, scaleY: 0.94, scaleX: grew ? 0.86 : 1 } : false}
+      animate={{ opacity: 1, y: 0, scaleY: 1, scaleX: 1 }}
+      transition={landed
+        ? { type: 'spring', stiffness: 460, damping: 25, mass: 0.65 }
+        : { duration: 0 }}
+      style={{ transformBox: 'fill-box', transformOrigin: 'center bottom' }}
+    >
         <polygon
           points={`${block.x},${y + bevel} ${block.x + bevel},${y} ${block.x + block.width + bevel},${y} ${block.x + block.width},${y + bevel}`}
           fill={top}
@@ -87,8 +97,7 @@ function BlockShape({
             <rect x={block.x + block.width * 0.58} y={y + 22} width="11" height="14" rx="2" />
           </g>
         )}
-      </g>
-    </g>
+    </motion.g>
   )
 }
 
@@ -102,7 +111,7 @@ function Lantern({ x, y, lit }: { x: number; y: number; lit: boolean }) {
   )
 }
 
-function GameScene({ game, height }: { game: GameState; height: number }) {
+function GameScene({ game, height, scale }: { game: GameState; height: number; scale: number }) {
   const groundY = height - 105
   const activeY = groundY - (game.stack.length + 1) * BLOCK_HEIGHT
   const targetY = height * 0.43
@@ -146,14 +155,20 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
       <circle cx="820" cy={height * 0.27} r="42" fill="#f1d9ba" opacity=".92" />
       <path d={`M830 ${height * 0.27 - 39}a42 42 0 1 0 28 68 38 38 0 0 1-28-68z`} fill="#d1aa99" opacity=".25" />
 
-      {starPositions.map(([x, y], index) => (
-        <circle key={index} cx={x} cy={height * y} r={index % 3 === 0 ? 1.7 : 1.2} fill="#f5e8ce" opacity={index % 2 ? '.56' : '.8'} />
-      ))}
+      <g className="sky-stars">
+        {starPositions.map(([x, y], index) => (
+          <circle key={index} cx={x} cy={height * y} r={index % 3 === 0 ? 1.7 : 1.2} fill="#f5e8ce" opacity={index % 2 ? '.56' : '.8'} />
+        ))}
+      </g>
       <path d={`M0 ${horizon}q130 -80 250 -26 130 -94 250 -10 140 -91 270 -8 110 -59 230 18v150H0z`} fill="#53536c" opacity=".72" />
       <path d={`M0 ${horizon + 72}q120 -55 235 -8 111 -72 227 -5 131 -74 253 -9 124 -62 285 -3v140H0z`} fill="#344b61" opacity=".92" />
 
       {/* Far islands */}
       <g transform={`translate(0 ${height * 0.45})`}>
+        <motion.g
+          animate={{ y: [0, -2.5, 0] }}
+          transition={{ duration: 7.5, repeat: Infinity, ease: 'easeInOut' }}
+        >
         <path d="M58 70q20-40 65-31 38-34 78 0 47-8 68 32l-18 18q-42 4-63 27l-31-4-34 24-23-15-36 5-13-25-26-7z" fill="#294354" />
         <path d="M72 67q24-28 62-22 40-33 74 0 41-7 59 26-29 12-61 6-39 14-72 0-33 10-62-10z" fill="#91a89b" />
         <path d="M131 52h22v26h-22zM126 53l16-15 16 15z" fill="#e2bd98" />
@@ -161,8 +176,13 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
         <Lantern x={95} y={49} lit={Math.floor(game.perfects / 5) >= 1} />
         <Lantern x={142} y={66} lit={Math.floor(game.perfects / 5) >= 2} />
         <Lantern x={215} y={47} lit={Math.floor(game.perfects / 5) >= 3} />
+        </motion.g>
       </g>
       <g transform={`translate(0 ${height * 0.41})`}>
+        <motion.g
+          animate={{ y: [0, 2, 0] }}
+          transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
+        >
         <path d="M760 82q24-42 67-34 42-36 82-1 44-8 71 33l-18 20q-43 7-64 26l-33-6-35 25-23-14-36 4-13-24-27-7z" fill="#294354" />
         <path d="M774 78q24-30 62-25 42-34 78 0 41-6 58 28-28 11-60 4-39 15-72 1-34 9-66-8z" fill="#9db19f" />
         <path d="M835 64h26v30h-26zM829 65l19-18 19 18z" fill="#e4c19a" />
@@ -170,10 +190,15 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
         <Lantern x={848} y={80} lit={Math.floor(game.perfects / 5) >= 4} />
         <Lantern x={887} y={57} lit={Math.floor(game.perfects / 5) >= 5} />
         <Lantern x={923} y={60} lit={Math.floor(game.perfects / 5) >= 6} />
+        </motion.g>
       </g>
 
       {/* The beacon island and tower follow the camera as the stack climbs. */}
-      <g transform={`translate(0 ${cameraShift})`}>
+      <motion.g
+        initial={false}
+        animate={{ y: cameraShift * scale }}
+        transition={{ type: 'spring', stiffness: 78, damping: 27, mass: 0.85 }}
+      >
         <ellipse cx="500" cy={groundY + 12} rx="276" ry="36" fill="#132a3e" opacity=".38" />
         <path d={`M224 ${groundY - 8}q38-58 116-48 50-49 117-28 60-47 125-12 77-32 134 20 73 2 103 56l-34 30q-57-4-92 26l-57-13-66 42-53-20-70 34-44-25-75 17-32-31-64-11z`} fill="#294354" />
         <path d={`M240 ${groundY - 14}q46-45 108-32 55-49 118-24 61-46 122-10 71-25 124 21 60 5 88 45-44 19-104 10-66 23-122 4-67 22-127 3-74 22-123-1-42 10-84-16z`} fill="#9fb29d" />
@@ -194,7 +219,23 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
             landed={index === game.stack.length - 1 && game.stack.length > 1}
             perfect={index === game.stack.length - 1 && game.lastDropWasPerfect}
             grew={index === game.stack.length - 1 && game.lastDropGrew}
+            motionScale={scale}
           />
+        ))}
+        {game.fallingPieces.map((piece) => (
+          <motion.g
+            key={`${piece.id}-${piece.x}`}
+            initial={{ opacity: 1, y: 0, rotate: 0 }}
+            animate={{ opacity: 0, y: height * 0.3 * scale, rotate: piece.direction * 32 }}
+            transition={{ duration: 0.82, ease: 'easeIn' }}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+          >
+            <BlockShape
+              block={piece}
+              y={groundY - piece.level * BLOCK_HEIGHT}
+              active
+            />
+          </motion.g>
         ))}
         {game.moving && (
           <>
@@ -222,10 +263,10 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
             r="18"
           />
         )}
-      </g>
+      </motion.g>
 
       <path d={`M0 ${height - 58}q112-32 224 0 130-31 264 1 133-35 268 0 111-30 244 4v${58}`} fill="url(#sea)" opacity=".88" />
-      <path d={`M418 ${height - 45}h166m-140 13h116m-96 12h76`} stroke="#efd2ad" strokeWidth="1.6" opacity=".2" strokeLinecap="round" />
+      <path className="water-glint" d={`M418 ${height - 45}h166m-140 13h116m-96 12h76`} stroke="#efd2ad" strokeWidth="1.6" opacity=".2" strokeLinecap="round" />
     </svg>
   )
 }
@@ -233,6 +274,7 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
 function App() {
   const [game, setGame] = useState(createGame)
   const [sceneHeight, setSceneHeight] = useState(760)
+  const [sceneScale, setSceneScale] = useState(1)
   const [perfectToast, setPerfectToast] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(readSoundPreference)
   const stageRef = useRef<HTMLDivElement>(null)
@@ -332,6 +374,7 @@ function App() {
       const { width, height } = entry.contentRect
       if (width > 0 && height > 0) {
         setSceneHeight(Math.round((WORLD_WIDTH * height) / width))
+        setSceneScale(width / WORLD_WIDTH)
       }
     })
     resizeObserver.observe(stage)
@@ -406,6 +449,7 @@ function App() {
   const height = heightOf(game)
 
   return (
+    <MotionConfig reducedMotion="user">
     <main className="app-shell">
       <header className="topbar">
         <a className="brand" href="#top" aria-label="Afterlight home">
@@ -413,23 +457,34 @@ function App() {
           <span>AFTERLIGHT</span>
         </a>
         <div className="topbar-actions">
-          <button
+          <motion.button
             className="icon-button"
             type="button"
             onClick={toggleSound}
             aria-label={soundEnabled ? 'Mute sound' : 'Turn sound on'}
             aria-pressed={soundEnabled}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.94 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 22 }}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               {soundEnabled
                 ? <path d="M4 10v4h4l5 4V6l-5 4H4zm12-2a6 6 0 0 1 0 8m2-11a10 10 0 0 1 0 14" />
                 : <path d="M4 10v4h4l5 4V6l-5 4H4zm12 1 5 5m0-5-5 5" />}
             </svg>
-          </button>
+          </motion.button>
           {game.phase === 'playing' && (
-            <button className="icon-button" type="button" onClick={() => commitGame(pauseGame(gameRef.current))} aria-label="Pause game">
+            <motion.button
+              className="icon-button"
+              type="button"
+              onClick={() => commitGame(pauseGame(gameRef.current))}
+              aria-label="Pause game"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.94 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 22 }}
+            >
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14m8-14v14" /></svg>
-            </button>
+            </motion.button>
           )}
         </div>
       </header>
@@ -440,7 +495,7 @@ function App() {
           ref={stageRef}
           onPointerDown={handlePlace}
         >
-          <GameScene game={game} height={sceneHeight} />
+          <GameScene game={game} height={sceneHeight} scale={sceneScale} />
 
           <div className="height-readout" aria-live="polite">
             <span>Height</span>
@@ -471,32 +526,96 @@ function App() {
             <div className="perfect-toast" role="status">Perfect</div>
           )}
 
-          {game.phase === 'ready' && (
-            <div className="state-card ready-card">
-              <button className="primary-button" type="button" onClick={start}>Start climb</button>
-              <span className="keyboard-hint">or press Space</span>
-            </div>
-          )}
+          <AnimatePresence mode="wait">
+            {game.phase === 'ready' && (
+              <motion.div
+                key="ready"
+                className="state-card ready-card"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.22 }}
+              >
+                <motion.button
+                  className="primary-button"
+                  type="button"
+                  onClick={start}
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: 'spring', stiffness: 460, damping: 24 }}
+                >
+                  Start climb
+                </motion.button>
+                <span className="keyboard-hint">or press Space</span>
+              </motion.div>
+            )}
 
-          {game.phase === 'paused' && (
-            <div className="state-card" role="dialog" aria-modal="true" aria-labelledby="pause-title">
-              <h1 id="pause-title">Paused</h1>
-              <button className="primary-button" type="button" onClick={() => setGame((current) => resumeGame(current))}>Resume</button>
-              <button className="text-button" type="button" onClick={() => setGame((current) => endGame(current))}>End run</button>
-            </div>
-          )}
+            {game.phase === 'paused' && (
+              <motion.div
+                key="paused"
+                className="state-card"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="pause-title"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.22 }}
+              >
+                <h1 id="pause-title">Paused</h1>
+                <motion.button
+                  className="primary-button"
+                  type="button"
+                  onClick={() => setGame((current) => resumeGame(current))}
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: 'spring', stiffness: 460, damping: 24 }}
+                >
+                  Resume
+                </motion.button>
+                <motion.button
+                  className="text-button"
+                  type="button"
+                  onClick={() => setGame((current) => endGame(current))}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  End run
+                </motion.button>
+              </motion.div>
+            )}
 
-          {game.phase === 'over' && (
-            <div className="state-card" role="dialog" aria-modal="true" aria-labelledby="over-title">
-              <h1 id="over-title">Run over</h1>
-              <p className="result-line"><strong>{height}</strong> {height === 1 ? 'stone' : 'stones'} placed</p>
-              {game.perfects > 0 && <p className="result-detail">{game.perfects} perfect {game.perfects === 1 ? 'landing' : 'landings'}</p>}
-              <button className="primary-button" type="button" onClick={retry}>Try again</button>
-            </div>
-          )}
+            {game.phase === 'over' && (
+              <motion.div
+                key="over"
+                className="state-card"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="over-title"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.24 }}
+              >
+                <h1 id="over-title">Run over</h1>
+                <p className="result-line"><strong>{height}</strong> {height === 1 ? 'stone' : 'stones'} placed</p>
+                {game.perfects > 0 && <p className="result-detail">{game.perfects} perfect {game.perfects === 1 ? 'landing' : 'landings'}</p>}
+                <motion.button
+                  className="primary-button"
+                  type="button"
+                  onClick={retry}
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: 'spring', stiffness: 460, damping: 24 }}
+                >
+                  Try again
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </section>
     </main>
+    </MotionConfig>
   )
 }
 

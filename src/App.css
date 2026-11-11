@@ -70,16 +70,16 @@
   animation: lantern-light .58s ease-out both;
 }
 
-.stone-settle {
-  transform-box: fill-box;
-  transform-origin: center bottom;
-  animation: stone-land .32s cubic-bezier(.18, .78, .25, 1.18) both;
+.sky-stars circle:nth-child(3n) {
+  animation: star-shimmer 6.5s ease-in-out infinite;
 }
 
-.block-grow {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: block-expand .4s cubic-bezier(.18, .78, .25, 1.12) both;
+.sky-stars circle:nth-child(3n + 1) {
+  animation: star-shimmer 7.5s 1.8s ease-in-out infinite;
+}
+
+.water-glint {
+  animation: water-glint 5.5s ease-in-out infinite;
 }
 
 .perfect-stone {
@@ -107,15 +107,14 @@
   to { opacity: 1; }
 }
 
-@keyframes stone-land {
-  from { opacity: .68; transform: translateY(-13px) scaleY(.94); }
-  to { opacity: 1; transform: translateY(0) scaleY(1); }
+@keyframes star-shimmer {
+  0%, 100% { opacity: .48; }
+  50% { opacity: .9; }
 }
 
-@keyframes block-expand {
-  from { transform: scaleX(.9); }
-  68% { transform: scaleX(1.045); }
-  to { transform: scaleX(1); }
+@keyframes water-glint {
+  0%, 100% { opacity: .12; }
+  50% { opacity: .34; }
 }
 
 @keyframes ray-flash {
@@ -317,12 +316,11 @@
   background: #edc392;
   font: 650 14px/1 'Avenir Next', 'Segoe UI', sans-serif;
   cursor: pointer;
-  transition: background-color .16s ease, transform .16s ease;
+  transition: background-color .16s ease;
 }
 
 .primary-button:hover {
   background: #f3d3aa;
-  transform: translateY(-1px);
 }
 
 .primary-button:focus-visible,

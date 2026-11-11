@@ -30,11 +30,18 @@ export type MovingBlock = Block & {
   direction: -1 | 1
 }
 
+export type FallingPiece = Block & {
+  id: number
+  level: number
+  direction: -1 | 1
+}
+
 export type GameState = {
   phase: Phase
   challenge: DailyChallenge
   stack: Block[]
   moving: MovingBlock | null
+  fallingPieces: FallingPiece[]
   speed: number
   windPercent: number
   tick: number
@@ -98,6 +105,7 @@ export const createGame = (challenge = createDailyChallenge()): GameState => ({
   challenge,
   stack: [{ x: (WORLD_WIDTH - STARTING_WIDTH) / 2, width: STARTING_WIDTH }],
   moving: null,
+  fallingPieces: [],
   speed: STARTING_SPEED,
   windPercent: 0,
   tick: 0,
@@ -161,6 +169,13 @@ export const placeBlock = (game: GameState): GameState => {
       ...game,
       phase: 'over',
       moving: null,
+      fallingPieces: [{
+        id: placementTicks.length - 1,
+        x: game.moving.x,
+        width: game.moving.width,
+        level: game.stack.length + 1,
+        direction: game.moving.direction,
+      }],
       placementTicks,
       perfectStreak: 0,
       lastDropWasPerfect: false,
@@ -173,6 +188,29 @@ export const placeBlock = (game: GameState): GameState => {
   const perfect = Math.abs(previousCenter - movingCenter) <= PERFECT_TOLERANCE
   const perfectStreak = perfect ? game.perfectStreak + 1 : 0
   const growthStep = perfect && perfectStreak % PERFECTS_PER_GROWTH === 0
+  const id = placementTicks.length - 1
+  const fallingPieces: FallingPiece[] = []
+  if (!perfect) {
+    const movingRight = game.moving.x + game.moving.width
+    if (game.moving.x < overlapLeft) {
+      fallingPieces.push({
+        id,
+        x: game.moving.x,
+        width: overlapLeft - game.moving.x,
+        level: game.stack.length + 1,
+        direction: -1,
+      })
+    }
+    if (movingRight > overlapRight) {
+      fallingPieces.push({
+        id,
+        x: overlapRight,
+        width: movingRight - overlapRight,
+        level: game.stack.length + 1,
+        direction: 1,
+      })
+    }
+  }
   let landed: Block
   let lastDropGrew = false
   if (perfect) {
@@ -196,6 +234,7 @@ export const placeBlock = (game: GameState): GameState => {
   return {
     ...game,
     stack,
+    fallingPieces,
     speed,
     windPercent,
     placementTicks,
