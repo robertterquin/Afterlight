@@ -32,6 +32,8 @@ const starPositions = [
 const BLOCK_BEVEL = 10
 const BLOCK_FACE_HEIGHT = BLOCK_HEIGHT - BLOCK_BEVEL
 const NEAR_PERFECT_TRIM = 22
+const FLOORS_PER_WORLD_MILESTONE = 5
+const MAX_WORLD_MILESTONE = 6
 
 type FeedbackSound = 'place' | 'perfect' | 'miss'
 type LandingFeedbackKind = 'landed' | 'near-perfect' | 'perfect' | null
@@ -469,6 +471,146 @@ function Lantern({
   )
 }
 
+function CottageWindows({ active, reducedMotion }: { active: boolean; reducedMotion: boolean }) {
+  return (
+    <motion.g
+      initial={false}
+      animate={{ opacity: active ? 1 : 0, scale: active ? 1 : 0.75 }}
+      transition={{ duration: reducedMotion ? 0 : 0.42, ease: 'easeOut' }}
+      style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+      pointerEvents="none"
+    >
+      {[[136, 62], [148, 62], [143, 70]].map(([x, y]) => (
+        <g key={`${x}-${y}`}>
+          <circle cx={x} cy={y} r="5" fill="#ffd98f" opacity=".25" filter="url(#soft-bloom)" />
+          <rect x={x - 1.5} y={y - 2} width="3" height="4" rx=".6" fill="#ffe9b7" />
+        </g>
+      ))}
+    </motion.g>
+  )
+}
+
+function Lighthouse({ active, reducedMotion }: { active: boolean; reducedMotion: boolean }) {
+  return (
+    <motion.g
+      initial={false}
+      animate={{ opacity: active ? 1 : 0, y: active ? 0 : 5 }}
+      transition={{ duration: reducedMotion ? 0 : 0.5, ease: 'easeOut' }}
+      pointerEvents="none"
+    >
+      {active && (
+        <motion.path
+          d="M958 41L832 11 832 72Z"
+          fill="#ffe2ac"
+          filter="url(#soft-bloom)"
+          initial={false}
+          animate={reducedMotion ? { opacity: .1 } : { opacity: [.06, .15, .06], rotate: [-3, 4, -3] }}
+          transition={reducedMotion
+            ? { duration: 0 }
+            : { duration: 6.4, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ transformBox: 'fill-box', transformOrigin: 'right center' }}
+        />
+      )}
+      <path d="M949 79V49h16v30z" fill="#e0c19a" />
+      <path d="M946 50l11-15 12 15z" fill="#294354" />
+      <path d="M951 56h12v5h-12z" fill="#ffd895" opacity=".7" />
+      <circle cx="957" cy="46" r="4.5" fill="#ffdf9d" filter="url(#soft-bloom)" />
+      <circle cx="957" cy="46" r="1.7" fill="#fff6db" />
+    </motion.g>
+  )
+}
+
+function BirdFlock({ active, reducedMotion }: { active: boolean; reducedMotion: boolean }) {
+  return (
+    <motion.g
+      initial={false}
+      animate={active
+        ? reducedMotion
+          ? { opacity: .56, x: 0 }
+          : { opacity: .56, x: [0, 24, -8, 0], y: [0, -3, 1, 0] }
+        : { opacity: 0, x: 0, y: 0 }}
+      transition={active && !reducedMotion
+        ? { duration: 12, repeat: Infinity, ease: 'easeInOut' }
+        : { duration: reducedMotion ? 0 : 0.45, ease: 'easeOut' }}
+      fill="none"
+      stroke="#f6e0bd"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      pointerEvents="none"
+    >
+      <path d="M304 176q6-6 12 0 6-6 12 0M338 192q5-5 10 0 5-5 10 0M276 204q4-4 8 0 4-4 8 0" />
+    </motion.g>
+  )
+}
+
+function HarborBuoy({
+  active,
+  waterY,
+  reducedMotion,
+}: {
+  active: boolean
+  waterY: number
+  reducedMotion: boolean
+}) {
+  return (
+    <motion.g
+      initial={false}
+      animate={{ opacity: active ? 1 : 0, y: active ? 0 : 8 }}
+      transition={{ duration: reducedMotion ? 0 : 0.5, ease: 'easeOut' }}
+      pointerEvents="none"
+    >
+      <path d={`M172 ${waterY + 7}V${waterY - 24}`} stroke="#264758" strokeWidth="3" strokeLinecap="round" />
+      <path d={`M164 ${waterY - 5}h16l-3 9h-10z`} fill="#496e73" />
+      <circle cx="172" cy={waterY - 27} r="8" fill="#ffd996" opacity=".28" filter="url(#soft-bloom)" />
+      <circle cx="172" cy={waterY - 27} r="3.1" fill="#ffeac0" />
+      <motion.path
+        d={`M158 ${waterY + 17}h28m-20 10h15`}
+        fill="none"
+        stroke="#f0cb91"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        initial={false}
+        animate={active && !reducedMotion ? { opacity: [.18, .62, .18] } : { opacity: active ? .36 : 0 }}
+        transition={active && !reducedMotion
+          ? { duration: 3.8, repeat: Infinity, ease: 'easeInOut' }
+          : { duration: 0 }}
+      />
+    </motion.g>
+  )
+}
+
+function DawnWaterPath({
+  active,
+  waterY,
+  reducedMotion,
+}: {
+  active: boolean
+  waterY: number
+  reducedMotion: boolean
+}) {
+  return (
+    <motion.g
+      initial={false}
+      animate={{ opacity: active ? 1 : 0, scaleX: active ? 1 : .4 }}
+      transition={{ duration: reducedMotion ? 0 : 0.7, ease: 'easeOut' }}
+      style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+      pointerEvents="none"
+    >
+      <motion.path
+        d={`M385 ${waterY + 8}h232m-194 12h156m-118 12h82`}
+        fill="none"
+        stroke="#f5d39f"
+        strokeWidth="2"
+        strokeLinecap="round"
+        animate={active && !reducedMotion ? { opacity: [.18, .52, .22] } : { opacity: active ? .32 : 0 }}
+        transition={active && !reducedMotion
+          ? { duration: 4.6, repeat: Infinity, ease: 'easeInOut' }
+          : { duration: 0 }}
+      />
+    </motion.g>
+  )
+}
+
 function WaterImpact({
   piece,
   waterY,
@@ -539,6 +681,7 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
   const waterY = height - 47
   const dawnStage = Math.min(heightOf(game) / 36, 1)
   const dawnProgress = dawnStage * dawnStage * (3 - 2 * dawnStage)
+  const worldMilestone = Math.min(MAX_WORLD_MILESTONE, Math.floor(heightOf(game) / FLOORS_PER_WORLD_MILESTONE))
   const signalStartIndex = game.perfectStreak > 0
     ? Math.max(0, game.stack.length - game.perfectStreak - 1)
     : game.stack.length
@@ -665,6 +808,7 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
           <circle key={index} cx={x} cy={height * y} r={index % 3 === 0 ? 1.7 : 1.2} fill="#f5e8ce" opacity={index % 2 ? '.56' : '.8'} />
         ))}
       </motion.g>
+      <BirdFlock active={worldMilestone >= 5} reducedMotion={reducedMotion} />
       <path d={`M0 ${horizon}q130 -80 250 -26 130 -94 250 -10 140 -91 270 -8 110 -59 230 18v150H0z`} fill="#53536c" opacity=".72" />
       <path d={`M0 ${horizon + 72}q120 -55 235 -8 111 -72 227 -5 131 -74 253 -9 124 -62 285 -3v140H0z`} fill="#344b61" opacity=".92" />
 
@@ -689,6 +833,7 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
         <path d="M72 67q24-28 62-22 40-33 74 0 41-7 59 26-29 12-61 6-39 14-72 0-33 10-62-10z" fill="#91a89b" />
         <path d="M131 52h22v26h-22zM126 53l16-15 16 15z" fill="#e2bd98" />
         <path d="M92 59v-20m-7 12 7-13 7 13m123 4V37m-7 12 7-13 7 13" stroke="#294354" strokeWidth="3" fill="none" strokeLinecap="round" />
+        <CottageWindows active={worldMilestone >= 1} reducedMotion={reducedMotion} />
         <Lantern x={95} y={49} lit={Math.floor(game.perfects / 5) >= 1} celebration={beaconCelebration} sequence={8} />
         <Lantern x={142} y={66} lit={Math.floor(game.perfects / 5) >= 2} celebration={beaconCelebration} sequence={6} />
         <Lantern x={215} y={47} lit={Math.floor(game.perfects / 5) >= 3} celebration={beaconCelebration} sequence={4} />
@@ -715,6 +860,7 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
         <path d="M774 78q24-30 62-25 42-34 78 0 41-6 58 28-28 11-60 4-39 15-72 1-34 9-66-8z" fill="#9db19f" />
         <path d="M835 64h26v30h-26zM829 65l19-18 19 18z" fill="#e4c19a" />
         <path d="M885 66V43m-8 13 8-14 8 14m37 12V47m-7 12 7-13 7 13" stroke="#294354" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+        <Lighthouse active={worldMilestone >= 3} reducedMotion={reducedMotion} />
         <Lantern x={848} y={80} lit={Math.floor(game.perfects / 5) >= 4} celebration={beaconCelebration} sequence={3} />
         <Lantern x={887} y={57} lit={Math.floor(game.perfects / 5) >= 5} celebration={beaconCelebration} sequence={5} />
         <Lantern x={923} y={60} lit={Math.floor(game.perfects / 5) >= 6} celebration={beaconCelebration} sequence={7} />
@@ -749,6 +895,10 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
         <Lantern x={355} y={groundY - 65} lit={Math.floor(game.perfects / 5) >= 7} celebration={beaconCelebration} sequence={2} />
         <Lantern x={397} y={groundY - 62} lit={Math.floor(game.perfects / 5) >= 8} celebration={beaconCelebration} sequence={0} />
         <Lantern x={726} y={groundY - 67} lit={Math.floor(game.perfects / 5) >= 9} celebration={beaconCelebration} sequence={1} />
+        <Lantern x={278} y={groundY - 31} lit={worldMilestone >= 4} celebration={worldMilestone >= 4 ? worldMilestone : 0} sequence={1} />
+        <Lantern x={316} y={groundY - 42} lit={worldMilestone >= 4} celebration={worldMilestone >= 4 ? worldMilestone : 0} sequence={2} />
+        <Lantern x={678} y={groundY - 40} lit={worldMilestone >= 4} celebration={worldMilestone >= 4 ? worldMilestone : 0} sequence={3} />
+        <Lantern x={720} y={groundY - 30} lit={worldMilestone >= 4} celebration={worldMilestone >= 4 ? worldMilestone : 0} sequence={4} />
 
         {beaconCelebration > 0 && (
           <motion.circle
@@ -859,6 +1009,8 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
       </motion.g>
 
       <path d={`M0 ${height - 58}q112-32 224 0 130-31 264 1 133-35 268 0 111-30 244 4v${58}`} fill="url(#sea)" opacity=".88" />
+      <HarborBuoy active={worldMilestone >= 2} waterY={waterY} reducedMotion={reducedMotion} />
+      <DawnWaterPath active={worldMilestone >= 6} waterY={waterY} reducedMotion={reducedMotion} />
       {game.fallingPieces.map((piece) => (
         <WaterImpact
           key={`water-impact-${piece.id}-${piece.x}`}
