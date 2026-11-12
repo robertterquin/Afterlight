@@ -743,6 +743,9 @@ function GameScene({
   const waterY = height - 47
   const dawnStage = Math.min(heightOf(game) / 36, 1)
   const dawnProgress = dawnStage * dawnStage * (3 - 2 * dawnStage)
+  const dawnTransition = reducedMotion
+    ? { duration: 0 }
+    : { duration: 1.8, ease: 'easeInOut' as const }
   const worldMilestone = Math.min(MAX_WORLD_MILESTONE, Math.floor(heightOf(game) / FLOORS_PER_WORLD_MILESTONE))
   const signalStartIndex = game.perfectStreak > 0
     ? Math.max(0, game.stack.length - game.perfectStreak - 1)
@@ -803,6 +806,10 @@ function GameScene({
           <stop stopColor="#4b7780" />
           <stop offset="1" stopColor="#142e42" />
         </linearGradient>
+        <linearGradient id="dawn-sea" x2="0" y2="1">
+          <stop stopColor="#cf9c91" stopOpacity=".58" />
+          <stop offset="1" stopColor="#4a7780" stopOpacity=".2" />
+        </linearGradient>
         <radialGradient id="moonlight">
           <stop stopColor="#f6d9b6" stopOpacity=".48" />
           <stop offset="1" stopColor="#f6d9b6" stopOpacity="0" />
@@ -819,7 +826,7 @@ function GameScene({
         fill="url(#dawn-sky)"
         initial={false}
         animate={{ opacity: dawnProgress }}
-        transition={{ duration: 1.8, ease: 'easeInOut' }}
+        transition={dawnTransition}
         pointerEvents="none"
       />
       <g transform={`translate(0 ${height * 0.16})`}>
@@ -868,7 +875,7 @@ function GameScene({
         className="sky-stars"
         initial={false}
         animate={{ opacity: 1 - dawnProgress }}
-        transition={{ duration: 1.8, ease: 'easeInOut' }}
+        transition={dawnTransition}
       >
         {starPositions.map(([x, y], index) => (
           <circle key={index} cx={x} cy={height * y} r={index % 3 === 0 ? 1.7 : 1.2} fill="#f5e8ce" opacity={index % 2 ? '.56' : '.8'} />
@@ -1005,7 +1012,7 @@ function GameScene({
               historicalPerfect={historicalPerfect}
               trimmedLeft={trimmedLeft}
               trimmedRight={trimmedRight}
-              stoneWarmth={Math.min(1, index / 32)}
+              stoneWarmth={Math.min(1, index / 32 + dawnProgress * 0.18)}
             />
           )
         })}
@@ -1079,6 +1086,14 @@ function GameScene({
       </motion.g>
 
       <path d={`M0 ${height - 58}q112-32 224 0 130-31 264 1 133-35 268 0 111-30 244 4v${58}`} fill="url(#sea)" opacity=".88" />
+      <motion.path
+        d={`M0 ${height - 58}q112-32 224 0 130-31 264 1 133-35 268 0 111-30 244 4v${58}`}
+        fill="url(#dawn-sea)"
+        initial={false}
+        animate={{ opacity: dawnProgress }}
+        transition={dawnTransition}
+        pointerEvents="none"
+      />
       <HarborBuoy active={worldMilestone >= 2} waterY={waterY} reducedMotion={reducedMotion} />
       <DawnWaterPath active={worldMilestone >= 6} waterY={waterY} reducedMotion={reducedMotion} />
       {game.fallingPieces.map((piece) => (
