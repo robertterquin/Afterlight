@@ -231,7 +231,8 @@ function useScenePreferences() {
   return preferences
 }
 
-function BlockShape({
+// Memoised: the game loop re-renders the scene 60 times a second, but a placed stone never changes.
+const BlockShape = memo(function BlockShape({
   block,
   y,
   active = false,
@@ -374,7 +375,7 @@ function BlockShape({
         />
     </motion.g>
   )
-}
+})
 
 function StartWake({
   block,
@@ -1279,11 +1280,11 @@ const HighSky = memo(function HighSky({ horizon, presence, reducedMotion }: { ho
       <rect width={WORLD_WIDTH} height={round1(horizon * 0.8)} fill="url(#high-sky)" />
       <path d={stars} fill="#f8eed9" opacity=".8" />
       <path
-        className={reducedMotion ? undefined : 'aurora'}
+        className={reducedMotion || presence === 0 ? undefined : 'aurora'}
         d={`M0 ${auroraY + 30}q160-90 330-34 170 56 330-20 180-70 340 10v60q-160-80-340-10-160 76-330 20-170-56-330 34z`}
         fill="url(#aurora)"
       />
-      {!reducedMotion && (
+      {!reducedMotion && presence > 0 && (
         <path className="shooting-star" d={`M760 ${round1(horizon * 0.12)}l-120 40`} stroke="#fff6e0" strokeWidth="2" strokeLinecap="round" />
       )}
     </motion.g>
@@ -1347,6 +1348,14 @@ function GameScene({
     setCelebration({ count: celebration.count + Number(celebrating), placement })
   }
   const beaconCelebration = celebration.count
+  // The engine only keeps the latest drop's trimmed pieces; keep the previous drop's too so a quick
+  // next placement does not cut a piece off mid-fall.
+  const [debris, setDebris] = useState({ placement, pieces: [] as Array<FallingPiece & { born: number }> })
+  if (debris.placement !== placement) {
+    const carried = placement > debris.placement ? debris.pieces.filter((piece) => piece.born >= placement - 1) : []
+    setDebris({ placement, pieces: [...carried, ...game.fallingPieces.map((piece) => ({ ...piece, born: placement }))] })
+  }
+  const fallingPieces = debris.placement === placement ? debris.pieces : game.fallingPieces
   const edition = dailyEditionForSeed(game.challenge.seed)
   const groundY = height - 105
   const activeY = groundY - (game.stack.length + 1) * BLOCK_HEIGHT
@@ -1510,7 +1519,7 @@ function GameScene({
           />
         )}
         </motion.g>
-        {game.fallingPieces.map((piece) => (
+        {fallingPieces.map((piece) => (
           <motion.g
             key={`${piece.id}-${piece.x}`}
             initial={{ opacity: 1, y: 0, rotate: 0 }}
@@ -1565,7 +1574,7 @@ function GameScene({
       </motion.g>
 
       <HarborBuoy active={cloudRise < 0.5} waterY={waterY} reducedMotion={reducedMotion} />
-      {game.fallingPieces.map((piece) => (
+      {fallingPieces.map((piece) => (
         <WaterImpact
           key={`water-impact-${piece.id}-${piece.x}`}
           piece={piece}
@@ -1995,7 +2004,13 @@ function App() {
                 <span>Height</span>
                 <strong>{String(height).padStart(2, '0')}</strong>
               </div>
-              {game.perfectStreak > 0 && <StreakPill streak={game.perfectStreak} />}
+              <AnimatePresence>
+                {game.perfectStreak > 0 && (
+                  <motion.div key="streak" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.25 }}>
+                    <StreakPill streak={game.perfectStreak} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
@@ -2012,12 +2027,22 @@ function App() {
           {inRun && leaderboardEntries.length > 0 && <HeightLadder entries={leaderboardEntries} height={height} />}
 
           {/* Only a first-drop hint; once a stone is placed the player knows the move. */}
+          <AnimatePresence>
           {game.phase === 'playing' && !isWaking && game.placementTicks.length === 0 && (
-            <div className="play-prompt chip" aria-hidden="true">
+            <motion.div
+              key="drop-hint"
+              className="play-prompt chip"
+              aria-hidden="true"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
               <span>Tap anywhere to drop</span>
               <kbd>SPACE</kbd>
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
 
           <AnimatePresence mode="wait">
             {game.phase === 'ready' && (

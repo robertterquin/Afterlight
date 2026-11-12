@@ -2026,3 +2026,24 @@
   0%, 100% { transform: skewY(0deg) scaleX(1); }
   50% { transform: skewY(4deg) scaleX(.9); }
 }
+
+/* The phone board sheet slides up instead of appearing at once. */
+@media (max-width: 900px) {
+  .leaderboard.is-open {
+    animation: sheet-up .32s cubic-bezier(.2, .8, .2, 1) both;
+  }
+
+  .leaderboard-backdrop {
+    animation: backdrop-in .25s ease-out both;
+  }
+}
+
+@keyframes sheet-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
