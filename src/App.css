@@ -71,26 +71,27 @@
   animation: lantern-light .58s ease-out both;
 }
 
-.sky-stars circle:nth-child(3n) {
-  animation: star-shimmer 6.5s ease-in-out infinite;
+
+.star-field {
+  animation: star-shimmer 7s ease-in-out infinite;
 }
 
-.sky-stars circle:nth-child(3n + 1) {
-  animation: star-shimmer 7.5s 1.8s ease-in-out infinite;
+.star-sparkle {
+  animation: star-shimmer 4.5s ease-in-out infinite;
 }
 
-.cloud-drift {
-  animation: cloud-drift var(--wind-duration) ease-in-out infinite;
+.star-sparkle:nth-of-type(2n) {
+  animation-delay: -2s;
 }
 
-.cloud-drift--far {
-  animation-delay: var(--wind-delay);
+/* Opacity only, so the shimmer never forces the sea to be redrawn from scratch. */
+.light-path {
+  animation: light-path 5.5s ease-in-out infinite;
 }
 
-.water-glint {
-  animation: water-glint var(--water-duration, 5.5s) ease-in-out infinite;
-  transform-box: fill-box;
-  transform-origin: center;
+@keyframes light-path {
+  0%, 100% { opacity: .75; }
+  50% { opacity: 1; }
 }
 
 .active-block-layer {
@@ -116,15 +117,6 @@
   50% { opacity: .9; }
 }
 
-@keyframes cloud-drift {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(var(--wind-drift)); }
-}
-
-@keyframes water-glint {
-  0%, 100% { opacity: var(--water-glint-low, .12); transform: translateX(0); }
-  50% { opacity: var(--water-glint-high, .34); transform: translateX(var(--water-drift, 0)); }
-}
 
 @keyframes wind-glyph {
   0%, 100% { opacity: .58; }
@@ -1033,15 +1025,6 @@
   .over-card h1 {
     font-size: 31px;
   }
-
-  .sky-stars circle:nth-child(3n) {
-    animation-duration: 9s;
-  }
-
-  .sky-stars circle:nth-child(3n + 1) {
-    animation-duration: 10.5s;
-  }
-
 }
 
 @media (max-width: 700px) and (max-height: 650px) {

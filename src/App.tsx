@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import afterlightMark from './assets/afterlight-mark.svg'
 import { Leaderboard } from './DailyLeaderboard'
@@ -23,12 +23,6 @@ import {
   type FallingPiece,
   type GameState,
 } from './game'
-
-const starPositions = [
-  [88, 0.18], [194, 0.28], [286, 0.14], [372, 0.34], [456, 0.22],
-  [598, 0.16], [704, 0.3], [792, 0.2], [912, 0.15], [956, 0.36],
-  [128, 0.42], [516, 0.43], [844, 0.4], [650, 0.39],
-] as const
 
 const BLOCK_BEVEL = 10
 const BLOCK_FACE_HEIGHT = BLOCK_HEIGHT - BLOCK_BEVEL
@@ -620,55 +614,6 @@ function Lantern({
   )
 }
 
-function CottageWindows({ active, reducedMotion }: { active: boolean; reducedMotion: boolean }) {
-  return (
-    <motion.g
-      initial={false}
-      animate={{ opacity: active ? 1 : 0 }}
-      transition={{ duration: reducedMotion ? 0 : 0.8, ease: 'easeOut' }}
-      style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-      pointerEvents="none"
-    >
-      {[[136, 62], [148, 62], [143, 70]].map(([x, y]) => (
-        <g key={`${x}-${y}`}>
-          <circle cx={x} cy={y} r="5" fill="#ffd98f" opacity=".25" filter="url(#soft-bloom)" />
-          <rect x={x - 1.5} y={y - 2} width="3" height="4" rx=".6" fill="#ffe9b7" />
-        </g>
-      ))}
-    </motion.g>
-  )
-}
-
-function Lighthouse({ active, reducedMotion }: { active: boolean; reducedMotion: boolean }) {
-  return (
-    <motion.g
-      initial={false}
-      animate={{ opacity: active ? 1 : 0, y: active ? 0 : 2 }}
-      transition={{ duration: reducedMotion ? 0 : 0.82, ease: 'easeOut' }}
-      pointerEvents="none"
-    >
-      {active && (
-        <motion.path
-          d="M958 41L832 11 832 72Z"
-          fill="#ffe2ac"
-          filter="url(#soft-bloom)"
-          initial={false}
-          animate={reducedMotion ? { opacity: .1 } : { opacity: [.06, .15, .06], rotate: [-3, 4, -3] }}
-          transition={reducedMotion
-            ? { duration: 0 }
-            : { duration: 6.4, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ transformBox: 'fill-box', transformOrigin: 'right center' }}
-        />
-      )}
-      <path d="M949 79V49h16v30z" fill="#e0c19a" />
-      <path d="M946 50l11-15 12 15z" fill="#294354" />
-      <path d="M951 56h12v5h-12z" fill="#ffd895" opacity=".7" />
-      <circle cx="957" cy="46" r="4.5" fill="#ffdf9d" filter="url(#soft-bloom)" />
-      <circle cx="957" cy="46" r="1.7" fill="#fff6db" />
-    </motion.g>
-  )
-}
-
 function BirdFlock({ active, reducedMotion }: { active: boolean; reducedMotion: boolean }) {
   return (
     <motion.g
@@ -724,38 +669,6 @@ function HarborBuoy({
         animate={active && !reducedMotion ? { opacity: [.18, .62, .18] } : { opacity: active ? .36 : 0 }}
         transition={active && !reducedMotion
           ? { duration: 3.8, repeat: Infinity, ease: 'easeInOut' }
-          : { duration: 0 }}
-      />
-    </motion.g>
-  )
-}
-
-function DawnWaterPath({
-  active,
-  waterY,
-  reducedMotion,
-}: {
-  active: boolean
-  waterY: number
-  reducedMotion: boolean
-}) {
-  return (
-    <motion.g
-      initial={false}
-      animate={{ opacity: active ? 1 : 0 }}
-      transition={{ duration: reducedMotion ? 0 : 0.9, ease: 'easeOut' }}
-      style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-      pointerEvents="none"
-    >
-      <motion.path
-        d={`M385 ${waterY + 8}h232m-194 12h156m-118 12h82`}
-        fill="none"
-        stroke="#f5d39f"
-        strokeWidth="2"
-        strokeLinecap="round"
-        animate={active && !reducedMotion ? { opacity: [.18, .52, .22] } : { opacity: active ? .32 : 0 }}
-        transition={active && !reducedMotion
-          ? { duration: 4.6, repeat: Infinity, ease: 'easeInOut' }
           : { duration: 0 }}
       />
     </motion.g>
@@ -842,6 +755,348 @@ function WaterImpact({
   )
 }
 
+// Deterministic so the sea looks the same on every render and every device.
+function seededRandom(seed: number) {
+  let state = seed
+  return () => {
+    state = (state * 16807) % 2147483647
+    return (state - 1) / 2147483646
+  }
+}
+
+const round1 = (value: number) => Math.round(value * 10) / 10
+
+function islandTopPath(groundY: number) {
+  return `M240 ${groundY - 14}q46-45 108-32 55-49 118-24 61-46 122-10 71-25 124 21 60 5 88 45-44 19-104 10-66 23-122 4-67 22-127 3-74 22-123-1-42 10-84-16z`
+}
+
+/**
+ * Sky, horizon and open sea. Memoised and free of per-frame props, so the
+ * 60 Hz game loop never re-renders it; it only changes when dawn advances.
+ * Waves and light paths are merged into a handful of paths to stay cheap.
+ */
+const SeaBackdrop = memo(function SeaBackdrop({
+  edition,
+  height,
+  horizon,
+  dawnProgress,
+  reducedMotion,
+}: {
+  edition: DailyEdition
+  height: number
+  horizon: number
+  dawnProgress: number
+  reducedMotion: boolean
+}) {
+  const moonX = edition.moon.x
+  const moonY = Math.min(height * edition.moon.y, horizon - edition.moon.radius * 2.4)
+  const sunX = moonX < 500 ? 730 : 270
+  const dawnTransition = reducedMotion ? { duration: 0 } : { duration: 1.8, ease: 'easeInOut' as const }
+
+  const art = useMemo(() => {
+    const random = seededRandom(11)
+    const sea = height - horizon
+    const stars = ['', '']
+    const starCount = Math.min(160, Math.round(70 * horizon / 400))
+    for (let index = 0; index < starCount; index += 1) {
+      const x = round1(random() * WORLD_WIDTH)
+      const y = round1(Math.pow(random(), 1.6) * (horizon - 50))
+      const radius = random() > 0.82 ? 1.6 : 1
+      stars[y < horizon * 0.45 && random() > 0.35 ? 0 : 1] += `M${x - radius} ${y}a${radius} ${radius} 0 1 0 ${radius * 2} 0a${radius} ${radius} 0 1 0 ${-radius * 2} 0`
+    }
+
+    // Wave strokes get longer and further apart toward the viewer.
+    const waves = ['', '', '']
+    const rows = Math.round(sea / 8)
+    for (let row = 0; row < rows; row += 1) {
+      const t = Math.pow(row / rows, 1.7)
+      const y = round1(horizon + 6 + t * (sea - 8))
+      for (let stroke = 0; stroke < 3 + Math.floor(t * 4); stroke += 1) {
+        const length = round1(10 + t * 70 * (0.5 + random() * 0.8))
+        const x = round1(random() * 1020 - 20)
+        waves[t < 0.25 ? 0 : t < 0.6 ? 1 : 2] += `M${x} ${y}q${round1(length / 2)} ${round1(-1.5 - t * 3)} ${length} 0`
+      }
+    }
+
+    const lightPath = (centerX: number) => {
+      const bands = ['', '', '']
+      const pathRows = Math.round(sea / 9)
+      for (let row = 0; row < pathRows; row += 1) {
+        const t = row / pathRows
+        const y = round1(horizon + 5 + Math.pow(t, 1.35) * (sea - 30))
+        const width = 14 + t * 150
+        for (let dash = 0; dash < 2 + Math.floor(t * 3); dash += 1) {
+          const length = round1((0.25 + random() * 0.35) * width)
+          const x = round1(centerX + (random() - 0.5) * width - length / 2)
+          bands[t < 0.3 ? 0 : t < 0.65 ? 1 : 2] += `M${x} ${y}h${length}v${round1(1.4 + t * 1.6)}h${-length}z`
+        }
+      }
+      return bands
+    }
+
+    return { stars, waves, moonPath: lightPath(moonX), sunPath: lightPath(sunX) }
+  }, [height, horizon, moonX, sunX])
+
+  return (
+    <g pointerEvents="none">
+      <defs>
+        <linearGradient id="sea-sky" x2="0" y2="1">
+          <stop stopColor={edition.sky[0]} />
+          <stop offset=".55" stopColor={edition.sky[1]} />
+          <stop offset="1" stopColor={edition.sky[2]} />
+        </linearGradient>
+        <linearGradient id="sea-dawn-sky" x2="0" y2="1">
+          <stop stopColor={edition.dawnSky[0]} stopOpacity=".25" />
+          <stop offset=".5" stopColor={edition.dawnSky[1]} stopOpacity=".6" />
+          <stop offset=".8" stopColor={edition.dawnSky[2]} stopOpacity=".9" />
+          <stop offset="1" stopColor={edition.dawnSky[3]} />
+        </linearGradient>
+        <linearGradient id="sea-water" x2="0" y2="1">
+          <stop stopColor={edition.sky[2]} />
+          <stop offset=".1" stopColor={edition.sea[0]} />
+          <stop offset="1" stopColor={edition.sea[1]} />
+        </linearGradient>
+        <linearGradient id="sea-dawn-water" x2="0" y2="1">
+          <stop stopColor={edition.dawnSky[3]} stopOpacity=".9" />
+          <stop offset=".18" stopColor={edition.dawnSea[0]} stopOpacity=".7" />
+          <stop offset="1" stopColor={edition.dawnSea[1]} stopOpacity=".35" />
+        </linearGradient>
+        <radialGradient id="sea-horizon-glow">
+          <stop stopColor={edition.moon.light} stopOpacity=".5" />
+          <stop offset="1" stopColor={edition.moon.light} stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="moonlight">
+          <stop stopColor="#ffe9c9" stopOpacity=".5" />
+          <stop offset=".3" stopColor={edition.moon.light} stopOpacity=".16" />
+          <stop offset="1" stopColor={edition.moon.light} stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="moon-body" cx=".38" cy=".35" r=".75">
+          <stop stopColor="#fff4df" />
+          <stop offset=".7" stopColor={edition.moon.body} />
+          <stop offset="1" stopColor={edition.moon.shade} />
+        </radialGradient>
+        <radialGradient id="sea-sun">
+          <stop stopColor="#fff4d8" />
+          <stop offset=".55" stopColor="#ffd9a0" stopOpacity=".7" />
+          <stop offset="1" stopColor="#ffb47a" stopOpacity="0" />
+        </radialGradient>
+        <filter id="sea-mist" x="-20%" y="-200%" width="140%" height="500%">
+          <feGaussianBlur stdDeviation="5 3" />
+        </filter>
+      </defs>
+
+      <rect width={WORLD_WIDTH} height={horizon + 1} fill="url(#sea-sky)" />
+      <motion.rect width={WORLD_WIDTH} height={horizon + 1} fill="url(#sea-dawn-sky)" initial={false} animate={{ opacity: dawnProgress }} transition={dawnTransition} />
+
+      <motion.g initial={false} animate={{ opacity: 1 - dawnProgress }} transition={dawnTransition} fill="#f8eed9">
+        <path className={reducedMotion ? undefined : 'star-field'} d={art.stars[0]} opacity=".85" />
+        <path d={art.stars[1]} opacity=".45" />
+        {[[640, 0.12], [880, 0.3], [120, 0.22]].map(([x, y]) => (
+          <path
+            key={x}
+            className={reducedMotion ? undefined : 'star-sparkle'}
+            d={`M${x} ${round1(horizon * y - 8)}l1.2 6.8 6.8 1.2-6.8 1.2-1.2 6.8-1.2-6.8-6.8-1.2 6.8-1.2z`}
+            fill="#fff6e0"
+          />
+        ))}
+      </motion.g>
+
+      <ellipse cx={dawnProgress > 0.5 ? sunX : moonX} cy={horizon} rx="640" ry={round1(Math.max(110, (height - horizon) * 0.3))} fill="url(#sea-horizon-glow)" />
+
+      <motion.g initial={false} animate={{ opacity: 1 - dawnProgress }} transition={dawnTransition}>
+        <circle cx={moonX} cy={moonY} r={edition.moon.radius * 5} fill="url(#moonlight)" />
+        <circle cx={moonX} cy={moonY} r={edition.moon.radius} fill="url(#moon-body)" />
+        <g fill={edition.moon.shade} opacity=".32">
+          <circle cx={moonX + edition.moon.radius * 0.25} cy={moonY - edition.moon.radius * 0.2} r={edition.moon.radius * 0.18} />
+          <circle cx={moonX - edition.moon.radius * 0.3} cy={moonY + edition.moon.radius * 0.25} r={edition.moon.radius * 0.12} />
+          <circle cx={moonX + edition.moon.radius * 0.35} cy={moonY + edition.moon.radius * 0.4} r={edition.moon.radius * 0.09} />
+        </g>
+        <circle cx={moonX} cy={moonY} r={edition.moon.radius} fill="none" stroke="#fff6e6" strokeOpacity=".45" />
+      </motion.g>
+      <motion.g initial={false} animate={{ opacity: dawnProgress }} transition={dawnTransition}>
+        <circle cx={sunX} cy={horizon} r="150" fill="url(#sea-sun)" opacity=".6" />
+        <circle cx={sunX} cy={horizon + 6} r="34" fill="#fff1d2" />
+      </motion.g>
+
+      <g filter="url(#sea-mist)">
+        <ellipse cx="520" cy={round1(horizon * 0.5)} rx="300" ry="9" fill="#c9a3ae" opacity=".3" />
+        <ellipse cx="170" cy={round1(horizon * 0.66)} rx="220" ry="7" fill="#c9a3ae" opacity=".24" />
+        <ellipse cx="780" cy={round1(horizon * 0.8)} rx="260" ry="10" fill="#f2b79e" opacity=".32" />
+        <ellipse cx="380" cy={round1(horizon * 0.9)} rx="340" ry="8" fill="#f2b79e" opacity=".26" />
+      </g>
+
+      {/* Distant islands, a village and a boat sit on the horizon. */}
+      <path
+        d={`M-10 ${horizon}q30-14 60-10 24-18 52-8 30-8 50 18zM140 ${horizon}q18-6 40-4 10-6 30 4zM420 ${horizon}q24-22 56-18 30-14 54 0 24-8 46 18zM700 ${horizon}q16-8 34-6 14-6 26 6z`}
+        fill={edition.mountains[0]}
+      />
+      <g fill="#ffd98f">
+        {[[40, 9], [66, 7], [464, 14], [488, 11], [506, 8]].map(([x, lift]) => (
+          <circle key={x} cx={x} cy={horizon - lift} r="1.4" opacity={1 - dawnProgress * 0.6} />
+        ))}
+      </g>
+      <g>
+        <path d={`M610 ${horizon - 1}h26l-4 4h-18z`} fill="#2c2f45" />
+        <path d={`M622 ${horizon - 2}v-26l12 22z`} fill="#3a3a54" />
+        <circle cx="622" cy={horizon - 29} r="1.6" fill="#ffe0a2" />
+      </g>
+
+      <rect y={horizon} width={WORLD_WIDTH} height={height - horizon} fill="url(#sea-water)" />
+      <motion.rect y={horizon} width={WORLD_WIDTH} height={height - horizon} fill="url(#sea-dawn-water)" initial={false} animate={{ opacity: dawnProgress }} transition={dawnTransition} />
+      <rect y={horizon} width={WORLD_WIDTH} height="1.5" fill="#ffe8cf" opacity=".5" />
+
+      <g fill="none" stroke="#f1dccb" strokeLinecap="round">
+        <path d={art.waves[0]} strokeOpacity=".26" strokeWidth=".9" />
+        <path d={art.waves[1]} strokeOpacity=".17" strokeWidth="1.4" />
+        <path d={art.waves[2]} strokeOpacity=".1" strokeWidth="2" />
+      </g>
+
+      <motion.g initial={false} animate={{ opacity: 1 - dawnProgress }} transition={dawnTransition} fill="#ffe2b4">
+        <g className={reducedMotion ? undefined : 'light-path'}>
+          <path d={art.moonPath[0]} opacity=".7" />
+          <path d={art.moonPath[1]} opacity=".48" />
+          <path d={art.moonPath[2]} opacity=".28" />
+        </g>
+      </motion.g>
+      <motion.g initial={false} animate={{ opacity: dawnProgress }} transition={dawnTransition} fill="#fff1cc">
+        <g className={reducedMotion ? undefined : 'light-path'}>
+          <path d={art.sunPath[0]} opacity=".75" />
+          <path d={art.sunPath[1]} opacity=".52" />
+          <path d={art.sunPath[2]} opacity=".3" />
+        </g>
+      </motion.g>
+    </g>
+  )
+})
+
+/** The cottage islet and the lighthouse rock, drawn as in the open-sea design. Re-renders only when a placement changes them. */
+const SideIslets = memo(function SideIslets({
+  edition,
+  height,
+  horizon,
+  lit,
+  celebration,
+  dawnProgress,
+  reducedMotion,
+  compact,
+  climb,
+}: {
+  edition: DailyEdition
+  height: number
+  horizon: number
+  lit: number
+  celebration: number
+  dawnProgress: number
+  reducedMotion: boolean
+  compact: boolean
+  climb: number
+}) {
+  const sea = height - horizon
+  // Nearer things sink faster below the horizon as the climber rises.
+  const drift = (factor: number) => ({
+    initial: false as const,
+    animate: { y: reducedMotion ? 0 : climb * factor },
+    transition: reducedMotion
+      ? { duration: 0 }
+      : compact
+        ? { duration: 0.6, ease: 'easeOut' as const }
+        : { type: 'spring' as const, stiffness: 22, damping: 18 },
+  })
+  const lx = 885
+  const ly = round1(horizon + Math.min(34, sea * 0.06))
+  const windows = 1 - dawnProgress * 0.65
+  const cottage = (
+    <>
+      <path d="M40 30q20-32 66-26 38-26 80 0 40-6 62 26z" fill={edition.islands.deep} />
+      <path d="M48 22q24-24 62-20 40-26 76 0 38-4 56 22-30 10-64 6-38 12-72 0-32 8-58-8z" fill={edition.islands.leftTop} />
+      <path d="M118 8h30v26h-30z" fill="#e6caa4" />
+      <path d="M114 9l19-17 19 17z" fill="#9b6f60" />
+      <path d="M72 14l8-22 8 22zM196 12l9-26 9 26z" fill={edition.tower.trees} />
+    </>
+  )
+
+  return (
+    <>
+      <defs>
+        <linearGradient id="lighthouse-beam" x1="1" x2="0">
+          <stop stopColor="#ffe9b8" stopOpacity=".5" />
+          <stop offset="1" stopColor="#ffe9b8" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
+      <motion.g {...drift(0.03)}>
+        <path d={`M${lx - 75} ${ly}q20-26 54-24 30-16 60 4 24 4 40 20z`} fill={edition.islands.deep} />
+        <path d={`M${lx - 12} ${ly - 14}l5-82h14l5 82z`} fill="#ece1d0" />
+        <path d={`M${lx - 9.6} ${ly - 42}h18l-.8 12h-16.4zM${lx - 7.8} ${ly - 72}h15.6l-.7 11h-14.2z`} fill="#b8665a" />
+        <rect x={lx - 9} y={ly - 110} width="18" height="13" rx="2" fill="#ffe7b0" />
+        <path d={`M${lx - 11} ${ly - 110}l11-10 11 10z`} fill="#33445a" />
+        <circle cx={lx} cy={ly - 103} r="22" fill="#ffe4a8" opacity=".7" filter="url(#soft-bloom)" />
+        <motion.path
+          d={`M${lx - 6} ${ly - 104}L${lx - 420} ${ly - 150}L${lx - 420} ${ly - 70}Z`}
+          fill="url(#lighthouse-beam)"
+          initial={false}
+          animate={reducedMotion
+            ? { opacity: 0.8 - dawnProgress * 0.45 }
+            : { opacity: [0.55 - dawnProgress * 0.3, 0.85 - dawnProgress * 0.45, 0.55 - dawnProgress * 0.3] }}
+          transition={reducedMotion ? { duration: 0 } : { duration: 6.4, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <Lantern x={lx - 48} y={ly - 6} lit={lit >= 4} celebration={celebration} sequence={3} />
+        <Lantern x={lx + 32} y={ly - 10} lit={lit >= 5} celebration={celebration} sequence={5} />
+        <Lantern x={lx + 70} y={ly - 4} lit={lit >= 6} celebration={celebration} sequence={7} />
+      </motion.g>
+
+      <g transform={`translate(0 ${round1(horizon + sea * 0.17 - 30)})`}>
+        <motion.g {...drift(0.07)}>
+          <g transform="translate(0 60) scale(1 -1)" opacity=".22">{cottage}</g>
+          {cottage}
+          <rect x="124" y="14" width="7" height="8" rx="1" fill="#ffd98f" opacity={windows} />
+          <rect x="135" y="14" width="7" height="8" rx="1" fill="#ffd98f" opacity={windows} />
+          <circle cx="133" cy="18" r="16" fill="#ffd27f" opacity={0.55 * windows} filter="url(#soft-bloom)" />
+          <path d="M52 31q100 8 196 0" stroke="#eef4ee" strokeOpacity=".35" strokeWidth="1.5" fill="none" />
+          <Lantern x={92} y={16} lit={lit >= 1} celebration={celebration} sequence={8} />
+          <Lantern x={168} y={10} lit={lit >= 2} celebration={celebration} sequence={6} />
+          <Lantern x={222} y={20} lit={lit >= 3} celebration={celebration} sequence={4} />
+        </motion.g>
+      </g>
+    </>
+  )
+})
+
+/** A soft mirror of the home island and its lowest stones; skips the per-frame work of a real reflection filter. */
+const IslandReflection = memo(function IslandReflection({
+  edition,
+  groundY,
+  waterline,
+  baseBlocks,
+}: {
+  edition: DailyEdition
+  groundY: number
+  waterline: number
+  baseBlocks: string
+}) {
+  const blocks = baseBlocks.split('|').filter(Boolean).map((block) => block.split(',').map(Number))
+  return (
+    <g pointerEvents="none">
+      <g transform={`translate(0 ${waterline * 2}) scale(1 -1)`} opacity=".22">
+        <path d={islandTopPath(groundY)} fill={edition.tower.top} />
+        {blocks.map(([x, width], index) => (
+          <g key={index}>
+            <rect x={x} y={groundY - (index + 1) * BLOCK_HEIGHT + BLOCK_BEVEL} width={width} height={BLOCK_FACE_HEIGHT} fill={edition.stone.front} />
+            <rect x={x} y={groundY - (index + 1) * BLOCK_HEIGHT} width={width} height={BLOCK_BEVEL} fill={edition.stone.top} />
+          </g>
+        ))}
+      </g>
+      {/* Broken water lines across the mirror read as ripples without a filter. */}
+      <path
+        d={`M250 ${waterline + 12}h120m40 0h200m50 0h90M290 ${waterline + 28}h160m60 0h170M330 ${waterline + 48}h110m70 0h150M380 ${waterline + 74}h90m60 0h110`}
+        stroke={edition.sea[0]}
+        strokeWidth="3"
+        opacity=".55"
+      />
+    </g>
+  )
+})
+
 function GameScene({
   game,
   height,
@@ -867,13 +1122,11 @@ function GameScene({
   const targetY = height * (tallMobileViewport ? 0.64 : compact ? 0.48 : 0.43)
   const cameraShift = targetY - activeY
   const climbProgress = game.stack.length * BLOCK_HEIGHT
-  const horizon = height * 0.59
+  const horizon = Math.round(height * 0.42)
+  const waterline = groundY + 4
   const waterY = height - 47
   const dawnStage = Math.min(heightOf(game) / 36, 1)
   const dawnProgress = dawnStage * dawnStage * (3 - 2 * dawnStage)
-  const dawnTransition = reducedMotion
-    ? { duration: 0 }
-    : { duration: 1.8, ease: 'easeInOut' as const }
   const worldMilestone = Math.min(MAX_WORLD_MILESTONE, Math.floor(heightOf(game) / FLOORS_PER_WORLD_MILESTONE))
   const signalStartIndex = game.perfectStreak > 0
     ? Math.max(0, game.stack.length - game.perfectStreak - 1)
@@ -883,29 +1136,9 @@ function GameScene({
   const windStrength = Math.abs(game.windPercent)
   const windDirection = game.windPercent < 0 ? -1 : 1
   const sceneryIntensity = compact ? 0.7 : 1
-  const cloudDrift = (12 + windStrength * 1.5) * sceneryIntensity
-  const cloudDuration = (42 - windStrength * 1.1) * (compact ? 1.28 : 1)
-  const waterGlintDrift = windDirection * (2 + windStrength * 1.45) * sceneryIntensity
-  const waterGlintDuration = Math.max(3.6, 6.2 - windStrength * 0.24) * (compact ? 1.18 : 1)
-  const waterReflectionColor = blendColor(edition.reflection[0], edition.reflection[1], dawnProgress)
-  const waterReflectionOpacity = 0.16 + dawnProgress * 0.12
   const blockSway = Math.min(2.3, windStrength * 0.28)
   const blockSwayDuration = Math.max(1.65, 3.2 - windStrength * 0.12)
-  const nearCloudStyle = {
-    '--wind-drift': `${windDirection * cloudDrift}px`,
-    '--wind-duration': `${cloudDuration}s`,
-  } as CSSProperties
-  const farCloudStyle = {
-    '--wind-drift': `${windDirection * cloudDrift * 0.68}px`,
-    '--wind-duration': `${cloudDuration * 1.18}s`,
-    '--wind-delay': `${-cloudDuration * 1.18 * 0.37}s`,
-  } as CSSProperties
-  const waterGlintStyle = {
-    '--water-drift': `${waterGlintDrift}px`,
-    '--water-duration': `${waterGlintDuration}s`,
-    '--water-glint-low': `${waterReflectionOpacity * 0.45}`,
-    '--water-glint-high': `${waterReflectionOpacity}`,
-  } as CSSProperties
+  const baseBlocks = game.stack.slice(0, 3).map((block) => `${block.x},${block.width}`).join('|')
 
   return (
     <svg
@@ -916,191 +1149,24 @@ function GameScene({
       aria-label={`Afterlight tower, height ${heightOf(game)}`}
     >
       <defs>
-        <linearGradient id="sky" x2="0" y2="1">
-          <stop stopColor={edition.sky[0]} />
-          <stop offset=".42" stopColor={edition.sky[1]} />
-          <stop offset=".76" stopColor={edition.sky[2]} />
-          <stop offset="1" stopColor={edition.sky[3]} />
-        </linearGradient>
-        <linearGradient id="dawn-sky" x2="0" y2="1">
-          <stop stopColor={edition.dawnSky[0]} stopOpacity=".025" />
-          <stop offset=".42" stopColor={edition.dawnSky[1]} stopOpacity=".12" />
-          <stop offset=".76" stopColor={edition.dawnSky[2]} stopOpacity=".48" />
-          <stop offset="1" stopColor={edition.dawnSky[3]} stopOpacity=".76" />
-        </linearGradient>
-        <linearGradient id="sea" x2="0" y2="1">
-          <stop stopColor={edition.sea[0]} />
-          <stop offset="1" stopColor={edition.sea[1]} />
-        </linearGradient>
-        <linearGradient id="dawn-sea" x2="0" y2="1">
-          <stop stopColor={edition.dawnSea[0]} stopOpacity=".58" />
-          <stop offset="1" stopColor={edition.dawnSea[1]} stopOpacity=".2" />
-        </linearGradient>
-        <radialGradient id="moon-body" cx=".38" cy=".35" r=".75">
-          <stop stopColor="#fff4df" />
-          <stop offset=".7" stopColor={edition.moon.body} />
-          <stop offset="1" stopColor={edition.moon.shade} />
-        </radialGradient>
-        <radialGradient id="horizon-glow" cy="1" r=".7">
-          <stop stopColor={edition.moon.light} stopOpacity=".42" />
-          <stop offset="1" stopColor={edition.moon.light} stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id="moonlight">
-          <stop stopColor={edition.moon.light} stopOpacity=".48" />
-          <stop offset="1" stopColor={edition.moon.light} stopOpacity="0" />
-        </radialGradient>
         <filter id="soft-bloom" x="-100%" y="-100%" width="300%" height="300%">
           <feGaussianBlur stdDeviation="5" />
         </filter>
       </defs>
 
-      <rect width={WORLD_WIDTH} height={height} fill="url(#sky)" />
-      <motion.rect
-        width={WORLD_WIDTH}
-        height={height}
-        fill="url(#dawn-sky)"
-        initial={false}
-        animate={{ opacity: dawnProgress }}
-        transition={dawnTransition}
-        pointerEvents="none"
-      />
-      <g transform={`translate(0 ${height * 0.16})`}>
-        <motion.g
-          initial={false}
-          animate={{ y: reducedMotion ? 0 : climbProgress * 0.012 * sceneryIntensity }}
-          transition={reducedMotion
-            ? { duration: 0 }
-            : compact
-              ? { duration: 0.52, ease: 'easeOut' }
-              : { type: 'spring', stiffness: 24, damping: 18 }}
-        >
-          <g className="cloud-drift" style={nearCloudStyle} fill="none" stroke="#e8ded0" strokeLinecap="round">
-            <path d="M-100 0c86-25 142-25 224-2s136 20 211-5 140-20 222 5" strokeWidth="22" opacity=".07" />
-            <path d="M-60 10c72-14 124-13 190 1s121 13 186-3 132-13 196 4" strokeWidth="3" opacity=".18" />
-          </g>
-        </motion.g>
-      </g>
-      <g transform={`translate(0 ${height * 0.32})`}>
-        <motion.g
-          initial={false}
-          animate={{ y: reducedMotion ? 0 : climbProgress * 0.018 * sceneryIntensity }}
-          transition={reducedMotion
-            ? { duration: 0 }
-            : compact
-              ? { duration: 0.62, ease: 'easeOut' }
-              : { type: 'spring', stiffness: 20, damping: 17 }}
-        >
-          <g className="cloud-drift cloud-drift--far" style={farCloudStyle} fill="none" stroke="#c7c7ce" strokeLinecap="round">
-            <path d="M550 0c68-19 112-17 177 0s113 17 176-2 117-14 175 4" strokeWidth="25" opacity=".055" />
-            <path d="M603 10c61-11 103-10 160 1s101 10 153-2 100-11 153 1" strokeWidth="3" opacity=".14" />
-          </g>
-        </motion.g>
-      </g>
-      <motion.g
-        initial={false}
-        animate={{ opacity: 1 - dawnProgress }}
-        transition={dawnTransition}
-      >
-        <circle cx={edition.moon.x} cy={height * edition.moon.y} r={edition.moon.radius * 3.57} fill="url(#moonlight)" />
-        <circle cx={edition.moon.x} cy={height * edition.moon.y} r={edition.moon.radius} fill="url(#moon-body)" />
-        <g fill={edition.moon.shade} opacity=".32">
-          <circle cx={edition.moon.x + edition.moon.radius * 0.25} cy={height * edition.moon.y - edition.moon.radius * 0.2} r={edition.moon.radius * 0.18} />
-          <circle cx={edition.moon.x - edition.moon.radius * 0.3} cy={height * edition.moon.y + edition.moon.radius * 0.25} r={edition.moon.radius * 0.12} />
-          <circle cx={edition.moon.x + edition.moon.radius * 0.35} cy={height * edition.moon.y + edition.moon.radius * 0.4} r={edition.moon.radius * 0.09} />
-        </g>
-        <circle cx={edition.moon.x} cy={height * edition.moon.y} r={edition.moon.radius} fill="none" stroke="#fff6e6" strokeOpacity=".45" />
-      </motion.g>
-
-      <motion.g
-        className="sky-stars"
-        initial={false}
-        animate={{ opacity: 1 - dawnProgress }}
-        transition={dawnTransition}
-      >
-        {starPositions.map(([x, y], index) => (
-          <circle key={index} cx={x} cy={height * y} r={index % 3 === 0 ? 1.7 : 1.2} fill="#f5e8ce" opacity={index % 2 ? '.56' : '.8'} />
-        ))}
-      </motion.g>
-      <rect y={horizon - 90} width={WORLD_WIDTH} height="170" fill="url(#horizon-glow)" pointerEvents="none" />
+      <SeaBackdrop edition={edition} height={height} horizon={horizon} dawnProgress={dawnProgress} reducedMotion={reducedMotion} />
       <BirdFlock active={worldMilestone >= 5} reducedMotion={reducedMotion} />
-      <motion.g
-        initial={false}
-        animate={{ y: reducedMotion ? 0 : climbProgress * 0.007 * sceneryIntensity }}
-        transition={reducedMotion
-          ? { duration: 0 }
-          : compact
-            ? { duration: 0.54, ease: 'easeOut' }
-            : { type: 'spring', stiffness: 18, damping: 18 }}
-      >
-        <path d={`M0 ${horizon}q130 -80 250 -26 130 -94 250 -10 140 -91 270 -8 110 -59 230 18v150H0z`} fill={edition.mountains[0]} opacity=".72" />
-      </motion.g>
-      <motion.g
-        initial={false}
-        animate={{ y: reducedMotion ? 0 : climbProgress * 0.016 * sceneryIntensity }}
-        transition={reducedMotion
-          ? { duration: 0 }
-          : compact
-            ? { duration: 0.62, ease: 'easeOut' }
-            : { type: 'spring', stiffness: 21, damping: 18 }}
-      >
-        <path d={`M0 ${horizon + 72}q120 -55 235 -8 111 -72 227 -5 131 -74 253 -9 124 -62 285 -3v140H0z`} fill={edition.mountains[1]} opacity=".92" />
-      </motion.g>
-
-      {/* Far islands */}
-      <g transform={`translate(${edition.islands.leftOffsetX} ${height * 0.45 + edition.islands.leftOffsetY})`}>
-        <motion.g
-          initial={false}
-          animate={{ y: reducedMotion ? 0 : climbProgress * 0.035 * sceneryIntensity }}
-          transition={reducedMotion
-            ? { duration: 0 }
-            : compact
-              ? { duration: 0.56, ease: 'easeOut' }
-              : { type: 'spring', stiffness: 24, damping: 18 }}
-        >
-        <motion.g
-          animate={{ y: reducedMotion ? 0 : [0, compact ? -1.25 : -2.5, 0] }}
-          transition={reducedMotion
-            ? { duration: 0 }
-            : { duration: compact ? 10 : 7.5, repeat: Infinity, ease: 'easeInOut' }}
-        >
-        <path d="M58 70q20-40 65-31 38-34 78 0 47-8 68 32l-18 18q-42 4-63 27l-31-4-34 24-23-15-36 5-13-25-26-7z" fill={edition.islands.deep} />
-        <path d="M72 67q24-28 62-22 40-33 74 0 41-7 59 26-29 12-61 6-39 14-72 0-33 10-62-10z" fill={edition.islands.leftTop} />
-        <path d="M131 52h22v26h-22zM126 53l16-15 16 15z" fill="#e2bd98" />
-        <path d="M92 59v-20m-7 12 7-13 7 13m123 4V37m-7 12 7-13 7 13" stroke={edition.islands.deep} strokeWidth="3" fill="none" strokeLinecap="round" />
-        <CottageWindows active={worldMilestone >= 1} reducedMotion={reducedMotion} />
-        <Lantern x={95} y={49} lit={Math.floor(game.perfects / 5) >= 1} celebration={beaconCelebration} sequence={8} />
-        <Lantern x={142} y={66} lit={Math.floor(game.perfects / 5) >= 2} celebration={beaconCelebration} sequence={6} />
-        <Lantern x={215} y={47} lit={Math.floor(game.perfects / 5) >= 3} celebration={beaconCelebration} sequence={4} />
-        </motion.g>
-        </motion.g>
-      </g>
-      <g transform={`translate(${edition.islands.rightOffsetX} ${height * 0.41 + edition.islands.rightOffsetY})`}>
-        <motion.g
-          initial={false}
-          animate={{ y: reducedMotion ? 0 : climbProgress * 0.065 * sceneryIntensity }}
-          transition={reducedMotion
-            ? { duration: 0 }
-            : compact
-              ? { duration: 0.66, ease: 'easeOut' }
-              : { type: 'spring', stiffness: 20, damping: 17 }}
-        >
-        <motion.g
-          animate={{ y: reducedMotion ? 0 : [0, compact ? 1 : 2, 0] }}
-          transition={reducedMotion
-            ? { duration: 0 }
-            : { duration: compact ? 12 : 9, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
-        >
-        <path d="M760 82q24-42 67-34 42-36 82-1 44-8 71 33l-18 20q-43 7-64 26l-33-6-35 25-23-14-36 4-13-24-27-7z" fill={edition.islands.deep} />
-        <path d="M774 78q24-30 62-25 42-34 78 0 41-6 58 28-28 11-60 4-39 15-72 1-34 9-66-8z" fill={edition.islands.rightTop} />
-        <path d="M835 64h26v30h-26zM829 65l19-18 19 18z" fill="#e4c19a" />
-        <path d="M885 66V43m-8 13 8-14 8 14m37 12V47m-7 12 7-13 7 13" stroke={edition.islands.deep} strokeWidth="3.4" fill="none" strokeLinecap="round" />
-        <Lighthouse active={worldMilestone >= 3} reducedMotion={reducedMotion} />
-        <Lantern x={848} y={80} lit={Math.floor(game.perfects / 5) >= 4} celebration={beaconCelebration} sequence={3} />
-        <Lantern x={887} y={57} lit={Math.floor(game.perfects / 5) >= 5} celebration={beaconCelebration} sequence={5} />
-        <Lantern x={923} y={60} lit={Math.floor(game.perfects / 5) >= 6} celebration={beaconCelebration} sequence={7} />
-        </motion.g>
-        </motion.g>
-      </g>
+      <SideIslets
+        edition={edition}
+        height={height}
+        horizon={horizon}
+        lit={Math.floor(game.perfects / 5)}
+        celebration={beaconCelebration}
+        dawnProgress={dawnProgress}
+        reducedMotion={reducedMotion}
+        compact={compact}
+        climb={climbProgress * sceneryIntensity}
+      />
 
       {/* The beacon island and tower follow the camera as the stack climbs. */}
       <motion.g
@@ -1118,10 +1184,10 @@ function GameScene({
         animate={{ y: 0 }}
         transition={{ type: 'spring', stiffness: 390, damping: 24, mass: 0.48 }}
       >
-        <ellipse cx="500" cy={groundY + 12} rx="276" ry="36" fill={edition.tower.shadow} opacity=".38" />
-        <path d={`M224 ${groundY - 8}q38-58 116-48 50-49 117-28 60-47 125-12 77-32 134 20 73 2 103 56l-34 30q-57-4-92 26l-57-13-66 42-53-20-70 34-44-25-75 17-32-31-64-11z`} fill={edition.tower.deep} />
-        <path d={`M240 ${groundY - 14}q46-45 108-32 55-49 118-24 61-46 122-10 71-25 124 21 60 5 88 45-44 19-104 10-66 23-122 4-67 22-127 3-74 22-123-1-42 10-84-16z`} fill={edition.tower.top} />
-        <path d={`M267 ${groundY + 14}q69-19 127 0 69-19 132 0 66-20 133 4 41 5 78-3l-35 29q-49 1-77 21l-58-14-63 41-52-21-66 33-43-26-74 16-31-28z`} fill={edition.tower.shore} />
+        <IslandReflection edition={edition} groundY={groundY} waterline={waterline} baseBlocks={baseBlocks} />
+        <path d={islandTopPath(groundY)} fill={edition.tower.top} />
+        <path d={`M232 ${waterline + 1}q268 16 540 0`} stroke="#eef4ee" strokeOpacity=".42" strokeWidth="2" fill="none" />
+        <path d={`M262 ${waterline + 9}q238 12 480 0`} stroke="#eef4ee" strokeOpacity=".2" strokeWidth="1.5" fill="none" />
         <g fill={edition.tower.trees}>
           <path d={`M340 ${groundY - 42}l15-34 15 34zM383 ${groundY - 41}l12-26 12 26zM710 ${groundY - 42}l16-36 16 36zM753 ${groundY - 41}l11-25 12 25z`} />
           <path d={`M347 ${groundY - 42}v17m42-17v17m344-17v17m41-17v17`} stroke={edition.tower.trees} strokeWidth="4" />
@@ -1249,36 +1315,7 @@ function GameScene({
       </motion.g>
       </motion.g>
 
-      <path d={`M0 ${height - 58}q112-32 224 0 130-31 264 1 133-35 268 0 111-30 244 4v${58}`} fill="url(#sea)" opacity=".88" />
-      <motion.path
-        d={`M0 ${height - 58}q112-32 224 0 130-31 264 1 133-35 268 0 111-30 244 4v${58}`}
-        fill="url(#dawn-sea)"
-        initial={false}
-        animate={{ opacity: dawnProgress }}
-        transition={dawnTransition}
-        pointerEvents="none"
-      />
-      <motion.g
-        initial={false}
-        animate={{ opacity: 1 - dawnProgress }}
-        transition={dawnTransition}
-        fill="#ffe7c2"
-        pointerEvents="none"
-      >
-        {[0, 1, 2, 3, 4, 5].map((row) => (
-          <rect
-            key={row}
-            x={edition.moon.x - (34 - row * 5)}
-            y={waterY - 6 + row * 6}
-            width={(34 - row * 5) * 2}
-            height="1.8"
-            rx=".9"
-            opacity={0.42 - row * 0.06}
-          />
-        ))}
-      </motion.g>
-      <HarborBuoy active={worldMilestone >= 2} waterY={waterY} reducedMotion={reducedMotion} />
-      <DawnWaterPath active={worldMilestone >= 6} waterY={waterY} reducedMotion={reducedMotion} />
+      <HarborBuoy active waterY={waterY} reducedMotion={reducedMotion} />
       {game.fallingPieces.map((piece) => (
         <WaterImpact
           key={`water-impact-${piece.id}-${piece.x}`}
@@ -1317,19 +1354,6 @@ function GameScene({
           />
         </motion.g>
       )}
-      <motion.path
-        className={reducedMotion ? undefined : 'water-glint'}
-        style={waterGlintStyle}
-        d={`M418 ${height - 45}h166m-140 13h116m-96 12h76`}
-        fill="none"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        initial={false}
-        animate={{ stroke: waterReflectionColor }}
-        transition={dawnTransition}
-        opacity={reducedMotion ? waterReflectionOpacity : undefined}
-        pointerEvents="none"
-      />
     </svg>
   )
 }
