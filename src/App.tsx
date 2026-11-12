@@ -506,8 +506,8 @@ function CottageWindows({ active, reducedMotion }: { active: boolean; reducedMot
   return (
     <motion.g
       initial={false}
-      animate={{ opacity: active ? 1 : 0, scale: active ? 1 : 0.75 }}
-      transition={{ duration: reducedMotion ? 0 : 0.42, ease: 'easeOut' }}
+      animate={{ opacity: active ? 1 : 0 }}
+      transition={{ duration: reducedMotion ? 0 : 0.8, ease: 'easeOut' }}
       style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
       pointerEvents="none"
     >
@@ -525,8 +525,8 @@ function Lighthouse({ active, reducedMotion }: { active: boolean; reducedMotion:
   return (
     <motion.g
       initial={false}
-      animate={{ opacity: active ? 1 : 0, y: active ? 0 : 5 }}
-      transition={{ duration: reducedMotion ? 0 : 0.5, ease: 'easeOut' }}
+      animate={{ opacity: active ? 1 : 0, y: active ? 0 : 2 }}
+      transition={{ duration: reducedMotion ? 0 : 0.82, ease: 'easeOut' }}
       pointerEvents="none"
     >
       {active && (
@@ -555,21 +555,23 @@ function BirdFlock({ active, reducedMotion }: { active: boolean; reducedMotion: 
   return (
     <motion.g
       initial={false}
-      animate={active
-        ? reducedMotion
-          ? { opacity: .56, x: 0 }
-          : { opacity: .56, x: [0, 24, -8, 0], y: [0, -3, 1, 0] }
-        : { opacity: 0, x: 0, y: 0 }}
-      transition={active && !reducedMotion
-        ? { duration: 12, repeat: Infinity, ease: 'easeInOut' }
-        : { duration: reducedMotion ? 0 : 0.45, ease: 'easeOut' }}
+      animate={{ opacity: active ? .56 : 0 }}
+      transition={{ duration: reducedMotion ? 0 : 0.8, ease: 'easeOut' }}
       fill="none"
       stroke="#f6e0bd"
       strokeWidth="1.6"
       strokeLinecap="round"
       pointerEvents="none"
     >
-      <path d="M304 176q6-6 12 0 6-6 12 0M338 192q5-5 10 0 5-5 10 0M276 204q4-4 8 0 4-4 8 0" />
+      <motion.g
+        initial={false}
+        animate={active && !reducedMotion ? { x: [0, 24, -8, 0], y: [0, -3, 1, 0] } : { x: 0, y: 0 }}
+        transition={active && !reducedMotion
+          ? { duration: 12, repeat: Infinity, ease: 'easeInOut' }
+          : { duration: 0 }}
+      >
+        <path d="M304 176q6-6 12 0 6-6 12 0M338 192q5-5 10 0 5-5 10 0M276 204q4-4 8 0 4-4 8 0" />
+      </motion.g>
     </motion.g>
   )
 }
@@ -586,8 +588,8 @@ function HarborBuoy({
   return (
     <motion.g
       initial={false}
-      animate={{ opacity: active ? 1 : 0, y: active ? 0 : 8 }}
-      transition={{ duration: reducedMotion ? 0 : 0.5, ease: 'easeOut' }}
+      animate={{ opacity: active ? 1 : 0, y: active ? 0 : 2 }}
+      transition={{ duration: reducedMotion ? 0 : 0.82, ease: 'easeOut' }}
       pointerEvents="none"
     >
       <path d={`M172 ${waterY + 7}V${waterY - 24}`} stroke="#264758" strokeWidth="3" strokeLinecap="round" />
@@ -622,8 +624,8 @@ function DawnWaterPath({
   return (
     <motion.g
       initial={false}
-      animate={{ opacity: active ? 1 : 0, scaleX: active ? 1 : .4 }}
-      transition={{ duration: reducedMotion ? 0 : 0.7, ease: 'easeOut' }}
+      animate={{ opacity: active ? 1 : 0 }}
+      transition={{ duration: reducedMotion ? 0 : 0.9, ease: 'easeOut' }}
       style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
       pointerEvents="none"
     >
@@ -992,10 +994,10 @@ function GameScene({
         <Lantern x={355} y={groundY - 65} lit={Math.floor(game.perfects / 5) >= 7} celebration={beaconCelebration} sequence={2} />
         <Lantern x={397} y={groundY - 62} lit={Math.floor(game.perfects / 5) >= 8} celebration={beaconCelebration} sequence={0} />
         <Lantern x={726} y={groundY - 67} lit={Math.floor(game.perfects / 5) >= 9} celebration={beaconCelebration} sequence={1} />
-        <Lantern x={278} y={groundY - 31} lit={worldMilestone >= 4} celebration={worldMilestone >= 4 ? worldMilestone : 0} sequence={1} />
-        <Lantern x={316} y={groundY - 42} lit={worldMilestone >= 4} celebration={worldMilestone >= 4 ? worldMilestone : 0} sequence={2} />
-        <Lantern x={678} y={groundY - 40} lit={worldMilestone >= 4} celebration={worldMilestone >= 4 ? worldMilestone : 0} sequence={3} />
-        <Lantern x={720} y={groundY - 30} lit={worldMilestone >= 4} celebration={worldMilestone >= 4 ? worldMilestone : 0} sequence={4} />
+        <Lantern x={278} y={groundY - 31} lit={worldMilestone >= 4} />
+        <Lantern x={316} y={groundY - 42} lit={worldMilestone >= 4} />
+        <Lantern x={678} y={groundY - 40} lit={worldMilestone >= 4} />
+        <Lantern x={720} y={groundY - 30} lit={worldMilestone >= 4} />
 
         {beaconCelebration > 0 && (
           <motion.circle
