@@ -1,4 +1,4 @@
-import { memo, useState, type FormEvent } from 'react'
+import { memo, useEffect, useState, type FormEvent } from 'react'
 import { formatDailyDate } from './game'
 import type { LeaderboardEntry } from './leaderboard'
 
@@ -14,16 +14,18 @@ type Props = {
   onClose: () => void
 }
 
-function TowerGlyph({ entry }: { entry: LeaderboardEntry }) {
+function TowerGlyph({ entry, detail = false }: { entry: LeaderboardEntry; detail?: boolean }) {
   const floors = Math.min(6, Math.max(2, Math.ceil(entry.height / 8)))
   const litFloors = Math.min(floors, Math.round((entry.perfects / Math.max(entry.height, 1)) * floors))
   const rankTone = Math.min(entry.rank, 4)
+  const baseWidth = detail ? 46 : 30
+  const taper = detail ? 3.7 : 2.4
 
   return (
-    <span className={`tower-glyph rank-${rankTone}${entry.is_you ? ' is-you' : ''}`} aria-hidden="true">
+    <span className={`tower-glyph rank-${rankTone}${entry.is_you ? ' is-you' : ''}${detail ? ' is-detail' : ''}`} aria-hidden="true">
       {Array.from({ length: floors }, (_, floor) => {
         const lit = floor < litFloors
-        const width = 30 - floor * 2.4
+        const width = baseWidth - floor * taper
 
         return (
           <span
@@ -39,19 +41,46 @@ function TowerGlyph({ entry }: { entry: LeaderboardEntry }) {
   )
 }
 
-function ScoreRow({ entry }: { entry: LeaderboardEntry }) {
+function ScoreRow({
+  entry,
+  expanded,
+  onToggle,
+}: {
+  entry: LeaderboardEntry
+  expanded: boolean
+  onToggle: () => void
+}) {
+  const detailId = `leaderboard-score-${entry.rank}`
+
   return (
-    <li className={`leaderboard-row rank-${Math.min(entry.rank, 4)}${entry.is_you ? ' is-you' : ''}`}>
-      <span className="leaderboard-rank">{String(entry.rank).padStart(2, '0')}</span>
-      <TowerGlyph entry={entry} />
-      <span className="leaderboard-player">
-        <strong>{entry.display_name}</strong>
-        {entry.is_you && <small>You</small>}
-      </span>
-      <span className="leaderboard-score">
-        <strong>{entry.height}</strong>
-        <small>{entry.perfects} perfect</small>
-      </span>
+    <li className={`leaderboard-row rank-${Math.min(entry.rank, 4)}${entry.is_you ? ' is-you' : ''}${expanded ? ' is-expanded' : ''}`}>
+      <button
+        className="leaderboard-row-button"
+        type="button"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        aria-controls={detailId}
+      >
+        <span className="leaderboard-rank">{String(entry.rank).padStart(2, '0')}</span>
+        <TowerGlyph entry={entry} />
+        <span className="leaderboard-player">
+          <strong>{entry.display_name}</strong>
+          {entry.is_you && <small>You</small>}
+        </span>
+        <span className="leaderboard-score">
+          <strong>{entry.height}</strong>
+          <small>{entry.perfects} perfect</small>
+        </span>
+      </button>
+      {expanded && (
+        <div id={detailId} className="leaderboard-row-detail">
+          <div className="leaderboard-row-stats">
+            <span><small>Height</small><strong>{entry.height}</strong></span>
+            <span><small>Perfect landings</small><strong>{entry.perfects}</strong></span>
+          </div>
+          <TowerGlyph entry={entry} detail />
+        </div>
+      )}
     </li>
   )
 }
@@ -70,8 +99,19 @@ export const Leaderboard = memo(function Leaderboard({
   const [editingName, setEditingName] = useState(false)
   const [draftName, setDraftName] = useState(playerName)
   const [nameError, setNameError] = useState<string | null>(null)
+  const [expandedRank, setExpandedRank] = useState<number | null>(null)
   const podium = entries.filter((entry) => entry.rank <= 3)
   const personalEntry = entries.find((entry) => entry.is_you && entry.rank > 3)
+
+  useEffect(() => {
+    if (expandedRank === null) return
+    const timer = window.setTimeout(() => setExpandedRank(null), 2800)
+    return () => window.clearTimeout(timer)
+  }, [expandedRank])
+
+  const toggleRow = (rank: number) => {
+    setExpandedRank((current) => current === rank ? null : rank)
+  }
 
   async function submitName(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -109,14 +149,25 @@ export const Leaderboard = memo(function Leaderboard({
           )}
           {podium.length > 0 && (
             <ol className="leaderboard-list" aria-label="Top three scores">
-              {podium.map((entry) => <ScoreRow key={entry.rank} entry={entry} />)}
+              {podium.map((entry) => (
+                <ScoreRow
+                  key={entry.rank}
+                  entry={entry}
+                  expanded={expandedRank === entry.rank}
+                  onToggle={() => toggleRow(entry.rank)}
+                />
+              ))}
             </ol>
           )}
           {personalEntry && (
             <div className="personal-rank">
               <span className="personal-rank-label">Your best</span>
               <ol className="leaderboard-list" aria-label="Your best rank">
-                <ScoreRow entry={personalEntry} />
+                <ScoreRow
+                  entry={personalEntry}
+                  expanded={expandedRank === personalEntry.rank}
+                  onToggle={() => toggleRow(personalEntry.rank)}
+                />
               </ol>
             </div>
           )}
