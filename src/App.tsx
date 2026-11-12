@@ -578,6 +578,7 @@ function Waystone({
   y,
   lit,
   stone,
+  size = 1,
   celebration = 0,
   sequence = 0,
 }: {
@@ -585,23 +586,24 @@ function Waystone({
   y: number
   lit: boolean
   stone: StonePalette
+  /** 1 is about a third of a tower stone; nearer islands use larger sizes. */
+  size?: number
   celebration?: number
   sequence?: number
 }) {
-  const slitY = y - 11
   return (
-    <g className={lit ? 'lantern is-lit' : 'lantern'}>
+    <g className={lit ? 'lantern is-lit' : 'lantern'} transform={`translate(${x} ${y}) scale(${size})`}>
       {/* A tapered standing stone in the tower's own colours. */}
-      <path d={`M${x - 5} ${y}L${x - 3.6} ${y - 18}Q${x} ${y - 23} ${x + 3.6} ${y - 18}L${x + 5} ${y}Z`} fill={stone.front} />
-      <path d={`M${x} ${y - 21.6}Q${x + 2.4} ${y - 20.6} ${x + 3.6} ${y - 18}L${x + 5} ${y}H${x}Z`} fill={stone.side} />
-      <path d={`M${x - 3.6} ${y - 18}Q${x} ${y - 23} ${x + 3.6} ${y - 18}`} stroke={stone.top} strokeWidth="1.4" fill="none" />
-      {lit && <rect x={x - 5} y={slitY - 6} width="10" height="14" rx="5" fill="#ffe0a2" opacity=".6" filter="url(#soft-bloom)" />}
-      <rect x={x - 1.3} y={slitY - 3} width="2.6" height="7" rx="1.3" fill={lit ? '#fff0c4' : '#3f555c'} />
+      <path d="M-5 0L-3.6 -18Q0 -23 3.6 -18L5 0Z" fill={stone.front} />
+      <path d="M0 -21.6Q2.4 -20.6 3.6 -18L5 0H0Z" fill={stone.side} />
+      <path d="M-3.6 -18Q0 -23 3.6 -18" stroke={stone.top} strokeWidth="1.4" fill="none" />
+      {lit && <rect x="-5" y="-17" width="10" height="14" rx="5" fill="#ffe0a2" opacity=".6" filter="url(#soft-bloom)" />}
+      <rect x="-1.3" y="-14" width="2.6" height="7" rx="1.3" fill={lit ? '#fff0c4' : '#3f555c'} />
       {celebration > 0 && (
         <motion.circle
           key={celebration}
-          cx={x}
-          cy={slitY}
+          cx="0"
+          cy="-11"
           r="3.5"
           fill="#fff1c7"
           filter="url(#soft-bloom)"
@@ -616,16 +618,19 @@ function Waystone({
   )
 }
 
-/** A two-tier pine with a trunk and a shaded right side; (x, base) is the foot of the trunk. */
+/** A tiered pine with a trunk and a shaded right side; (x, base) is the foot of the trunk. Proportions scale with height. */
 function Pine({ x, base, height, color }: { x: number; base: number; height: number; color: string }) {
-  const width = height * 0.56
+  const width = height * 0.5
   const shade = blendColor(color, '#0b1622', 0.3)
-  const low = { apex: base - height * 0.72, foot: base - 4, half: width / 2 }
-  const high = { apex: base - height, foot: base - height * 0.42, half: width * 0.38 }
+  const trunk = { width: Math.max(3.2, height * 0.06), height: height * 0.16 }
+  const tiers = (height > 70
+    ? [[0.12, 0.62, 0.5], [0.4, 0.84, 0.38], [0.64, 1, 0.26]]
+    : [[0.12, 0.72, 0.5], [0.42, 1, 0.36]]
+  ).map(([foot, apex, half]) => ({ foot: base - height * foot, apex: base - height * apex, half: width * half }))
   return (
     <g>
-      <rect x={x - 1.6} y={base - 7} width="3.2" height="8" rx="1" fill="#4b3d38" />
-      {[low, high].map((tier, index) => (
+      <rect x={x - trunk.width / 2} y={base - trunk.height} width={trunk.width} height={trunk.height + 1} rx="1" fill="#4b3d38" />
+      {tiers.map((tier, index) => (
         <g key={index}>
           <path d={`M${x - tier.half} ${tier.foot}L${x} ${tier.apex}L${x + tier.half} ${tier.foot}Z`} fill={color} />
           <path d={`M${x} ${tier.apex}L${x + tier.half} ${tier.foot}H${x}Z`} fill={shade} />
@@ -1152,7 +1157,7 @@ const SideIslets = memo(function SideIslets({
       <path d="M114 9l19-17 19 17z" fill="#9b6f60" />
       <path d="M133 -8l19 17h-6z" fill="#000" opacity=".15" />
       <rect x="129" y="18" width="7" height="9" rx="1" fill="#6f4c40" />
-      <Pine x={205} base={14} height={28} color={edition.tower.trees} />
+      <Pine x={210} base={12} height={46} color={edition.tower.trees} />
     </>
   )
 
@@ -1198,8 +1203,8 @@ const SideIslets = memo(function SideIslets({
             <path d={`M${lx - 6} ${ly - 104}L${lx - 420} ${ly - 150}L${lx - 420} ${ly - 70}Z`} fill="#fff0c9" opacity=".45" />
           </motion.g>
         )}
-        <Waystone stone={edition.stone} x={lx - 46} y={ly - 4} lit={lit >= 3} celebration={celebration} sequence={3} />
-        <Waystone stone={edition.stone} x={lx + 50} y={ly - 6} lit={lit >= 4} celebration={celebration} sequence={4} />
+        <Waystone stone={edition.stone} size={0.8} x={lx - 46} y={ly - 6} lit={lit >= 3} celebration={celebration} sequence={3} />
+        <Waystone stone={edition.stone} size={0.8} x={lx + 50} y={ly - 8} lit={lit >= 4} celebration={celebration} sequence={4} />
       </motion.g>
 
       <g transform={`translate(0 ${round1(horizon + sea * 0.17 - 36)})`}>
@@ -1212,8 +1217,8 @@ const SideIslets = memo(function SideIslets({
             <circle cx="133" cy="18" r="16" fill="#ffd27f" opacity=".55" filter="url(#soft-bloom)" />
           </motion.g>
           <path d="M60 37q92 7 176 0" stroke="#eef4ee" strokeOpacity=".4" strokeWidth="1.5" fill="none" />
-          <Waystone stone={edition.stone} x={92} y={18} lit={lit >= 1} celebration={celebration} sequence={5} />
-          <Waystone stone={edition.stone} x={172} y={14} lit={lit >= 2} celebration={celebration} sequence={2} />
+          <Waystone stone={edition.stone} size={0.6} x={88} y={16} lit={lit >= 1} celebration={celebration} sequence={5} />
+          <Waystone stone={edition.stone} size={0.6} x={170} y={10} lit={lit >= 2} celebration={celebration} sequence={2} />
         </motion.g>
       </g>
     </>
@@ -1536,10 +1541,11 @@ function GameScene({
         <path d={islandTopPath(groundY)} fill="url(#home-grass)" />
         <path d={`M262 ${waterline + 1}q256 12 518 0`} stroke="#eef4ee" strokeOpacity=".45" strokeWidth="2" fill="none" />
         <path d={`M286 ${waterline + 9}q232 10 470 0`} stroke="#eef4ee" strokeOpacity=".2" strokeWidth="1.5" fill="none" />
-        <Pine x={355} base={groundY - 36} height={44} color={edition.tower.trees} />
-        <Pine x={726} base={groundY - 36} height={46} color={edition.tower.trees} />
-        <Waystone stone={edition.stone} x={300} y={groundY - 22} lit={Math.floor(game.perfects / 5) >= 5} celebration={celebrating ? beaconCelebration : 0} sequence={1} />
-        <Waystone stone={edition.stone} x={680} y={groundY - 24} lit={Math.floor(game.perfects / 5) >= 6} celebration={celebrating ? beaconCelebration : 0} sequence={0} />
+        {/* Sized against the tower: a stone is about 1.5 m, so the pines stand roughly two stones tall. */}
+        <Pine x={330} base={groundY - 34} height={124} color={edition.tower.trees} />
+        <Pine x={762} base={groundY - 28} height={102} color={edition.tower.trees} />
+        <Waystone stone={edition.stone} size={1.6} x={282} y={groundY - 26} lit={Math.floor(game.perfects / 5) >= 5} celebration={celebrating ? beaconCelebration : 0} sequence={1} />
+        <Waystone stone={edition.stone} size={1.6} x={690} y={groundY - 50} lit={Math.floor(game.perfects / 5) >= 6} celebration={celebrating ? beaconCelebration : 0} sequence={0} />
 
         {celebrating && (
           <BeaconPulse
