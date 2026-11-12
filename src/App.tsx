@@ -19,6 +19,7 @@ import {
   startGame,
   WORLD_WIDTH,
   type Block,
+  type FallingPiece,
   type GameState,
 } from './game'
 
@@ -128,6 +129,63 @@ function Lantern({
   )
 }
 
+function WaterImpact({
+  piece,
+  waterY,
+  forceful = false,
+}: {
+  piece: FallingPiece
+  waterY: number
+  forceful?: boolean
+}) {
+  const center = piece.x + piece.width / 2
+  const impactDelay = forceful ? 0.78 : 0.64
+  const rippleRadius = Math.min(forceful ? 88 : 54, Math.max(24, piece.width * 0.42))
+  const rippleHeight = forceful ? 12 : 7
+
+  return (
+    <motion.g key={`impact-${piece.id}-${piece.x}`} pointerEvents="none">
+      <motion.ellipse
+        cx={center}
+        cy={waterY + 2}
+        rx={rippleRadius}
+        ry={rippleHeight}
+        fill="none"
+        stroke={forceful ? '#e3e6d2' : '#b9ddd4'}
+        strokeWidth={forceful ? 2.6 : 1.5}
+        initial={{ opacity: 0, scale: 0.16 }}
+        animate={{ opacity: [0, forceful ? 0.84 : 0.58, 0], scale: [0.16, 1, forceful ? 1.78 : 1.45] }}
+        transition={{ duration: forceful ? 0.92 : 0.64, delay: impactDelay, ease: 'easeOut' }}
+        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+      />
+      {forceful && (
+        <>
+          <motion.path
+            d={`M${center - 18} ${waterY + 4}Q${center - 20} ${waterY - 23} ${center - 7} ${waterY - 35}`}
+            fill="none"
+            stroke="#d4e6db"
+            strokeWidth="3"
+            strokeLinecap="round"
+            initial={{ opacity: 0, pathLength: 0, y: 6 }}
+            animate={{ opacity: [0, 0.9, 0], pathLength: [0, 1, 1], y: [6, 0, -4] }}
+            transition={{ duration: 0.56, delay: impactDelay, ease: 'easeOut' }}
+          />
+          <motion.path
+            d={`M${center + 17} ${waterY + 4}Q${center + 20} ${waterY - 18} ${center + 8} ${waterY - 29}`}
+            fill="none"
+            stroke="#c4e1d7"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            initial={{ opacity: 0, pathLength: 0, y: 6 }}
+            animate={{ opacity: [0, 0.82, 0], pathLength: [0, 1, 1], y: [6, 0, -3] }}
+            transition={{ duration: 0.5, delay: impactDelay + 0.04, ease: 'easeOut' }}
+          />
+        </>
+      )}
+    </motion.g>
+  )
+}
+
 function GameScene({ game, height }: { game: GameState; height: number }) {
   const [beaconCelebration, setBeaconCelebration] = useState(0)
   const groundY = height - 105
@@ -136,6 +194,7 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
   const cameraShift = targetY - activeY
   const climbProgress = game.stack.length * BLOCK_HEIGHT
   const horizon = height * 0.59
+  const waterY = height - 47
   const dawnStage = Math.min(heightOf(game) / 36, 1)
   const dawnProgress = dawnStage * dawnStage * (3 - 2 * dawnStage)
   const windStrength = Math.abs(game.windPercent)
@@ -344,8 +403,12 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
           <motion.g
             key={`${piece.id}-${piece.x}`}
             initial={{ opacity: 1, y: 0, rotate: 0 }}
-            animate={{ opacity: 0, y: height * 0.3, rotate: piece.direction * 32 }}
-            transition={{ duration: 0.82, ease: 'easeIn' }}
+            animate={{
+              opacity: [1, 1, 0],
+              y: waterY - (groundY - piece.level * BLOCK_HEIGHT + cameraShift) + 8,
+              rotate: piece.direction * (game.phase === 'over' ? 52 : 32),
+            }}
+            transition={{ duration: game.phase === 'over' ? 0.9 : 0.72, ease: 'easeIn' }}
             style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
           >
             <BlockShape
@@ -384,6 +447,14 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
       </motion.g>
 
       <path d={`M0 ${height - 58}q112-32 224 0 130-31 264 1 133-35 268 0 111-30 244 4v${58}`} fill="url(#sea)" opacity=".88" />
+      {game.fallingPieces.map((piece) => (
+        <WaterImpact
+          key={`water-impact-${piece.id}-${piece.x}`}
+          piece={piece}
+          waterY={waterY}
+          forceful={game.phase === 'over'}
+        />
+      ))}
       {beaconCelebration > 0 && (
         <motion.g key={beaconCelebration} pointerEvents="none">
           <motion.ellipse
