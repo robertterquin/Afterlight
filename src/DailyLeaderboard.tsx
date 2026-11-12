@@ -14,10 +14,36 @@ type Props = {
   onClose: () => void
 }
 
+function TowerGlyph({ entry }: { entry: LeaderboardEntry }) {
+  const floors = Math.min(6, Math.max(2, Math.ceil(entry.height / 8)))
+  const litFloors = Math.min(floors, Math.round((entry.perfects / Math.max(entry.height, 1)) * floors))
+  const rankTone = Math.min(entry.rank, 4)
+
+  return (
+    <span className={`tower-glyph rank-${rankTone}${entry.is_you ? ' is-you' : ''}`} aria-hidden="true">
+      {Array.from({ length: floors }, (_, floor) => {
+        const lit = floor < litFloors
+        const width = 30 - floor * 2.4
+
+        return (
+          <span
+            key={floor}
+            className={`tower-floor${lit ? ' is-lit' : ''}`}
+            style={{ width }}
+          >
+            <span className="tower-lens" />
+          </span>
+        )
+      })}
+    </span>
+  )
+}
+
 function ScoreRow({ entry }: { entry: LeaderboardEntry }) {
   return (
-    <li className={`leaderboard-row${entry.is_you ? ' is-you' : ''}`}>
+    <li className={`leaderboard-row rank-${Math.min(entry.rank, 4)}${entry.is_you ? ' is-you' : ''}`}>
       <span className="leaderboard-rank">{String(entry.rank).padStart(2, '0')}</span>
+      <TowerGlyph entry={entry} />
       <span className="leaderboard-player">
         <strong>{entry.display_name}</strong>
         {entry.is_you && <small>You</small>}

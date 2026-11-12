@@ -240,16 +240,18 @@
 }
 
 .leaderboard-row {
-  min-height: 58px;
+  min-height: 62px;
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-columns: 24px 40px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 7px;
+  padding: 8px 9px;
   border-bottom: 1px solid rgba(211, 222, 211, .075);
+  box-sizing: border-box;
 }
 
 .leaderboard-row.is-you {
+  padding: 7px 8px;
   border: 1px solid rgba(235, 195, 145, .32);
   border-radius: 12px;
   background: rgba(235, 195, 145, .08);
@@ -260,6 +262,76 @@
   font-size: 11px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+}
+
+.leaderboard-row.rank-1 .leaderboard-rank {
+  color: #f3d09c;
+}
+
+.tower-glyph {
+  width: 40px;
+  height: 44px;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1px;
+  padding-top: 5px;
+  box-sizing: border-box;
+}
+
+.tower-floor {
+  position: relative;
+  height: 5px;
+  min-width: 15px;
+  display: block;
+  border: 1px solid rgba(205, 220, 204, .33);
+  border-radius: 1.5px 1.5px 1px 1px;
+  background: linear-gradient(90deg, #557d78, #779b8d 74%, #416875 74%);
+  box-shadow: inset 0 1px 0 rgba(244, 238, 209, .18);
+}
+
+.tower-floor::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: 20%;
+  width: 1px;
+  background: rgba(42, 78, 83, .45);
+}
+
+.tower-lens {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  border-radius: 2px;
+  background: #b08c64;
+}
+
+.tower-floor.is-lit .tower-lens {
+  background: #ffe2a4;
+  box-shadow: 0 0 5px rgba(255, 210, 137, .78);
+}
+
+.tower-glyph.rank-1 .tower-floor {
+  background: linear-gradient(90deg, #806c5c, #b28f68 74%, #68554d 74%);
+}
+
+.tower-glyph.rank-2 .tower-floor {
+  background: linear-gradient(90deg, #627b7d, #8da69a 74%, #4d6972 74%);
+}
+
+.tower-glyph.is-you .tower-floor {
+  border-color: rgba(255, 222, 164, .58);
+}
+
+.tower-glyph.is-you .tower-lens {
+  background: #fff0b7;
+  box-shadow: 0 0 5px rgba(255, 220, 159, .7);
 }
 
 .leaderboard-player,
