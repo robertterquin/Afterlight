@@ -20,7 +20,7 @@ The prototype includes block overlap, perfect placements, height scoring, a spee
 
 ## Animation
 
-Motion for React powers the camera easing, block landings, falling overhangs, and state-panel transitions. The daily wind steers slow cloud ribbons while distant beacon islands drift at different rates as the tower climbs. CSS also adds subtle star and water movement. Animations respect the device's reduced-motion setting.
+Motion for React powers the camera easing, block landings, falling overhangs, and state-panel transitions. The daily wind steers slow cloud ribbons while distant beacon islands drift at different rates as the tower climbs. Over the first 36 floors, the sky warms toward dawn as the stars and moonlight fade. CSS also adds subtle star and water movement. Animations respect the device's reduced-motion setting.
 
 ## Daily challenge
 

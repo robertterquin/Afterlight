@@ -116,6 +116,8 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
   const cameraShift = targetY - activeY
   const climbProgress = game.stack.length * BLOCK_HEIGHT
   const horizon = height * 0.59
+  const dawnStage = Math.min(heightOf(game) / 36, 1)
+  const dawnProgress = dawnStage * dawnStage * (3 - 2 * dawnStage)
   const windStrength = Math.abs(game.windPercent)
   const windDirection = game.windPercent < 0 ? -1 : 1
   const cloudDrift = 12 + windStrength * 1.5
@@ -145,6 +147,12 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
           <stop offset=".76" stopColor="#bb8c8c" />
           <stop offset="1" stopColor="#365f6c" />
         </linearGradient>
+        <linearGradient id="dawn-sky" x2="0" y2="1">
+          <stop stopColor="#a9909a" stopOpacity=".025" />
+          <stop offset=".42" stopColor="#d18e83" stopOpacity=".12" />
+          <stop offset=".76" stopColor="#e9a678" stopOpacity=".48" />
+          <stop offset="1" stopColor="#f0c18f" stopOpacity=".76" />
+        </linearGradient>
         <linearGradient id="sea" x2="0" y2="1">
           <stop stopColor="#4b7780" />
           <stop offset="1" stopColor="#142e42" />
@@ -163,6 +171,15 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
       </defs>
 
       <rect width={WORLD_WIDTH} height={height} fill="url(#sky)" />
+      <motion.rect
+        width={WORLD_WIDTH}
+        height={height}
+        fill="url(#dawn-sky)"
+        initial={false}
+        animate={{ opacity: dawnProgress }}
+        transition={{ duration: 1.8, ease: 'easeInOut' }}
+        pointerEvents="none"
+      />
       <g transform={`translate(0 ${height * 0.16})`}>
         <motion.g
           initial={false}
@@ -187,15 +204,26 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
           </g>
         </motion.g>
       </g>
-      <circle cx="820" cy={height * 0.27} r="150" fill="url(#moonlight)" />
-      <circle cx="820" cy={height * 0.27} r="42" fill="#f1d9ba" opacity=".92" />
-      <path d={`M830 ${height * 0.27 - 39}a42 42 0 1 0 28 68 38 38 0 0 1-28-68z`} fill="#d1aa99" opacity=".25" />
+      <motion.g
+        initial={false}
+        animate={{ opacity: 1 - dawnProgress }}
+        transition={{ duration: 1.8, ease: 'easeInOut' }}
+      >
+        <circle cx="820" cy={height * 0.27} r="150" fill="url(#moonlight)" />
+        <circle cx="820" cy={height * 0.27} r="42" fill="#f1d9ba" opacity=".92" />
+        <path d={`M830 ${height * 0.27 - 39}a42 42 0 1 0 28 68 38 38 0 0 1-28-68z`} fill="#d1aa99" opacity=".25" />
+      </motion.g>
 
-      <g className="sky-stars">
+      <motion.g
+        className="sky-stars"
+        initial={false}
+        animate={{ opacity: 1 - dawnProgress }}
+        transition={{ duration: 1.8, ease: 'easeInOut' }}
+      >
         {starPositions.map(([x, y], index) => (
           <circle key={index} cx={x} cy={height * y} r={index % 3 === 0 ? 1.7 : 1.2} fill="#f5e8ce" opacity={index % 2 ? '.56' : '.8'} />
         ))}
-      </g>
+      </motion.g>
       <path d={`M0 ${horizon}q130 -80 250 -26 130 -94 250 -10 140 -91 270 -8 110 -59 230 18v150H0z`} fill="#53536c" opacity=".72" />
       <path d={`M0 ${horizon + 72}q120 -55 235 -8 111 -72 227 -5 131 -74 253 -9 124 -62 285 -3v140H0z`} fill="#344b61" opacity=".92" />
 
