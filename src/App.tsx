@@ -1755,7 +1755,7 @@ function App() {
                 <span>Height</span>
                 <strong>{String(height).padStart(2, '0')}</strong>
               </div>
-              <StreakPill streak={game.perfectStreak} />
+              {game.perfectStreak > 0 && <StreakPill streak={game.perfectStreak} />}
             </div>
           )}
 
@@ -1771,7 +1771,8 @@ function App() {
 
           {inRun && leaderboardEntries.length > 0 && <HeightLadder entries={leaderboardEntries} height={height} />}
 
-          {game.phase === 'playing' && !isWaking && (
+          {/* Only a first-drop hint; once a stone is placed the player knows the move. */}
+          {game.phase === 'playing' && !isWaking && game.placementTicks.length === 0 && (
             <div className="play-prompt chip" aria-hidden="true">
               <span>Tap anywhere to drop</span>
               <kbd>SPACE</kbd>
