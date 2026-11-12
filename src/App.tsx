@@ -2,7 +2,7 @@ import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRe
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import afterlightMark from './assets/afterlight-mark.svg'
 import { Leaderboard } from './DailyLeaderboard'
-import { createSoundBoard, STREAK_PITCHES, type PlayOptions, type SoundName } from './sound'
+import { createSoundBoard, type Cue } from './sound'
 import { HeightLadder, ReadyOverlay, StreakPill } from './Hud'
 import type { LeaderboardEntry } from './leaderboard'
 import './App.css'
@@ -1772,8 +1772,8 @@ function App() {
     return () => window.clearTimeout(timer)
   }, [authInitialized, game.challenge.date, playerId, refreshLeaderboard])
 
-  const playSound = useCallback((name: SoundName, options?: PlayOptions) => {
-    if (soundEnabledRef.current) sounds.play(name, options)
+  const playSound = useCallback((cue: Cue, delay = 0) => {
+    if (soundEnabledRef.current) sounds.play(cue, delay)
   }, [sounds])
 
   // Browsers only allow audio after a user gesture, so the sound board wakes on the first one.
@@ -1787,40 +1787,24 @@ function App() {
     }
   }, [sounds])
 
-  /** Sound for one placement: a stone landing, a rising bell for each perfect, and the trimmed piece meeting the sea. */
+  /** Sound for one placement: the stone landing, a rising glass bell for each perfect, and offcuts meeting the sea. */
   const playPlacement = useCallback((current: GameState, next: GameState) => {
     const climbed = heightOf(current)
-    const random = Math.random()
-    // A trimmed or missed stone sinks into the cloud sea once it covers the water, otherwise it splashes further below.
+    // Offcuts fall into the cloud sea once it covers the water; lower down they plunk into the sea, fainter the higher you are.
     const intoCloud = climbed >= 19
 
     if (next.phase === 'over') {
-      if (intoCloud) playSound('cloud', { volume: 0.9, rate: 0.8, delay: 0.75 })
-      else playSound('splash-big', { volume: Math.max(0.35, 1 - climbed / 16), delay: 0.78 })
-      playSound('bell', { volume: 0.3, rate: 0.5, delay: 1.25 })
+      playSound({ kind: 'miss', intoCloud, volume: Math.max(0.3, 0.75 - climbed / 30) }, 0.78)
       return
     }
     if (next.stack.length <= current.stack.length) return
 
-    const stones: SoundName[] = ['stone-1', 'stone-2', 'stone-3']
-    playSound(stones[Math.floor(random * stones.length)], { volume: 0.7, rate: 0.92 + random * 0.14 })
-
+    playSound({ kind: 'stone' })
     if (next.lastDropWasPerfect) {
-      const step = (next.perfectStreak - 1) % STREAK_PITCHES.length
-      playSound('bell', { volume: 0.42, rate: STREAK_PITCHES[step], delay: 0.03 })
-      if (next.perfectStreak % 5 === 0) {
-        // Five in a row: a short rising arpeggio as the beacon pulse climbs the tower.
-        ;[1.26, 1.5, 2].forEach((rate, index) => playSound('bell', { volume: 0.32, rate, delay: 0.22 + index * 0.13 }))
-      }
-      return
-    }
-
-    const support = next.stack.at(-2)!
-    const landed = next.stack.at(-1)!
-    if (support.width - landed.width <= 16) playSound('tick', { volume: 0.55, delay: 0.02 })
-    if (next.fallingPieces.length > 0) {
-      if (intoCloud) playSound('cloud', { volume: 0.5, delay: 0.6 })
-      else playSound('splash-small', { volume: Math.max(0.15, 0.75 - climbed * 0.05), rate: 0.9 + random * 0.2, delay: 0.64 })
+      playSound({ kind: 'perfect', streak: next.perfectStreak }, 0.03)
+      if (next.perfectStreak % 5 === 0) playSound({ kind: 'celebration' }, 0.24)
+    } else if (next.fallingPieces.length > 0) {
+      playSound(intoCloud ? { kind: 'cloud' } : { kind: 'plunk', volume: Math.max(0.12, 0.5 - climbed * 0.03) }, 0.64)
     }
   }, [playSound])
 
@@ -1831,7 +1815,7 @@ function App() {
     if (startWakeTimerRef.current !== null) window.clearTimeout(startWakeTimerRef.current)
     setIsWaking(!reducedMotion)
     commitGame(startGame(createGame(createDailyChallenge())))
-    playSound('bell', { volume: 0.3, rate: 0.75 })
+    playSound({ kind: 'start' })
 
     if (!reducedMotion) {
       startWakeTimerRef.current = window.setTimeout(() => {
@@ -1849,7 +1833,7 @@ function App() {
   const toggleSound = useCallback(() => {
     const next = !soundEnabledRef.current
     sounds.unlock()
-    sounds.play('toggle', { volume: 0.6 })
+    sounds.play({ kind: 'tap', high: next })
     soundEnabledRef.current = next
     setSoundEnabled(next)
   }, [sounds])
@@ -1896,7 +1880,6 @@ function App() {
   }, [authInitialized, game, submitRun])
 
   const shareRun = useCallback(async () => {
-    playSound('select', { volume: 0.6 })
     const finished = gameRef.current
     const text = `Afterlight · ${dailyEditionForSeed(finished.challenge.seed).name} · ${formatDailyDate(finished.challenge.date)}: ${heightOf(finished)} stones, ${finished.perfects} perfect.`
     const url = window.location.origin
@@ -1906,36 +1889,32 @@ function App() {
         return
       }
       await navigator.clipboard.writeText(`${text} ${url}`)
-      playSound('confirm', { volume: 0.5 })
       setShareNote('Copied')
       window.setTimeout(() => setShareNote(''), 2000)
     } catch {
       // Closing the share sheet rejects; nothing to report.
     }
-  }, [playSound])
+  }, [])
 
   // A new personal best gets a bright two-note chime once the server confirms it.
   useEffect(() => {
     if (submissionStatus !== 'saved') return
-    playSound('bell', { volume: 0.35, rate: 1.5, delay: 0.1 })
-    playSound('bell', { volume: 0.35, rate: 2, delay: 0.28 })
+    playSound({ kind: 'best' }, 0.1)
   }, [playSound, submissionStatus])
 
   const openLeaderboard = useCallback(() => {
-    playSound('open', { volume: 0.55 })
     resumeAfterLeaderboardRef.current = gameRef.current.phase === 'playing'
     if (resumeAfterLeaderboardRef.current) commitGame(pauseGame(gameRef.current))
     setLeaderboardOpen(true)
-  }, [commitGame, playSound])
+  }, [commitGame])
 
   const closeLeaderboard = useCallback(() => {
-    playSound('close', { volume: 0.55 })
     setLeaderboardOpen(false)
     if (resumeAfterLeaderboardRef.current && gameRef.current.phase === 'paused') {
       commitGame(resumeGame(gameRef.current))
     }
     resumeAfterLeaderboardRef.current = false
-  }, [commitGame, playSound])
+  }, [commitGame])
 
   const updatePlayerName = useCallback(async (name: string) => {
     if (!playerId) throw new Error('Player profile is still connecting.')
@@ -1944,12 +1923,11 @@ function App() {
       const { savePlayerName } = await import('./leaderboard')
       const savedName = await savePlayerName(playerId, name)
       setPlayerName(savedName)
-      playSound('confirm', { volume: 0.55 })
       await refreshLeaderboard(gameRef.current.challenge.date)
     } finally {
       setNameSaving(false)
     }
-  }, [playSound, playerId, refreshLeaderboard])
+  }, [playerId, refreshLeaderboard])
 
   useEffect(() => {
     if (game.phase !== 'ready') return
@@ -2038,11 +2016,11 @@ function App() {
         }
         const current = gameRef.current
         if (current.phase === 'playing') {
-          playSound('pause', { volume: 0.55 })
+          playSound({ kind: 'tap', high: false })
           commitGame(pauseGame(current))
         }
         if (current.phase === 'paused') {
-          playSound('resume', { volume: 0.55 })
+          playSound({ kind: 'tap', high: true })
           commitGame(resumeGame(current))
         }
         return
@@ -2109,7 +2087,7 @@ function App() {
               className="icon-button"
               type="button"
               onClick={() => {
-                playSound('pause', { volume: 0.55 })
+                playSound({ kind: 'tap', high: false })
                 commitGame(pauseGame(gameRef.current))
               }}
               aria-label="Pause game"
@@ -2213,7 +2191,7 @@ function App() {
                   className="primary-button"
                   type="button"
                   onClick={() => {
-                    playSound('resume', { volume: 0.55 })
+                    playSound({ kind: 'tap', high: true })
                     setGame((current) => resumeGame(current))
                   }}
                   whileHover={{ y: -1 }}
@@ -2226,7 +2204,7 @@ function App() {
                   className="text-button"
                   type="button"
                   onClick={() => {
-                    playSound('bell', { volume: 0.3, rate: 0.5 })
+                    playSound({ kind: 'end' })
                     setGame((current) => endGame(current))
                   }}
                   whileTap={{ scale: 0.97 }}

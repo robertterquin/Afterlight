@@ -47,9 +47,4 @@ Never put a Supabase secret or `service_role` key in the browser or a `VITE_` va
 
 ## Sound effects
 
-All effects in `public/sfx` are CC0 (public domain), converted to small AAC files:
-
-- Stone landings, cloud puff: [Impact Sounds](https://kenney.nl/assets/impact-sounds) by Kenney
-- Ticks, menus, pause/resume, toggles, confirmations: [Interface Sounds](https://kenney.nl/assets/interface-sounds) by Kenney
-- Perfect-drop bell: [pleasing bell sound effect](https://opengameart.org/content/pleasing-bell-sound-effect) by Spring Spring
-- Splashes: [6 short water splashes](https://opengameart.org/content/6-short-water-splashes) cut by qubodup from pdsounds.org recordings
+Stone landings (`public/sfx/stone-*.m4a`) are CC0 recordings from [Impact Sounds](https://kenney.nl/assets/impact-sounds) by Kenney, converted to small AAC files. Every other cue (the glass bell for perfect drops, the plunk of offcuts into the sea, the splash and low gong when a run ends, the cloud puff and the menu taps) is generated with Web Audio in `src/sound.ts`, so it needs no files.
