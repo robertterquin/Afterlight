@@ -9,6 +9,8 @@ npm install
 npm run dev
 ```
 
+Copy `.env.example` to `.env.local` and add the Supabase project URL and public API key. The app accepts a publishable key or a legacy anon key; never put a secret or `service_role` key in a `VITE_` variable.
+
 ## Controls
 
 - Select **Start climb** to begin.
