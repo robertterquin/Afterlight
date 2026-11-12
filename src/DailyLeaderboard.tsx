@@ -14,6 +14,9 @@ type Props = {
   onClose: () => void
 }
 
+// The daily course turns over at UTC midnight; show that moment in the player's own clock.
+const resetTime = new Date(Date.UTC(2000, 0, 1)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
 type TowerGlyphFloor = {
   level: number
   width: number
@@ -123,15 +126,14 @@ function ScoreRow({
         aria-expanded={expanded}
         aria-controls={detailId}
       >
-        <span className="leaderboard-rank">{String(entry.rank).padStart(2, '0')}</span>
+        <span className="leaderboard-rank">{entry.rank}</span>
         <TowerGlyph entry={entry} />
         <span className="leaderboard-player">
           <strong>{entry.display_name}</strong>
-          {entry.is_you && <small>You</small>}
+          <small>{entry.is_you ? 'You · ' : ''}{entry.perfects} perfect</small>
         </span>
         <span className="leaderboard-score">
           <strong>{entry.height}</strong>
-          <small>{entry.perfects} perfect</small>
         </span>
       </button>
       {expanded && (
@@ -223,7 +225,9 @@ export const Leaderboard = memo(function Leaderboard({
           )}
           {personalEntry && (
             <div className="personal-rank">
-              <span className="personal-rank-label">Your best</span>
+              {personalEntry.rank > 4 && (
+                <p className="leaderboard-between">{personalEntry.rank - 4} {personalEntry.rank === 5 ? 'climber' : 'climbers'} between</p>
+              )}
               <ol className="leaderboard-list" aria-label="Your best rank">
                 <ScoreRow
                   entry={personalEntry}
@@ -257,6 +261,7 @@ export const Leaderboard = memo(function Leaderboard({
               </form>
             ) : (
               <div className="player-name-line">
+                <span className="player-avatar" aria-hidden="true">{playerName.charAt(0).toLowerCase()}</span>
                 <span><small>Climbing as</small><strong>{playerName}</strong></span>
                 <button
                   type="button"
@@ -265,13 +270,13 @@ export const Leaderboard = memo(function Leaderboard({
                     setNameError(null)
                     setEditingName(true)
                   }}
-                >Edit</button>
+                >Edit name</button>
               </div>
             )
           ) : (
             <p className="leaderboard-message">Anonymous player sign-in is needed for ranked scores.</p>
           )}
-          <p className="leaderboard-footnote">Same course for everyone · UTC daily reset</p>
+          <p className="leaderboard-footnote">Same course for everyone. Resets daily at {resetTime} (00:00 UTC).</p>
         </div>
       </aside>
     </>

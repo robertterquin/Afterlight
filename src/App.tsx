@@ -2,6 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProp
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import afterlightMark from './assets/afterlight-mark.svg'
 import { Leaderboard } from './DailyLeaderboard'
+import { HeightLadder, Progress, ReadyOverlay, RunPanel, StreakPill } from './Hud'
+import { bestStreakOf, nextMark } from './runStats'
 import type { LeaderboardEntry } from './leaderboard'
 import './App.css'
 import {
@@ -935,6 +937,15 @@ function GameScene({
           <stop stopColor={edition.dawnSea[0]} stopOpacity=".58" />
           <stop offset="1" stopColor={edition.dawnSea[1]} stopOpacity=".2" />
         </linearGradient>
+        <radialGradient id="moon-body" cx=".38" cy=".35" r=".75">
+          <stop stopColor="#fff4df" />
+          <stop offset=".7" stopColor={edition.moon.body} />
+          <stop offset="1" stopColor={edition.moon.shade} />
+        </radialGradient>
+        <radialGradient id="horizon-glow" cy="1" r=".7">
+          <stop stopColor={edition.moon.light} stopOpacity=".42" />
+          <stop offset="1" stopColor={edition.moon.light} stopOpacity="0" />
+        </radialGradient>
         <radialGradient id="moonlight">
           <stop stopColor={edition.moon.light} stopOpacity=".48" />
           <stop offset="1" stopColor={edition.moon.light} stopOpacity="0" />
@@ -992,14 +1003,13 @@ function GameScene({
         transition={dawnTransition}
       >
         <circle cx={edition.moon.x} cy={height * edition.moon.y} r={edition.moon.radius * 3.57} fill="url(#moonlight)" />
-        <circle cx={edition.moon.x} cy={height * edition.moon.y} r={edition.moon.radius} fill={edition.moon.body} opacity=".92" />
-        <circle
-          cx={edition.moon.x + edition.moon.radius * 0.42}
-          cy={height * edition.moon.y - edition.moon.radius * 0.12}
-          r={edition.moon.radius * 0.88}
-          fill={edition.moon.shade}
-          opacity=".25"
-        />
+        <circle cx={edition.moon.x} cy={height * edition.moon.y} r={edition.moon.radius} fill="url(#moon-body)" />
+        <g fill={edition.moon.shade} opacity=".32">
+          <circle cx={edition.moon.x + edition.moon.radius * 0.25} cy={height * edition.moon.y - edition.moon.radius * 0.2} r={edition.moon.radius * 0.18} />
+          <circle cx={edition.moon.x - edition.moon.radius * 0.3} cy={height * edition.moon.y + edition.moon.radius * 0.25} r={edition.moon.radius * 0.12} />
+          <circle cx={edition.moon.x + edition.moon.radius * 0.35} cy={height * edition.moon.y + edition.moon.radius * 0.4} r={edition.moon.radius * 0.09} />
+        </g>
+        <circle cx={edition.moon.x} cy={height * edition.moon.y} r={edition.moon.radius} fill="none" stroke="#fff6e6" strokeOpacity=".45" />
       </motion.g>
 
       <motion.g
@@ -1012,6 +1022,7 @@ function GameScene({
           <circle key={index} cx={x} cy={height * y} r={index % 3 === 0 ? 1.7 : 1.2} fill="#f5e8ce" opacity={index % 2 ? '.56' : '.8'} />
         ))}
       </motion.g>
+      <rect y={horizon - 90} width={WORLD_WIDTH} height="170" fill="url(#horizon-glow)" pointerEvents="none" />
       <BirdFlock active={worldMilestone >= 5} reducedMotion={reducedMotion} />
       <motion.g
         initial={false}
@@ -1248,6 +1259,25 @@ function GameScene({
         transition={dawnTransition}
         pointerEvents="none"
       />
+      <motion.g
+        initial={false}
+        animate={{ opacity: 1 - dawnProgress }}
+        transition={dawnTransition}
+        fill="#ffe7c2"
+        pointerEvents="none"
+      >
+        {[0, 1, 2, 3, 4, 5].map((row) => (
+          <rect
+            key={row}
+            x={edition.moon.x - (34 - row * 5)}
+            y={waterY - 6 + row * 6}
+            width={(34 - row * 5) * 2}
+            height="1.8"
+            rx=".9"
+            opacity={0.42 - row * 0.06}
+          />
+        ))}
+      </motion.g>
       <HarborBuoy active={worldMilestone >= 2} waterY={waterY} reducedMotion={reducedMotion} />
       <DawnWaterPath active={worldMilestone >= 6} waterY={waterY} reducedMotion={reducedMotion} />
       {game.fallingPieces.map((piece) => (
@@ -1320,6 +1350,7 @@ function App() {
   const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'saved' | 'not-best' | 'failed' | 'offline'>('idle')
   const [submissionError, setSubmissionError] = useState('')
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
+  const [shareNote, setShareNote] = useState('')
   const { reducedMotion } = useScenePreferences()
   const stageRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef(game)
@@ -1497,6 +1528,23 @@ function App() {
     void submitRun(game)
   }, [authInitialized, game, submitRun])
 
+  const shareRun = useCallback(async () => {
+    const finished = gameRef.current
+    const text = `Afterlight · ${dailyEditionForSeed(finished.challenge.seed).name} · ${formatDailyDate(finished.challenge.date)}: ${heightOf(finished)} stones, ${finished.perfects} perfect.`
+    const url = window.location.origin
+    try {
+      if (navigator.share) {
+        await navigator.share({ text, url })
+        return
+      }
+      await navigator.clipboard.writeText(`${text} ${url}`)
+      setShareNote('Copied')
+      window.setTimeout(() => setShareNote(''), 2000)
+    } catch {
+      // Closing the share sheet rejects; nothing to report.
+    }
+  }, [])
+
   const openLeaderboard = useCallback(() => {
     resumeAfterLeaderboardRef.current = gameRef.current.phase === 'playing'
     if (resumeAfterLeaderboardRef.current) commitGame(pauseGame(gameRef.current))
@@ -1635,6 +1683,10 @@ function App() {
   const height = heightOf(game)
   const dailyEdition = dailyEditionForSeed(game.challenge.seed)
   const isFocusedRun = height > 0 && game.phase !== 'over'
+  const inRun = game.phase === 'playing' || game.phase === 'paused'
+  const yourEntry = leaderboardEntries.find((entry) => entry.is_you)
+  const passMark = nextMark(leaderboardEntries, height)
+  const runVerified = submissionStatus === 'saved' || submissionStatus === 'not-best'
 
   return (
     <MotionConfig reducedMotion="user">
@@ -1697,25 +1749,31 @@ function App() {
         >
           <GameScene game={game} height={sceneHeight} isWaking={isWaking} />
 
-          {game.phase !== 'ready' && (
-            <div className="height-readout" aria-live="polite">
-              <span>Height</span>
-              <strong>{String(height).padStart(2, '0')}</strong>
+          {inRun && (
+            <div className="run-hud">
+              <div className="height-readout" aria-live="polite">
+                <span>Height</span>
+                <strong>{String(height).padStart(2, '0')}</strong>
+              </div>
+              <StreakPill streak={game.perfectStreak} />
             </div>
           )}
 
-          <div
-            className="daily-readout"
-            aria-label={`Daily challenge ${game.challenge.date}. ${game.windPercent === 0 ? 'Wind calm' : `Wind ${game.windPercent > 0 ? 'plus ' : 'minus '}${Math.abs(game.windPercent)} percent`}.`}
-          >
-            <span className="daily-date">Daily · {formatDailyDate(game.challenge.date)}</span>
-            <WindSignature windPercent={game.windPercent} />
-          </div>
+          {game.phase !== 'ready' && (
+            <div
+              className="daily-readout chip"
+              aria-label={`Daily challenge ${game.challenge.date}. ${game.windPercent === 0 ? 'Wind calm' : `Wind ${game.windPercent > 0 ? 'plus ' : 'minus '}${Math.abs(game.windPercent)} percent`}.`}
+            >
+              <WindSignature windPercent={game.windPercent} />
+              <span className="daily-date">{formatDailyDate(game.challenge.date)}</span>
+            </div>
+          )}
+
+          {inRun && leaderboardEntries.length > 0 && <HeightLadder entries={leaderboardEntries} height={height} />}
 
           {game.phase === 'playing' && !isWaking && (
-            <div className="play-prompt" aria-hidden="true">
-              <span className="tap-dot"><i /></span>
-              <span>Tap to place</span>
+            <div className="play-prompt chip" aria-hidden="true">
+              <span>Tap anywhere to drop</span>
               <kbd>SPACE</kbd>
             </div>
           )}
@@ -1730,26 +1788,20 @@ function App() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22 }}
               >
-                <h1 className="ready-course-title">{dailyEdition.name}</h1>
-                <div className="ready-actions">
-                  <motion.button
-                    className="primary-button"
-                    type="button"
-                    onClick={start}
-                    whileHover={{ y: -1 }}
-                    whileTap={{ scale: 0.97 }}
-                    transition={{ type: 'spring', stiffness: 460, damping: 24 }}
-                  >
-                    Start climb
-                  </motion.button>
-                </div>
+                <ReadyOverlay
+                  editionName={dailyEdition.name}
+                  dateLabel={formatDailyDate(game.challenge.date)}
+                  windPercent={game.windPercent}
+                  entries={leaderboardEntries}
+                  onStart={start}
+                />
               </motion.div>
             )}
 
             {game.phase === 'paused' && (
               <motion.div
                 key="paused"
-                className="state-card"
+                className="state-card glass"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="pause-title"
@@ -1783,18 +1835,53 @@ function App() {
             {game.phase === 'over' && (
               <motion.div
                 key="over"
-                className="state-card over-card"
+                className="state-card over-card glass"
                 role="dialog"
                 aria-labelledby="over-title"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                exit={{ opacity: 0, transition: { duration: 0.15 } }}
                 transition={{ duration: reducedMotion ? 0.2 : 0.36, delay: reducedMotion ? 0 : 1.18, ease: 'easeOut' }}
               >
                 {/* A miss records a placement that never joined the stack; ending from pause does not. */}
-                <h1 id="over-title">{game.placementTicks.length > height ? 'The tide keeps it' : 'The beacon rests'}</h1>
-                <p className="result-line"><strong>{height}</strong> {height === 1 ? 'stone' : 'stones'} placed</p>
-                {game.perfects > 0 && <p className="result-detail">{game.perfects} perfect {game.perfects === 1 ? 'landing' : 'landings'}</p>}
+                <h1 id="over-title" className="eyebrow over-eyebrow">{game.placementTicks.length > height ? 'The tide keeps it' : 'The beacon rests'}</h1>
+                <p className="over-score"><strong>{height}</strong><span>{height === 1 ? 'stone' : 'stones'}</span></p>
+                {runVerified && (
+                  <div className="over-pills">
+                    {submissionStatus === 'saved' && <span className="pill is-accent">New best today</span>}
+                    {yourEntry && <span className="pill">Rank #{yourEntry.rank}</span>}
+                  </div>
+                )}
+                <div className="tiles is-compact">
+                  <div className="tile"><strong>{game.perfects}</strong><span>Perfect</span></div>
+                  <div className="tile"><strong>{bestStreakOf(game)}</strong><span>Best streak</span></div>
+                  <div className="tile"><strong>{Math.min(9, Math.floor(game.perfects / 5))}</strong><span>Lanterns lit</span></div>
+                </div>
+                {passMark && (
+                  <div className="mark">
+                    <div className="mark-line">
+                      <span>{passMark.gap} {passMark.gap === 1 ? 'stone' : 'stones'} to pass <b className="is-gold">{passMark.name}</b></span>
+                      <b className="is-muted">{passMark.height}</b>
+                    </div>
+                    <Progress value={height} max={passMark.height + 1} />
+                  </div>
+                )}
+                <div className="over-actions">
+                  <motion.button
+                    className="primary-button"
+                    type="button"
+                    onClick={retry}
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ type: 'spring', stiffness: 460, damping: 24 }}
+                  >
+                    Climb again
+                  </motion.button>
+                  <button className="ghost-button" type="button" onClick={() => void shareRun()}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>
+                    <span aria-live="polite">{shareNote || 'Share'}</span>
+                  </button>
+                </div>
                 {submissionStatus !== 'idle' && (
                   <p className={`result-submission is-${submissionStatus}`} role="status">
                     {submissionStatus === 'submitting' && 'Verifying today’s run…'}
@@ -1809,21 +1896,11 @@ function App() {
                     Retry score sync
                   </button>
                 )}
-                <motion.button
-                  className="primary-button"
-                  type="button"
-                  onClick={retry}
-                  whileHover={{ y: -1 }}
-                  whileTap={{ scale: 0.97 }}
-                  transition={{ type: 'spring', stiffness: 460, damping: 24 }}
-                >
-                  Climb again
-                </motion.button>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
-        <Leaderboard
+        {inRun && !leaderboardOpen ? <RunPanel game={game} entries={leaderboardEntries} /> : <Leaderboard
           challengeDate={game.challenge.date}
           entries={leaderboardEntries}
           loading={leaderboardLoading}
@@ -1833,7 +1910,7 @@ function App() {
           onSaveName={updatePlayerName}
           mobileOpen={leaderboardOpen}
           onClose={closeLeaderboard}
-        />
+        />}
       </section>
     </main>
     </MotionConfig>
