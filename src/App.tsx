@@ -84,9 +84,16 @@ function BlockShape({
 }) {
   const bevel = 10
   const faceHeight = BLOCK_HEIGHT - bevel
-  const top = active ? '#fff0c9' : '#dcebd6'
-  const front = active ? '#dda875' : '#78aa9c'
-  const side = active ? '#ad735e' : '#47757a'
+  const top = active ? '#fff0c9' : '#d8e1d5'
+  const front = active ? '#d79d6f' : '#71988c'
+  const side = active ? '#a86858' : '#416a70'
+  const jointColor = active ? '#bb7d5e' : '#5d817b'
+  const lensColor = active ? '#fff0b7' : '#e8bf80'
+  const lensWidth = Math.min(14, Math.max(7, block.width * 0.075))
+  const lensHeight = Math.min(30, Math.max(18, faceHeight * 0.52))
+  const lensX = block.x + block.width / 2 - lensWidth / 2
+  const lensY = y + bevel + (faceHeight - lensHeight) / 2
+  const masonryJoints = block.width > 155 ? [0.18, 0.43, 0.72, 0.88] : [0.28, 0.7]
   const classes = [active && 'moving-block', perfect && 'perfect-stone']
     .filter(Boolean)
     .join(' ')
@@ -106,16 +113,45 @@ function BlockShape({
           fill={top}
         />
         <rect x={block.x} y={y + bevel} width={block.width} height={faceHeight} rx="2" fill={front} />
+        <path
+          d={`M${block.x} ${y + bevel + 10}H${block.x + block.width}`}
+          stroke={active ? '#e9b681' : '#a1baa0'}
+          strokeWidth="2"
+          opacity=".58"
+        />
+        {masonryJoints.map((position) => (
+          <path
+            key={position}
+            d={`M${block.x + block.width * position} ${y + bevel + 5}V${y + BLOCK_HEIGHT - 5}`}
+            stroke={jointColor}
+            strokeWidth="2"
+            opacity=".58"
+          />
+        ))}
         <polygon
           points={`${block.x + block.width},${y + bevel} ${block.x + block.width + bevel},${y} ${block.x + block.width + bevel},${y + faceHeight - 2} ${block.x + block.width},${y + BLOCK_HEIGHT}`}
           fill={side}
         />
-        {block.width > 85 && (
-          <g fill={active ? '#fff0ce' : '#ffe0aa'} opacity=".88">
-            <rect x={block.x + block.width * 0.24} y={y + 22} width="11" height="14" rx="2" />
-            <rect x={block.x + block.width * 0.58} y={y + 22} width="11" height="14" rx="2" />
-          </g>
-        )}
+        <rect
+          x={lensX - 4}
+          y={lensY - 4}
+          width={lensWidth + 8}
+          height={lensHeight + 8}
+          rx={(lensWidth + 8) / 2}
+          fill={lensColor}
+          filter="url(#soft-bloom)"
+          opacity=".24"
+        />
+        <rect x={lensX} y={lensY} width={lensWidth} height={lensHeight} rx={lensWidth / 2} fill={lensColor} />
+        <rect
+          x={lensX + lensWidth * 0.32}
+          y={lensY + lensHeight * 0.17}
+          width={lensWidth * 0.36}
+          height={lensHeight * 0.66}
+          rx={lensWidth * 0.18}
+          fill="#fff7da"
+          opacity=".88"
+        />
     </motion.g>
   )
 }
