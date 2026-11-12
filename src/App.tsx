@@ -61,6 +61,16 @@ function lensGeometry(block: Block, y: number): LensGeometry {
   }
 }
 
+function blendColor(from: string, to: string, amount: number) {
+  const mix = Math.min(1, Math.max(0, amount))
+  const channel = (offset: number) => Math.round(
+    Number.parseInt(from.slice(offset, offset + 2), 16) * (1 - mix)
+    + Number.parseInt(to.slice(offset, offset + 2), 16) * mix,
+  )
+
+  return `#${[channel(1), channel(3), channel(5)].map((value) => value.toString(16).padStart(2, '0')).join('')}`
+}
+
 function getLandingFeedback(game: GameState): LandingFeedbackKind {
   if (game.phase !== 'playing' || game.stack.length < 2) return null
   if (game.lastDropWasPerfect) return 'perfect'
@@ -116,6 +126,10 @@ function BlockShape({
   perfect = false,
   grew = false,
   signalActive = false,
+  historicalPerfect = false,
+  trimmedLeft = 0,
+  trimmedRight = 0,
+  stoneWarmth = 0,
 }: {
   block: Block
   y: number
@@ -124,16 +138,31 @@ function BlockShape({
   perfect?: boolean
   grew?: boolean
   signalActive?: boolean
+  historicalPerfect?: boolean
+  trimmedLeft?: number
+  trimmedRight?: number
+  stoneWarmth?: number
 }) {
   const bevel = BLOCK_BEVEL
   const faceHeight = BLOCK_FACE_HEIGHT
-  const top = active ? '#fff0c9' : '#d8e1d5'
-  const front = active ? '#d79d6f' : '#71988c'
-  const side = active ? '#a86858' : '#416a70'
-  const jointColor = active ? '#bb7d5e' : '#5d817b'
-  const lensColor = active ? '#fff0b7' : signalActive ? '#ffe4a7' : '#e8bf80'
+  const cleanStone = historicalPerfect || perfect
+  const weatheredTop = blendColor('#d8e1d5', '#e7d6b4', stoneWarmth)
+  const weatheredFront = blendColor('#71988c', '#b59c78', stoneWarmth)
+  const weatheredSide = blendColor('#416a70', '#77635a', stoneWarmth)
+  const weatheredJoint = blendColor('#5d817b', '#876f5d', stoneWarmth)
+  const top = active ? '#fff0c9' : cleanStone ? blendColor(weatheredTop, '#f6e8c8', .18) : weatheredTop
+  const front = active ? '#d79d6f' : cleanStone ? blendColor(weatheredFront, '#c9ad85', .2) : weatheredFront
+  const side = active ? '#a86858' : cleanStone ? blendColor(weatheredSide, '#9b7b65', .18) : weatheredSide
+  const jointColor = active ? '#bb7d5e' : cleanStone ? blendColor(weatheredJoint, '#a88669', .25) : weatheredJoint
+  const lensColor = active ? '#fff0b7' : signalActive ? '#ffe4a7' : cleanStone ? '#ffe0a2' : '#d6a86d'
+  const roughCut = blendColor('#2f5661', '#63534c', stoneWarmth)
+  const roughCutHighlight = blendColor('#77978e', '#b89b78', stoneWarmth)
   const lens = lensGeometry(block, y)
   const masonryJoints = block.width > 155 ? [0.18, 0.43, 0.72, 0.88] : [0.28, 0.7]
+  const roughTop = y + bevel + 5
+  const roughBottom = y + BLOCK_HEIGHT - 5
+  const leftRoughWidth = Math.min(11, Math.max(4, trimmedLeft * 0.35))
+  const rightRoughWidth = Math.min(11, Math.max(4, trimmedRight * 0.35))
   const classes = [active && 'moving-block', perfect && 'perfect-stone', signalActive && 'signal-stone']
     .filter(Boolean)
     .join(' ')
@@ -153,11 +182,43 @@ function BlockShape({
           fill={top}
         />
         <rect x={block.x} y={y + bevel} width={block.width} height={faceHeight} rx="2" fill={front} />
+        {trimmedLeft > 0 && (
+          <>
+            <path
+              d={`M${block.x} ${roughTop}H${block.x + leftRoughWidth}L${block.x + leftRoughWidth * 0.58} ${roughTop + 13}L${block.x + leftRoughWidth} ${roughTop + 26}V${roughBottom}H${block.x}Z`}
+              fill={roughCut}
+              opacity=".84"
+            />
+            <path
+              d={`M${block.x + leftRoughWidth} ${roughTop + 5}L${block.x + leftRoughWidth * 0.6} ${roughTop + 15}L${block.x + leftRoughWidth} ${roughTop + 24}`}
+              fill="none"
+              stroke={roughCutHighlight}
+              strokeWidth="1.2"
+              opacity=".65"
+            />
+          </>
+        )}
+        {trimmedRight > 0 && (
+          <>
+            <path
+              d={`M${block.x + block.width} ${roughTop}H${block.x + block.width - rightRoughWidth}L${block.x + block.width - rightRoughWidth * 0.58} ${roughTop + 13}L${block.x + block.width - rightRoughWidth} ${roughTop + 26}V${roughBottom}H${block.x + block.width}Z`}
+              fill={roughCut}
+              opacity=".84"
+            />
+            <path
+              d={`M${block.x + block.width - rightRoughWidth} ${roughTop + 5}L${block.x + block.width - rightRoughWidth * 0.6} ${roughTop + 15}L${block.x + block.width - rightRoughWidth} ${roughTop + 24}`}
+              fill="none"
+              stroke={roughCutHighlight}
+              strokeWidth="1.2"
+              opacity=".65"
+            />
+          </>
+        )}
         <path
           d={`M${block.x} ${y + bevel + 10}H${block.x + block.width}`}
-          stroke={active ? '#e9b681' : '#a1baa0'}
+          stroke={active ? '#e9b681' : cleanStone ? blendColor('#a1baa0', '#d4bd93', stoneWarmth) : blendColor('#a1baa0', '#c09e78', stoneWarmth)}
           strokeWidth="2"
-          opacity=".58"
+          opacity={cleanStone ? '.68' : '.58'}
         />
         {masonryJoints.map((position) => (
           <path
@@ -180,7 +241,7 @@ function BlockShape({
           rx={(lens.width + 8) / 2}
           fill={lensColor}
           filter="url(#soft-bloom)"
-          opacity={signalActive ? '.4' : '.24'}
+          opacity={signalActive ? '.4' : cleanStone ? '.38' : '.2'}
         />
         <rect x={lens.x} y={lens.y} width={lens.width} height={lens.height} rx={lens.width / 2} fill={lensColor} />
         <rect
@@ -706,17 +767,32 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
           />
         )}
 
-        {game.stack.map((block, index) => (
-          <BlockShape
-            key={index}
-            block={block}
-            y={groundY - (index + 1) * BLOCK_HEIGHT}
-            landed={index === game.stack.length - 1 && game.stack.length > 1}
-            perfect={index === game.stack.length - 1 && game.lastDropWasPerfect}
-            grew={index === game.stack.length - 1 && game.lastDropGrew}
-            signalActive={index >= signalStartIndex}
-          />
-        ))}
+        {game.stack.map((block, index) => {
+          const support = game.stack[index - 1]
+          const historicalPerfect = support
+            ? Math.abs((block.x + block.width / 2) - (support.x + support.width / 2)) < 0.01
+            : false
+          const trimmedLeft = support ? Math.max(0, block.x - support.x) : 0
+          const trimmedRight = support
+            ? Math.max(0, support.x + support.width - (block.x + block.width))
+            : 0
+
+          return (
+            <BlockShape
+              key={index}
+              block={block}
+              y={groundY - (index + 1) * BLOCK_HEIGHT}
+              landed={index === game.stack.length - 1 && game.stack.length > 1}
+              perfect={index === game.stack.length - 1 && game.lastDropWasPerfect}
+              grew={index === game.stack.length - 1 && game.lastDropGrew}
+              signalActive={index >= signalStartIndex}
+              historicalPerfect={historicalPerfect}
+              trimmedLeft={trimmedLeft}
+              trimmedRight={trimmedRight}
+              stoneWarmth={Math.min(1, index / 32)}
+            />
+          )
+        })}
         <BeaconSignal
           stack={game.stack}
           groundY={groundY}
