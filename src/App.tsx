@@ -702,60 +702,139 @@ function WindSignature({ windPercent }: { windPercent: number }) {
   )
 }
 
+type ImpactSurface = 'water' | 'cloud' | 'none'
+
+/** Where a trimmed stone meets the world: a splash at the island's waterline, a puff in the cloud sea, or nothing when it falls out of frame. */
 function WaterImpact({
   piece,
-  waterY,
+  surfaceY,
+  surface,
   forceful = false,
 }: {
   piece: FallingPiece
-  waterY: number
+  surfaceY: number
+  surface: ImpactSurface
   forceful?: boolean
 }) {
+  if (surface === 'none') return null
   const center = piece.x + piece.width / 2
   const impactDelay = forceful ? 0.78 : 0.64
-  const rippleRadius = Math.min(forceful ? 88 : 54, Math.max(24, piece.width * 0.42))
-  const rippleHeight = forceful ? 12 : 7
+  const size = Math.min(forceful ? 1.6 : 1, Math.max(0.55, piece.width / 110))
 
+  if (surface === 'cloud') {
+    return (
+      <motion.g pointerEvents="none" initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 0] }} transition={{ duration: 1.2, delay: impactDelay - 0.08, ease: 'easeOut' }}>
+        <ellipse cx={center} cy={surfaceY + 12 * size} rx={60 * size} ry={10 * size} fill="#9d88a3" opacity=".35" />
+        {[[-0.5, 0], [0, -0.2], [0.5, 0.05]].map(([dx, dy], index) => (
+          <motion.ellipse
+            key={index}
+            cx={center + dx * 34 * size}
+            cy={surfaceY + dy * 20}
+            rx={30 * size}
+            ry={13 * size}
+            fill="#ffffff"
+            initial={{ scale: 0.3 }}
+            animate={{ scale: [0.3, 1.25, 1.6] }}
+            transition={{ duration: 1.1, delay: impactDelay - 0.08 + index * 0.05, ease: 'easeOut' }}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+          />
+        ))}
+      </motion.g>
+    )
+  }
+
+  const crown = [[-16, -26], [-6, -36], [6, -34], [16, -24]]
   return (
-    <motion.g key={`impact-${piece.id}-${piece.x}`} pointerEvents="none">
-      <motion.ellipse
-        cx={center}
-        cy={waterY + 2}
-        rx={rippleRadius}
-        ry={rippleHeight}
-        fill="none"
-        stroke={forceful ? '#e3e6d2' : '#b9ddd4'}
-        strokeWidth={forceful ? 2.6 : 1.5}
-        initial={{ opacity: 0, scale: 0.16 }}
-        animate={{ opacity: [0, forceful ? 0.84 : 0.58, 0], scale: [0.16, 1, forceful ? 1.78 : 1.45] }}
-        transition={{ duration: forceful ? 0.92 : 0.64, delay: impactDelay, ease: 'easeOut' }}
+    <motion.g pointerEvents="none">
+      {[0, 0.16].map((lag, ring) => (
+        <motion.ellipse
+          key={ring}
+          cx={center}
+          cy={surfaceY + 2}
+          rx={(ring ? 62 : 40) * size}
+          ry={(ring ? 9 : 6) * size}
+          fill="none"
+          stroke="#e3efe8"
+          strokeWidth={ring ? 1.2 : 2}
+          initial={{ opacity: 0, scale: 0.2 }}
+          animate={{ opacity: [0, ring ? 0.45 : 0.8, 0], scale: [0.2, 1, 1.4] }}
+          transition={{ duration: 0.9, delay: impactDelay + lag, ease: 'easeOut' }}
+          style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+        />
+      ))}
+      {crown.map(([dx, dy], index) => (
+        <motion.path
+          key={index}
+          d={`M${center + dx * 0.5 * size} ${surfaceY}Q${center + dx * size} ${surfaceY + dy * 0.6 * size} ${center + dx * 1.2 * size} ${surfaceY + dy * size}`}
+          fill="none"
+          stroke="#eef6f1"
+          strokeWidth={forceful ? 2.6 : 2}
+          strokeLinecap="round"
+          initial={{ opacity: 0, pathLength: 0 }}
+          animate={{ opacity: [0, 0.9, 0], pathLength: [0, 1, 1] }}
+          transition={{ duration: 0.5, delay: impactDelay + index * 0.02, ease: 'easeOut' }}
+        />
+      ))}
+    </motion.g>
+  )
+}
+
+/** Five perfect drops: light climbs through the streak's stones, then a halo opens around the top stone. */
+function BeaconPulse({ block, topY, fromY }: { block: Block; topY: number; fromY: number }) {
+  const centerX = block.x + block.width / 2
+  return (
+    <g pointerEvents="none">
+      <motion.rect
+        x={centerX - 8}
+        y={topY}
+        width="16"
+        height="54"
+        rx="8"
+        fill="#fff2c9"
+        filter="url(#soft-bloom)"
+        initial={{ opacity: 0, y: fromY - topY }}
+        animate={{ opacity: [0, 1, 1, 0], y: [fromY - topY, 0] }}
+        transition={{ duration: 0.6, ease: 'easeIn' }}
+      />
+      <motion.rect
+        x={centerX - 2}
+        y={topY + 8}
+        width="4"
+        height="38"
+        rx="2"
+        fill="#fffaf0"
+        initial={{ opacity: 0, y: fromY - topY }}
+        animate={{ opacity: [0, 1, 1, 0], y: [fromY - topY, 0] }}
+        transition={{ duration: 0.6, ease: 'easeIn' }}
+      />
+      {[0, 0.12].map((lag, ring) => (
+        <motion.ellipse
+          key={ring}
+          cx={centerX}
+          cy={topY + 6}
+          rx={block.width * (ring ? 1.05 : 0.72)}
+          ry={ring ? 22 : 15}
+          fill="none"
+          stroke={ring ? '#c7eee0' : '#ffe5b4'}
+          strokeWidth={ring ? 1.5 : 2.4}
+          initial={{ opacity: 0, scale: 0.2 }}
+          animate={{ opacity: [0, ring ? 0.55 : 0.9, 0], scale: [0.2, 1, 1.3] }}
+          transition={{ duration: 0.9, delay: 0.5 + lag, ease: 'easeOut' }}
+          style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+        />
+      ))}
+      <motion.circle
+        cx={centerX}
+        cy={topY + BLOCK_HEIGHT / 2}
+        r="30"
+        fill="#ffe4ae"
+        filter="url(#soft-bloom)"
+        initial={{ opacity: 0, scale: 0.35 }}
+        animate={{ opacity: [0, 0.72, 0], scale: [0.35, 1.2, 2.4] }}
+        transition={{ duration: 1, delay: 0.45, ease: 'easeOut' }}
         style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
       />
-      {forceful && (
-        <>
-          <motion.path
-            d={`M${center - 18} ${waterY + 4}Q${center - 20} ${waterY - 23} ${center - 7} ${waterY - 35}`}
-            fill="none"
-            stroke="#d4e6db"
-            strokeWidth="3"
-            strokeLinecap="round"
-            initial={{ opacity: 0, pathLength: 0, y: 6 }}
-            animate={{ opacity: [0, 0.9, 0], pathLength: [0, 1, 1], y: [6, 0, -4] }}
-            transition={{ duration: 0.56, delay: impactDelay, ease: 'easeOut' }}
-          />
-          <motion.path
-            d={`M${center + 17} ${waterY + 4}Q${center + 20} ${waterY - 18} ${center + 8} ${waterY - 29}`}
-            fill="none"
-            stroke="#c4e1d7"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-            initial={{ opacity: 0, pathLength: 0, y: 6 }}
-            animate={{ opacity: [0, 0.82, 0], pathLength: [0, 1, 1], y: [6, 0, -3] }}
-            transition={{ duration: 0.5, delay: impactDelay + 0.04, ease: 'easeOut' }}
-          />
-        </>
-      )}
-    </motion.g>
+    </g>
   )
 }
 
@@ -1046,6 +1125,17 @@ const SideIslets = memo(function SideIslets({
             transition={reducedMotion ? { duration: 0 } : { duration: 6.4, repeat: Infinity, ease: 'easeInOut' }}
           />
         </motion.g>
+        {celebration > 0 && (
+          <motion.g
+            key={`lighthouse-flash-${celebration}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 1, 0] }}
+            transition={{ duration: 1.3, delay: 0.55, ease: 'easeOut' }}
+          >
+            <circle cx={lx} cy={ly - 103} r="46" fill="#fff0c9" opacity=".8" filter="url(#soft-bloom)" />
+            <path d={`M${lx - 6} ${ly - 104}L${lx - 420} ${ly - 150}L${lx - 420} ${ly - 70}Z`} fill="#fff0c9" opacity=".45" />
+          </motion.g>
+        )}
         <Lantern x={lx - 48} y={ly - 6} lit={lit >= 4} celebration={celebration} sequence={3} />
         <Lantern x={lx + 32} y={ly - 10} lit={lit >= 5} celebration={celebration} sequence={5} />
         <Lantern x={lx + 70} y={ly - 4} lit={lit >= 6} celebration={celebration} sequence={7} />
@@ -1142,7 +1232,7 @@ const CloudBelt = memo(function CloudBelt({ groundY, layer, reducedMotion }: { g
 })
 
 /** A sea of cloud that rises from below the frame to the horizon between floors 12 and 22. */
-const CloudBank = memo(function CloudBank({ height, horizon, rise, reducedMotion }: { height: number; horizon: number; rise: number; reducedMotion: boolean }) {
+const CloudBank = memo(function CloudBank({ height, top, rise, reducedMotion }: { height: number; top: number; rise: number; reducedMotion: boolean }) {
   // Rows of cloud tops grow larger and darker toward the viewer, so the bank reads as depth, not a wall.
   const rows = useMemo(() => {
     const random = seededRandom(31)
@@ -1162,7 +1252,6 @@ const CloudBank = memo(function CloudBank({ height, horizon, rise, reducedMotion
       return band
     })
   }, [])
-  const top = height + 40 - rise * (height + 40 - (horizon - 12))
   const last = rows.at(-1)!
   return (
     <motion.g
@@ -1314,6 +1403,11 @@ function GameScene({
   const towerHeight = heightOf(game)
   const cloudRise = smoothstep(12, 22, towerHeight)
   const highSky = smoothstep(26, 36, towerHeight)
+  const cloudTop = height + 40 - cloudRise * (height + 40 - (horizon - 12))
+  // Trimmed stones fall in front of the island into the water, or into the cloud sea once it covers the view.
+  const splashY = waterline + 26 + cameraShift
+  const impactSurface: ImpactSurface = cloudRise >= 0.6 ? 'cloud' : splashY <= height - 16 ? 'water' : 'none'
+  const impactY = impactSurface === 'cloud' ? cloudTop + 46 : impactSurface === 'water' ? splashY : height + 160
   const baseBlocks = game.stack.slice(0, 3).map((block) => `${block.x},${block.width}`).join('|')
 
   return (
@@ -1343,7 +1437,7 @@ function GameScene({
         compact={compact}
         climb={climbProgress * sceneryIntensity}
       />
-      <CloudBank height={height} horizon={horizon} rise={cloudRise} reducedMotion={reducedMotion} />
+      <CloudBank height={height} top={cloudTop} rise={cloudRise} reducedMotion={reducedMotion} />
       <BirdFlock active={towerHeight >= 8} reducedMotion={reducedMotion} />
       <WindStreaks height={height} direction={windDirection} visible={windStrength >= 6} reducedMotion={reducedMotion} />
 
@@ -1380,19 +1474,11 @@ function GameScene({
         <Lantern x={720} y={groundY - 30} lit={worldMilestone >= 4} />
 
         {beaconCelebration > 0 && (
-          <motion.circle
-            key={beaconCelebration}
-            className="beacon-flare"
-            cx="500"
-            cy={groundY - game.stack.length * BLOCK_HEIGHT + BLOCK_HEIGHT / 2}
-            r="30"
-            fill="#ffe4ae"
-            filter="url(#soft-bloom)"
-            initial={{ opacity: 0, scale: 0.35 }}
-            animate={{ opacity: [0, 0.72, 0], scale: [0.35, 1.2, 2.6] }}
-            transition={{ duration: 1.05, ease: 'easeOut' }}
-            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-            pointerEvents="none"
+          <BeaconPulse
+            key={`beacon-pulse-${beaconCelebration}`}
+            block={game.stack.at(-1)!}
+            topY={groundY - game.stack.length * BLOCK_HEIGHT}
+            fromY={groundY - Math.max(1, game.stack.length - 5) * BLOCK_HEIGHT}
           />
         )}
 
@@ -1452,7 +1538,7 @@ function GameScene({
             initial={{ opacity: 1, y: 0, rotate: 0 }}
             animate={{
               opacity: [1, 1, 0],
-              y: waterY - (groundY - piece.level * BLOCK_HEIGHT + cameraShift) + 8,
+              y: impactY - (groundY - piece.level * BLOCK_HEIGHT + cameraShift) - BLOCK_HEIGHT * 0.55,
               rotate: piece.direction * (game.phase === 'over' ? 52 : 32),
             }}
             transition={{ duration: game.phase === 'over' ? 0.9 : 0.72, ease: 'easeIn' }}
@@ -1506,40 +1592,11 @@ function GameScene({
         <WaterImpact
           key={`water-impact-${piece.id}-${piece.x}`}
           piece={piece}
-          waterY={waterY}
+          surfaceY={impactY}
+          surface={impactSurface}
           forceful={game.phase === 'over'}
         />
       ))}
-      {beaconCelebration > 0 && (
-        <motion.g key={beaconCelebration} pointerEvents="none">
-          <motion.ellipse
-            cx="500"
-            cy={height - 47}
-            rx="560"
-            ry="18"
-            fill="none"
-            stroke="#ffe5b4"
-            strokeWidth="2.4"
-            initial={{ opacity: 0, scale: 0.015 }}
-            animate={{ opacity: [0, 0.78, 0], scale: [0.015, 1] }}
-            transition={{ duration: 1.15, ease: 'easeOut' }}
-            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-          />
-          <motion.ellipse
-            cx="500"
-            cy={height - 47}
-            rx="470"
-            ry="13"
-            fill="none"
-            stroke="#c7eee0"
-            strokeWidth="1.5"
-            initial={{ opacity: 0, scale: 0.015 }}
-            animate={{ opacity: [0, 0.52, 0], scale: [0.015, 1] }}
-            transition={{ duration: 1.35, delay: 0.14, ease: 'easeOut' }}
-            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-          />
-        </motion.g>
-      )}
     </svg>
   )
 }
