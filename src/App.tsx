@@ -29,7 +29,35 @@ const starPositions = [
   [128, 0.42], [516, 0.43], [844, 0.4], [650, 0.39],
 ] as const
 
+const BLOCK_BEVEL = 10
+const BLOCK_FACE_HEIGHT = BLOCK_HEIGHT - BLOCK_BEVEL
+
 type FeedbackSound = 'place' | 'perfect' | 'miss'
+
+type LensGeometry = {
+  x: number
+  y: number
+  width: number
+  height: number
+  centerX: number
+  centerY: number
+}
+
+function lensGeometry(block: Block, y: number): LensGeometry {
+  const width = Math.min(14, Math.max(7, block.width * 0.075))
+  const height = Math.min(30, Math.max(18, BLOCK_FACE_HEIGHT * 0.52))
+  const x = block.x + block.width / 2 - width / 2
+  const lensY = y + BLOCK_BEVEL + (BLOCK_FACE_HEIGHT - height) / 2
+
+  return {
+    x,
+    y: lensY,
+    width,
+    height,
+    centerX: x + width / 2,
+    centerY: lensY + height / 2,
+  }
+}
 
 function readSoundPreference() {
   try {
@@ -74,6 +102,7 @@ function BlockShape({
   landed = false,
   perfect = false,
   grew = false,
+  signalActive = false,
 }: {
   block: Block
   y: number
@@ -81,20 +110,18 @@ function BlockShape({
   landed?: boolean
   perfect?: boolean
   grew?: boolean
+  signalActive?: boolean
 }) {
-  const bevel = 10
-  const faceHeight = BLOCK_HEIGHT - bevel
+  const bevel = BLOCK_BEVEL
+  const faceHeight = BLOCK_FACE_HEIGHT
   const top = active ? '#fff0c9' : '#d8e1d5'
   const front = active ? '#d79d6f' : '#71988c'
   const side = active ? '#a86858' : '#416a70'
   const jointColor = active ? '#bb7d5e' : '#5d817b'
-  const lensColor = active ? '#fff0b7' : '#e8bf80'
-  const lensWidth = Math.min(14, Math.max(7, block.width * 0.075))
-  const lensHeight = Math.min(30, Math.max(18, faceHeight * 0.52))
-  const lensX = block.x + block.width / 2 - lensWidth / 2
-  const lensY = y + bevel + (faceHeight - lensHeight) / 2
+  const lensColor = active ? '#fff0b7' : signalActive ? '#ffe4a7' : '#e8bf80'
+  const lens = lensGeometry(block, y)
   const masonryJoints = block.width > 155 ? [0.18, 0.43, 0.72, 0.88] : [0.28, 0.7]
-  const classes = [active && 'moving-block', perfect && 'perfect-stone']
+  const classes = [active && 'moving-block', perfect && 'perfect-stone', signalActive && 'signal-stone']
     .filter(Boolean)
     .join(' ')
 
@@ -133,25 +160,92 @@ function BlockShape({
           fill={side}
         />
         <rect
-          x={lensX - 4}
-          y={lensY - 4}
-          width={lensWidth + 8}
-          height={lensHeight + 8}
-          rx={(lensWidth + 8) / 2}
+          x={lens.x - 4}
+          y={lens.y - 4}
+          width={lens.width + 8}
+          height={lens.height + 8}
+          rx={(lens.width + 8) / 2}
           fill={lensColor}
           filter="url(#soft-bloom)"
-          opacity=".24"
+          opacity={signalActive ? '.4' : '.24'}
         />
-        <rect x={lensX} y={lensY} width={lensWidth} height={lensHeight} rx={lensWidth / 2} fill={lensColor} />
+        <rect x={lens.x} y={lens.y} width={lens.width} height={lens.height} rx={lens.width / 2} fill={lensColor} />
         <rect
-          x={lensX + lensWidth * 0.32}
-          y={lensY + lensHeight * 0.17}
-          width={lensWidth * 0.36}
-          height={lensHeight * 0.66}
-          rx={lensWidth * 0.18}
+          x={lens.x + lens.width * 0.32}
+          y={lens.y + lens.height * 0.17}
+          width={lens.width * 0.36}
+          height={lens.height * 0.66}
+          rx={lens.width * 0.18}
           fill="#fff7da"
           opacity=".88"
         />
+    </motion.g>
+  )
+}
+
+function BeaconSignal({
+  stack,
+  groundY,
+  perfectStreak,
+  placement,
+  reducedMotion,
+}: {
+  stack: Block[]
+  groundY: number
+  perfectStreak: number
+  placement: number
+  reducedMotion: boolean
+}) {
+  if (perfectStreak === 0 || stack.length < 2) return null
+
+  const firstPerfectIndex = Math.max(1, stack.length - perfectStreak)
+  const intensity = Math.min(0.92, 0.34 + perfectStreak * 0.1)
+  const signalWidth = Math.min(2.4, 1.15 + perfectStreak * 0.14)
+
+  return (
+    <motion.g
+      key={`signal-${placement}-${perfectStreak}`}
+      className="beacon-signal"
+      initial={reducedMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: reducedMotion ? 0 : 0.28, ease: 'easeOut' }}
+      pointerEvents="none"
+    >
+      {stack.slice(firstPerfectIndex).map((block, offset) => {
+        const index = firstPerfectIndex + offset
+        const upper = lensGeometry(block, groundY - (index + 1) * BLOCK_HEIGHT)
+        const lower = lensGeometry(stack[index - 1], groundY - index * BLOCK_HEIGHT)
+        const startY = upper.centerY + upper.height / 2 - 1
+        const endY = lower.centerY - lower.height / 2 + 1
+        const controlY = (startY + endY) / 2
+        const path = `M${upper.centerX} ${startY}C${upper.centerX} ${controlY} ${lower.centerX} ${controlY} ${lower.centerX} ${endY}`
+
+        return (
+          <g key={index}>
+            <motion.path
+              d={path}
+              fill="none"
+              stroke="#f6c87e"
+              strokeWidth={signalWidth + 3.8}
+              strokeLinecap="round"
+              filter="url(#soft-bloom)"
+              initial={reducedMotion ? false : { opacity: 0, pathLength: 0 }}
+              animate={{ opacity: intensity * 0.44, pathLength: 1 }}
+              transition={{ duration: reducedMotion ? 0 : 0.36, delay: offset * 0.055, ease: 'easeOut' }}
+            />
+            <motion.path
+              d={path}
+              fill="none"
+              stroke="#fff2c9"
+              strokeWidth={signalWidth}
+              strokeLinecap="round"
+              initial={reducedMotion ? false : { opacity: 0, pathLength: 0 }}
+              animate={{ opacity: intensity, pathLength: 1 }}
+              transition={{ duration: reducedMotion ? 0 : 0.32, delay: offset * 0.055, ease: 'easeOut' }}
+            />
+          </g>
+        )
+      })}
     </motion.g>
   )
 }
@@ -263,6 +357,9 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
   const waterY = height - 47
   const dawnStage = Math.min(heightOf(game) / 36, 1)
   const dawnProgress = dawnStage * dawnStage * (3 - 2 * dawnStage)
+  const signalStartIndex = game.perfectStreak > 0
+    ? Math.max(0, game.stack.length - game.perfectStreak - 1)
+    : game.stack.length
   const windStrength = Math.abs(game.windPercent)
   const windDirection = game.windPercent < 0 ? -1 : 1
   const sceneryIntensity = compact ? 0.7 : 1
@@ -488,8 +585,16 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
             landed={index === game.stack.length - 1 && game.stack.length > 1}
             perfect={index === game.stack.length - 1 && game.lastDropWasPerfect}
             grew={index === game.stack.length - 1 && game.lastDropGrew}
+            signalActive={index >= signalStartIndex}
           />
         ))}
+        <BeaconSignal
+          stack={game.stack}
+          groundY={groundY}
+          perfectStreak={game.perfectStreak}
+          placement={game.placementTicks.length}
+          reducedMotion={reducedMotion}
+        />
         {game.fallingPieces.map((piece) => (
           <motion.g
             key={`${piece.id}-${piece.x}`}

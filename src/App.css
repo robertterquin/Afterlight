@@ -103,6 +103,14 @@
   filter: drop-shadow(0 0 7px rgba(255, 220, 159, .56));
 }
 
+.signal-stone {
+  filter: drop-shadow(0 0 5px rgba(255, 210, 137, .34));
+}
+
+.perfect-stone.signal-stone {
+  filter: drop-shadow(0 0 9px rgba(255, 224, 164, .68));
+}
+
 .perfect-ray {
   animation: ray-flash .72s ease-out both;
   pointer-events: none;
