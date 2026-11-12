@@ -635,23 +635,50 @@ function Pine({ x, base, height, color }: { x: number; base: number; height: num
   )
 }
 
-/** Rounded shore stones along a waterline, lit on top. */
-function ShoreRocks({ rocks, waterline, deep, light }: { rocks: ReadonlyArray<readonly [number, number, number]>; waterline: number; deep: string; light: string }) {
+/**
+ * The rock face between an island's grass and the sea: it tapers slightly to the waterline, has a
+ * lit upper band and a few cracks, and darkens where the water wets it. The grass is drawn over its top.
+ */
+function IslandCliff({
+  left,
+  right,
+  top,
+  waterline,
+  inset,
+  cracks,
+  deep,
+  light,
+}: {
+  left: number
+  right: number
+  top: number
+  waterline: number
+  inset: number
+  cracks: readonly number[]
+  deep: string
+  light: string
+}) {
+  const height = waterline - top
+  // Nudged toward a stone grey so the rock never blends into the sea behind it.
+  const rock = blendColor(deep, '#8a8783', 0.32)
+  const lit = blendColor(rock, light, 0.5)
   return (
     <g>
-      {rocks.map(([x, rx, ry]) => (
-        <g key={x}>
-          <ellipse cx={x} cy={waterline - ry * 0.45} rx={rx} ry={ry} fill={deep} />
-          <ellipse cx={x - rx * 0.15} cy={waterline - ry * 0.85} rx={rx * 0.62} ry={ry * 0.42} fill={light} opacity=".55" />
-        </g>
-      ))}
+      <path d={`M${left} ${top}H${right}L${right - inset * 0.4} ${top + height * 0.55}L${right - inset} ${waterline}H${left + inset}L${left + inset * 0.4} ${top + height * 0.55}Z`} fill={rock} />
+      <path d={`M${left} ${top}H${right}L${right - inset * 0.3} ${top + height * 0.5}H${left + inset * 0.3}Z`} fill={lit} />
+      <path
+        d={cracks.map((x, index) => `M${x} ${round1(top + height * 0.2)}l${index % 2 ? 3 : -3} ${round1(height * 0.35)}l${index % 2 ? -2 : 2} ${round1(height * 0.35)}`).join('')}
+        stroke={blendColor(rock, '#0b1622', 0.5)}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        fill="none"
+        opacity=".7"
+      />
+      <path d={`M${left + inset} ${waterline - 3}H${right - inset}V${waterline}H${left + inset}Z`} fill="#0b1622" opacity=".25" />
     </g>
   )
 }
 
-// Kept sparse on purpose; none directly under the tower, where they would poke out beneath the base stone.
-const HOME_SHORE_ROCKS = [[262, 12, 5], [306, 9, 4], [352, 11, 5], [652, 10, 5], [702, 12, 5], [752, 9, 4]] as const
-const COTTAGE_SHORE_ROCKS = [[66, 8, 4], [188, 8, 4], [228, 9, 4]] as const
 
 function BirdFlock({ active, reducedMotion }: { active: boolean; reducedMotion: boolean }) {
   return (
@@ -1117,14 +1144,14 @@ const SideIslets = memo(function SideIslets({
           <stop offset="1" stopColor={blendColor(edition.islands.leftTop, '#4f6d66', 0.25)} />
         </linearGradient>
       </defs>
-      <path d="M40 30q20-32 66-26 38-26 80 0 40-6 62 26z" fill={edition.islands.deep} />
+      <IslandCliff left={54} right={238} top={18} waterline={36} inset={7} cracks={[84, 152, 206]} deep={edition.islands.deep} light={edition.islands.leftTop} />
+      <path d="M48 26q24-24 62-20 40-26 76 0 38-4 56 22-30 10-64 6-38 12-72 0-32 8-58-8z" fill="#0b1622" opacity=".28" />
       <path d="M48 22q24-24 62-20 40-26 76 0 38-4 56 22-30 10-64 6-38 12-72 0-32 8-58-8z" fill="url(#cottage-grass)" />
-      <ShoreRocks rocks={COTTAGE_SHORE_ROCKS} waterline={30} deep={edition.islands.deep} light={edition.islands.leftTop} />
-      <path d="M118 8h30v26h-30z" fill="#e6caa4" />
+      <path d="M118 8h30v19h-30z" fill="#e6caa4" />
       <path d="M118 8h30v3h-30z" fill="#000" opacity=".12" />
       <path d="M114 9l19-17 19 17z" fill="#9b6f60" />
       <path d="M133 -8l19 17h-6z" fill="#000" opacity=".15" />
-      <rect x="129" y="23" width="7" height="11" rx="1" fill="#6f4c40" />
+      <rect x="129" y="18" width="7" height="9" rx="1" fill="#6f4c40" />
       <Pine x={205} base={14} height={28} color={edition.tower.trees} />
     </>
   )
@@ -1142,7 +1169,10 @@ const SideIslets = memo(function SideIslets({
         <path d={`M${lx - 75} ${ly}q20-26 54-24 30-16 60 4 24 4 40 20z`} fill={edition.islands.deep} />
         <path d={`M${lx - 12} ${ly - 14}l5-82h14l5 82z`} fill="#ece1d0" />
         <path d={`M${lx - 9.6} ${ly - 42}h18l-.8 12h-16.4zM${lx - 7.8} ${ly - 72}h15.6l-.7 11h-14.2z`} fill="#b8665a" />
-        <path d={`M${lx - 62} ${ly - 4}q22-20 50-18 26-12 52 4`} stroke="#ffffff" strokeOpacity=".14" strokeWidth="3" fill="none" strokeLinecap="round" />
+        <path d={`M${lx - 75} ${ly}q20-26 54-24l-4 12q-26 0-42 12z`} fill={blendColor(edition.islands.deep, '#ffffff', 0.16)} />
+        <path d={`M${lx + 15} ${ly - 20}q22 4 36 14l-8 6q-14-8-30-10z`} fill={blendColor(edition.islands.deep, '#ffffff', 0.1)} />
+        <path d={`M${lx - 30} ${ly - 14}l-4 8 3 6M${lx + 44} ${ly - 8}l3 5`} stroke={blendColor(edition.islands.deep, '#0b1622', 0.45)} strokeWidth="1.4" strokeLinecap="round" fill="none" />
+        <path d={`M${lx - 80} ${ly + 1}q90 8 180 0`} stroke="#eef4ee" strokeOpacity=".35" strokeWidth="1.5" fill="none" />
         <rect x={lx - 3} y={ly - 27} width="6" height="13" rx="3" fill="#6f4c40" />
         <rect x={lx - 9} y={ly - 110} width="18" height="13" rx="2" fill="#ffe7b0" />
         <path d={`M${lx - 11} ${ly - 110}l11-10 11 10z`} fill="#33445a" />
@@ -1172,16 +1202,16 @@ const SideIslets = memo(function SideIslets({
         <Waystone stone={edition.stone} x={lx + 50} y={ly - 6} lit={lit >= 4} celebration={celebration} sequence={4} />
       </motion.g>
 
-      <g transform={`translate(0 ${round1(horizon + sea * 0.17 - 30)})`}>
+      <g transform={`translate(0 ${round1(horizon + sea * 0.17 - 36)})`}>
         <motion.g {...drift(0.07)}>
-          <g transform="translate(0 60) scale(1 -1)" opacity=".22">{cottage}</g>
+          <g transform="translate(0 72) scale(1 -1)" opacity=".22">{cottage}</g>
           {cottage}
           <motion.g initial={false} animate={{ opacity: windows }} transition={reducedMotion ? { duration: 0 } : { duration: 1.6, ease: 'easeInOut' as const }}>
             <rect x="121" y="14" width="6" height="7" rx="1" fill="#ffd98f" />
             <rect x="139" y="14" width="6" height="7" rx="1" fill="#ffd98f" />
             <circle cx="133" cy="18" r="16" fill="#ffd27f" opacity=".55" filter="url(#soft-bloom)" />
           </motion.g>
-          <path d="M52 31q100 8 196 0" stroke="#eef4ee" strokeOpacity=".35" strokeWidth="1.5" fill="none" />
+          <path d="M60 37q92 7 176 0" stroke="#eef4ee" strokeOpacity=".4" strokeWidth="1.5" fill="none" />
           <Waystone stone={edition.stone} x={92} y={18} lit={lit >= 1} celebration={celebration} sequence={5} />
           <Waystone stone={edition.stone} x={172} y={14} lit={lit >= 2} celebration={celebration} sequence={2} />
         </motion.g>
@@ -1206,6 +1236,7 @@ const IslandReflection = memo(function IslandReflection({
   return (
     <g pointerEvents="none">
       <g transform={`translate(0 ${waterline * 2}) scale(1 -1)`} opacity=".22">
+        <path d={`M250 ${groundY - 12}H792L776 ${waterline}H266Z`} fill={edition.tower.deep} />
         <path d={islandTopPath(groundY)} fill={edition.tower.top} />
         {blocks.map(([x, width], index) => (
           <g key={index}>
@@ -1420,7 +1451,8 @@ function GameScene({
   const cameraShift = targetY - activeY
   const climbProgress = game.stack.length * BLOCK_HEIGHT
   const horizon = Math.round(height * 0.42)
-  const waterline = groundY + 4
+  // The island now stands on a rock face, so the sea meets it lower down.
+  const waterline = groundY + 26
   const waterY = height - 47
   const dawnStage = Math.min(heightOf(game) / 36, 1)
   const dawnProgress = dawnStage * dawnStage * (3 - 2 * dawnStage)
@@ -1499,10 +1531,11 @@ function GameScene({
             <stop offset="1" stopColor={blendColor(edition.tower.top, '#4f6d66', 0.3)} />
           </linearGradient>
         </defs>
+        <IslandCliff left={250} right={792} top={groundY - 12} waterline={waterline} inset={16} cracks={[312, 398, 612, 700, 758]} deep={edition.tower.deep} light={edition.tower.shore} />
+        <path d={islandTopPath(groundY + 5)} fill="#0b1622" opacity=".28" />
         <path d={islandTopPath(groundY)} fill="url(#home-grass)" />
-        <ShoreRocks rocks={HOME_SHORE_ROCKS} waterline={waterline} deep={edition.tower.deep} light={edition.tower.shore} />
-        <path d={`M232 ${waterline + 1}q268 16 540 0`} stroke="#eef4ee" strokeOpacity=".42" strokeWidth="2" fill="none" />
-        <path d={`M262 ${waterline + 9}q238 12 480 0`} stroke="#eef4ee" strokeOpacity=".2" strokeWidth="1.5" fill="none" />
+        <path d={`M262 ${waterline + 1}q256 12 518 0`} stroke="#eef4ee" strokeOpacity=".45" strokeWidth="2" fill="none" />
+        <path d={`M286 ${waterline + 9}q232 10 470 0`} stroke="#eef4ee" strokeOpacity=".2" strokeWidth="1.5" fill="none" />
         <Pine x={355} base={groundY - 36} height={44} color={edition.tower.trees} />
         <Pine x={726} base={groundY - 36} height={46} color={edition.tower.trees} />
         <Waystone stone={edition.stone} x={300} y={groundY - 22} lit={Math.floor(game.perfects / 5) >= 5} celebration={celebrating ? beaconCelebration : 0} sequence={1} />
