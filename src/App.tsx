@@ -2,7 +2,7 @@ import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRe
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import afterlightMark from './assets/afterlight-mark.svg'
 import { Leaderboard } from './DailyLeaderboard'
-import { HeightLadder, ReadyOverlay, RunPanel, StreakPill } from './Hud'
+import { HeightLadder, ReadyOverlay, StreakPill } from './Hud'
 import type { LeaderboardEntry } from './leaderboard'
 import './App.css'
 import {
@@ -2146,7 +2146,7 @@ function App() {
             )}
           </AnimatePresence>
         </div>
-        {inRun && !leaderboardOpen ? <RunPanel game={game} entries={leaderboardEntries} /> : <Leaderboard
+        <Leaderboard
           challengeDate={game.challenge.date}
           entries={leaderboardEntries}
           loading={leaderboardLoading}
@@ -2156,7 +2156,7 @@ function App() {
           onSaveName={updatePlayerName}
           mobileOpen={leaderboardOpen}
           onClose={closeLeaderboard}
-        />}
+        />
       </section>
     </main>
     </MotionConfig>

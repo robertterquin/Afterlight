@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
-import { heightOf, STARTING_WIDTH, type GameState } from './game'
 import type { LeaderboardEntry } from './leaderboard'
 
 // Mirrors PERFECTS_TO_AWAKEN in the game engine: the fifth perfect in a row grows the stone.
@@ -144,61 +143,3 @@ export function HeightLadder({ entries, height }: { entries: LeaderboardEntry[];
     </div>
   )
 }
-
-export function Progress({ value, max, dim = false }: { value: number; max: number; dim?: boolean }) {
-  const percent = max > 0 ? Math.min(100, (value / max) * 100) : 0
-  return (
-    <div className="track">
-      <motion.div
-        className={`track-fill${dim ? ' is-dim' : ''}`}
-        initial={false}
-        animate={{ width: `${percent}%` }}
-        transition={{ type: 'spring', stiffness: 140, damping: 24 }}
-      />
-    </div>
-  )
-}
-
-export function RunPanel({ game, entries }: { game: GameState; entries: LeaderboardEntry[] }) {
-  const height = heightOf(game)
-  const you = entries.find((entry) => entry.is_you)
-  const third = entries.find((entry) => entry.rank === 3 && !entry.is_you)
-  const stone = game.moving ?? game.stack.at(-1)!
-  const toGo = (target: number) => (target - height > 0 ? `${target - height} to go` : 'Passed')
-
-  return (
-    <aside className="run-panel panel" aria-label="This run">
-      <div className="panel-heading">
-        <span className="eyebrow is-live"><i />{game.phase === 'paused' ? 'Paused' : 'Climbing'}</span>
-        <h2>This run</h2>
-      </div>
-      <div className="tiles">
-        <div className="tile"><span>Height</span><strong>{height}</strong></div>
-        <div className="tile"><span>Perfect</span><strong>{game.perfects}</strong></div>
-        <div className="tile"><span>Stone width</span><strong>{Math.round((stone.width / STARTING_WIDTH) * 100)}%</strong></div>
-      </div>
-      {(you || third) && (
-        <div className="next-marks">
-          <span className="eyebrow is-muted">Next marks</span>
-          {you && (
-            <div className="mark">
-              <div className="mark-line"><span>Your best today</span><b className="is-gold">{toGo(you.height)}</b></div>
-              <Progress value={height} max={you.height} />
-            </div>
-          )}
-          {third && (
-            <div className="mark">
-              <div className="mark-line"><span>Podium · {third.display_name}</span><b>{toGo(third.height + 1)}</b></div>
-              <Progress value={height} max={third.height + 1} dim />
-            </div>
-          )}
-        </div>
-      )}
-      <div className="note">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12M6 21h12M7 3c0 5 10 6 10 9s-10 4-10 9M17 3c0 5-10 6-10 9s10 4 10 9" /></svg>
-        <div><strong>The board waits</strong><p>Ranks refresh when this run ends, so nothing moves while you aim.</p></div>
-      </div>
-    </aside>
-  )
-}
-
