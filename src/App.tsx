@@ -39,6 +39,117 @@ const START_WAKE_DURATION = 460
 type FeedbackSound = 'place' | 'perfect' | 'miss'
 type LandingFeedbackKind = 'landed' | 'near-perfect' | 'perfect' | null
 
+type StonePalette = {
+  top: string
+  front: string
+  side: string
+  joint: string
+  roughCut: string
+  roughCutHighlight: string
+  activeTop: string
+  activeFront: string
+  activeSide: string
+  activeJoint: string
+}
+
+type DailyEdition = {
+  sky: readonly [string, string, string, string]
+  dawnSky: readonly [string, string, string, string]
+  sea: readonly [string, string]
+  dawnSea: readonly [string, string]
+  moon: {
+    x: number
+    y: number
+    radius: number
+    light: string
+    body: string
+    shade: string
+  }
+  mountains: readonly [string, string]
+  islands: {
+    deep: string
+    leftTop: string
+    rightTop: string
+    leftOffsetX: number
+    leftOffsetY: number
+    rightOffsetX: number
+    rightOffsetY: number
+  }
+  tower: {
+    shadow: string
+    deep: string
+    top: string
+    shore: string
+    trees: string
+  }
+  reflection: readonly [string, string]
+  stone: StonePalette
+}
+
+const DAILY_EDITIONS: readonly DailyEdition[] = [
+  {
+    sky: ['#252b43', '#60516b', '#b77876', '#4f7477'],
+    dawnSky: ['#9b7d8c', '#c77b74', '#eea16e', '#f4c794'],
+    sea: ['#5b7379', '#243a4a'],
+    dawnSea: ['#d19485', '#607b7d'],
+    moon: { x: 204, y: 0.23, radius: 38, light: '#ffd6aa', body: '#f4c999', shade: '#b87b70' },
+    mountains: ['#694e62', '#485062'],
+    islands: {
+      deep: '#493d4c', leftTop: '#b8a483', rightTop: '#c0a98a',
+      leftOffsetX: 56, leftOffsetY: 18, rightOffsetX: -72, rightOffsetY: -10,
+    },
+    tower: { shadow: '#352f41', deep: '#4b3f4b', top: '#bda88a', shore: '#8d8076', trees: '#483f4e' },
+    reflection: ['#d6b5a2', '#f1c28e'],
+    stone: {
+      top: '#ead5b7', front: '#a68970', side: '#765e5b', joint: '#806b61',
+      roughCut: '#5d4c49', roughCutHighlight: '#b8987b',
+      activeTop: '#ffe3bc', activeFront: '#cd9870', activeSide: '#99665d', activeJoint: '#b77b60',
+    },
+  },
+  {
+    sky: ['#26394c', '#5b7180', '#a6a9a5', '#5d8581'],
+    dawnSky: ['#91a3aa', '#c4a797', '#e8ae86', '#f3ca9d'],
+    sea: ['#527d80', '#1f4651'],
+    dawnSea: ['#c9aa97', '#568184'],
+    moon: { x: 492, y: 0.43, radius: 34, light: '#f7d5ad', body: '#f1d3ad', shade: '#bc927e' },
+    mountains: ['#627783', '#41616e'],
+    islands: {
+      deep: '#315363', leftTop: '#a9bcad', rightTop: '#b3c2b1',
+      leftOffsetX: -30, leftOffsetY: -4, rightOffsetX: 28, rightOffsetY: 12,
+    },
+    tower: { shadow: '#234656', deep: '#315765', top: '#b4c5b3', shore: '#789d96', trees: '#315664' },
+    reflection: ['#bdd2cf', '#f2caa4'],
+    stone: {
+      top: '#dce8d9', front: '#7c9f90', side: '#50767a', joint: '#64857e',
+      roughCut: '#345c63', roughCutHighlight: '#86a795',
+      activeTop: '#fff2ce', activeFront: '#c99e76', activeSide: '#8a6c60', activeJoint: '#ad7e61',
+    },
+  },
+  {
+    sky: ['#17263a', '#4b526d', '#bb8c8c', '#365f6c'],
+    dawnSky: ['#a9909a', '#d18e83', '#e9a678', '#f0c18f'],
+    sea: ['#4b7780', '#142e42'],
+    dawnSea: ['#cf9c91', '#4a7780'],
+    moon: { x: 820, y: 0.27, radius: 42, light: '#f6d9b6', body: '#f1d9ba', shade: '#d1aa99' },
+    mountains: ['#53536c', '#344b61'],
+    islands: {
+      deep: '#294354', leftTop: '#91a89b', rightTop: '#9db19f',
+      leftOffsetX: 0, leftOffsetY: 0, rightOffsetX: 0, rightOffsetY: 0,
+    },
+    tower: { shadow: '#132a3e', deep: '#294354', top: '#9fb29d', shore: '#718f88', trees: '#294657' },
+    reflection: ['#a5c5c6', '#efd0a4'],
+    stone: {
+      top: '#d8e1d5', front: '#71988c', side: '#416a70', joint: '#5d817b',
+      roughCut: '#2f5661', roughCutHighlight: '#77978e',
+      activeTop: '#fff0c9', activeFront: '#d79d6f', activeSide: '#a86858', activeJoint: '#bb7d5e',
+    },
+  },
+]
+
+function dailyEditionForSeed(seed: number) {
+  return DAILY_EDITIONS[seed % DAILY_EDITIONS.length]!
+}
+
 type LensGeometry = {
   x: number
   y: number
@@ -133,6 +244,7 @@ function BlockShape({
   trimmedLeft = 0,
   trimmedRight = 0,
   stoneWarmth = 0,
+  stonePalette,
 }: {
   block: Block
   y: number
@@ -145,21 +257,22 @@ function BlockShape({
   trimmedLeft?: number
   trimmedRight?: number
   stoneWarmth?: number
+  stonePalette: StonePalette
 }) {
   const bevel = BLOCK_BEVEL
   const faceHeight = BLOCK_FACE_HEIGHT
   const cleanStone = historicalPerfect || perfect
-  const weatheredTop = blendColor('#d8e1d5', '#e7d6b4', stoneWarmth)
-  const weatheredFront = blendColor('#71988c', '#b59c78', stoneWarmth)
-  const weatheredSide = blendColor('#416a70', '#77635a', stoneWarmth)
-  const weatheredJoint = blendColor('#5d817b', '#876f5d', stoneWarmth)
-  const top = active ? '#fff0c9' : cleanStone ? blendColor(weatheredTop, '#f6e8c8', .18) : weatheredTop
-  const front = active ? '#d79d6f' : cleanStone ? blendColor(weatheredFront, '#c9ad85', .2) : weatheredFront
-  const side = active ? '#a86858' : cleanStone ? blendColor(weatheredSide, '#9b7b65', .18) : weatheredSide
-  const jointColor = active ? '#bb7d5e' : cleanStone ? blendColor(weatheredJoint, '#a88669', .25) : weatheredJoint
+  const weatheredTop = blendColor(stonePalette.top, '#e7d6b4', stoneWarmth)
+  const weatheredFront = blendColor(stonePalette.front, '#b59c78', stoneWarmth)
+  const weatheredSide = blendColor(stonePalette.side, '#77635a', stoneWarmth)
+  const weatheredJoint = blendColor(stonePalette.joint, '#876f5d', stoneWarmth)
+  const top = active ? stonePalette.activeTop : cleanStone ? blendColor(weatheredTop, '#f6e8c8', .18) : weatheredTop
+  const front = active ? stonePalette.activeFront : cleanStone ? blendColor(weatheredFront, '#c9ad85', .2) : weatheredFront
+  const side = active ? stonePalette.activeSide : cleanStone ? blendColor(weatheredSide, '#9b7b65', .18) : weatheredSide
+  const jointColor = active ? stonePalette.activeJoint : cleanStone ? blendColor(weatheredJoint, '#a88669', .25) : weatheredJoint
   const lensColor = active ? '#fff0b7' : signalActive ? '#ffe4a7' : cleanStone ? '#ffe0a2' : '#d6a86d'
-  const roughCut = blendColor('#2f5661', '#63534c', stoneWarmth)
-  const roughCutHighlight = blendColor('#77978e', '#b89b78', stoneWarmth)
+  const roughCut = blendColor(stonePalette.roughCut, '#63534c', stoneWarmth)
+  const roughCutHighlight = blendColor(stonePalette.roughCutHighlight, '#b89b78', stoneWarmth)
   const lens = lensGeometry(block, y)
   const masonryJoints = block.width > 155 ? [0.18, 0.43, 0.72, 0.88] : [0.28, 0.7]
   const roughTop = y + bevel + 5
@@ -219,7 +332,7 @@ function BlockShape({
         )}
         <path
           d={`M${block.x} ${y + bevel + 10}H${block.x + block.width}`}
-          stroke={active ? '#e9b681' : cleanStone ? blendColor('#a1baa0', '#d4bd93', stoneWarmth) : blendColor('#a1baa0', '#c09e78', stoneWarmth)}
+          stroke={active ? '#e9b681' : cleanStone ? blendColor(stonePalette.top, '#d4bd93', stoneWarmth) : blendColor(stonePalette.top, '#c09e78', stoneWarmth)}
           strokeWidth="2"
           opacity={cleanStone ? '.68' : '.58'}
         />
@@ -735,6 +848,7 @@ function GameScene({
 }) {
   const [beaconCelebration, setBeaconCelebration] = useState(0)
   const { compact, reducedMotion } = useScenePreferences()
+  const edition = dailyEditionForSeed(game.challenge.seed)
   const groundY = height - 105
   const activeY = groundY - (game.stack.length + 1) * BLOCK_HEIGHT
   const tallMobileViewport = compact && height > WORLD_WIDTH * 1.15
@@ -761,7 +875,7 @@ function GameScene({
   const cloudDuration = (42 - windStrength * 1.1) * (compact ? 1.28 : 1)
   const waterGlintDrift = windDirection * (2 + windStrength * 1.45) * sceneryIntensity
   const waterGlintDuration = Math.max(3.6, 6.2 - windStrength * 0.24) * (compact ? 1.18 : 1)
-  const waterReflectionColor = blendColor('#a5c5c6', '#efd0a4', dawnProgress)
+  const waterReflectionColor = blendColor(edition.reflection[0], edition.reflection[1], dawnProgress)
   const waterReflectionOpacity = 0.16 + dawnProgress * 0.12
   const blockSway = Math.min(2.3, windStrength * 0.28)
   const blockSwayDuration = Math.max(1.65, 3.2 - windStrength * 0.12)
@@ -797,28 +911,28 @@ function GameScene({
     >
       <defs>
         <linearGradient id="sky" x2="0" y2="1">
-          <stop stopColor="#17263a" />
-          <stop offset=".42" stopColor="#4b526d" />
-          <stop offset=".76" stopColor="#bb8c8c" />
-          <stop offset="1" stopColor="#365f6c" />
+          <stop stopColor={edition.sky[0]} />
+          <stop offset=".42" stopColor={edition.sky[1]} />
+          <stop offset=".76" stopColor={edition.sky[2]} />
+          <stop offset="1" stopColor={edition.sky[3]} />
         </linearGradient>
         <linearGradient id="dawn-sky" x2="0" y2="1">
-          <stop stopColor="#a9909a" stopOpacity=".025" />
-          <stop offset=".42" stopColor="#d18e83" stopOpacity=".12" />
-          <stop offset=".76" stopColor="#e9a678" stopOpacity=".48" />
-          <stop offset="1" stopColor="#f0c18f" stopOpacity=".76" />
+          <stop stopColor={edition.dawnSky[0]} stopOpacity=".025" />
+          <stop offset=".42" stopColor={edition.dawnSky[1]} stopOpacity=".12" />
+          <stop offset=".76" stopColor={edition.dawnSky[2]} stopOpacity=".48" />
+          <stop offset="1" stopColor={edition.dawnSky[3]} stopOpacity=".76" />
         </linearGradient>
         <linearGradient id="sea" x2="0" y2="1">
-          <stop stopColor="#4b7780" />
-          <stop offset="1" stopColor="#142e42" />
+          <stop stopColor={edition.sea[0]} />
+          <stop offset="1" stopColor={edition.sea[1]} />
         </linearGradient>
         <linearGradient id="dawn-sea" x2="0" y2="1">
-          <stop stopColor="#cf9c91" stopOpacity=".58" />
-          <stop offset="1" stopColor="#4a7780" stopOpacity=".2" />
+          <stop stopColor={edition.dawnSea[0]} stopOpacity=".58" />
+          <stop offset="1" stopColor={edition.dawnSea[1]} stopOpacity=".2" />
         </linearGradient>
         <radialGradient id="moonlight">
-          <stop stopColor="#f6d9b6" stopOpacity=".48" />
-          <stop offset="1" stopColor="#f6d9b6" stopOpacity="0" />
+          <stop stopColor={edition.moon.light} stopOpacity=".48" />
+          <stop offset="1" stopColor={edition.moon.light} stopOpacity="0" />
         </radialGradient>
         <filter id="soft-bloom" x="-100%" y="-100%" width="300%" height="300%">
           <feGaussianBlur stdDeviation="5" />
@@ -872,9 +986,15 @@ function GameScene({
         animate={{ opacity: 1 - dawnProgress }}
         transition={dawnTransition}
       >
-        <circle cx="820" cy={height * 0.27} r="150" fill="url(#moonlight)" />
-        <circle cx="820" cy={height * 0.27} r="42" fill="#f1d9ba" opacity=".92" />
-        <path d={`M830 ${height * 0.27 - 39}a42 42 0 1 0 28 68 38 38 0 0 1-28-68z`} fill="#d1aa99" opacity=".25" />
+        <circle cx={edition.moon.x} cy={height * edition.moon.y} r={edition.moon.radius * 3.57} fill="url(#moonlight)" />
+        <circle cx={edition.moon.x} cy={height * edition.moon.y} r={edition.moon.radius} fill={edition.moon.body} opacity=".92" />
+        <circle
+          cx={edition.moon.x + edition.moon.radius * 0.42}
+          cy={height * edition.moon.y - edition.moon.radius * 0.12}
+          r={edition.moon.radius * 0.88}
+          fill={edition.moon.shade}
+          opacity=".25"
+        />
       </motion.g>
 
       <motion.g
@@ -897,7 +1017,7 @@ function GameScene({
             ? { duration: 0.54, ease: 'easeOut' }
             : { type: 'spring', stiffness: 18, damping: 18 }}
       >
-        <path d={`M0 ${horizon}q130 -80 250 -26 130 -94 250 -10 140 -91 270 -8 110 -59 230 18v150H0z`} fill="#53536c" opacity=".72" />
+        <path d={`M0 ${horizon}q130 -80 250 -26 130 -94 250 -10 140 -91 270 -8 110 -59 230 18v150H0z`} fill={edition.mountains[0]} opacity=".72" />
       </motion.g>
       <motion.g
         initial={false}
@@ -908,11 +1028,11 @@ function GameScene({
             ? { duration: 0.62, ease: 'easeOut' }
             : { type: 'spring', stiffness: 21, damping: 18 }}
       >
-        <path d={`M0 ${horizon + 72}q120 -55 235 -8 111 -72 227 -5 131 -74 253 -9 124 -62 285 -3v140H0z`} fill="#344b61" opacity=".92" />
+        <path d={`M0 ${horizon + 72}q120 -55 235 -8 111 -72 227 -5 131 -74 253 -9 124 -62 285 -3v140H0z`} fill={edition.mountains[1]} opacity=".92" />
       </motion.g>
 
       {/* Far islands */}
-      <g transform={`translate(0 ${height * 0.45})`}>
+      <g transform={`translate(${edition.islands.leftOffsetX} ${height * 0.45 + edition.islands.leftOffsetY})`}>
         <motion.g
           initial={false}
           animate={{ y: reducedMotion ? 0 : climbProgress * 0.035 * sceneryIntensity }}
@@ -928,10 +1048,10 @@ function GameScene({
             ? { duration: 0 }
             : { duration: compact ? 10 : 7.5, repeat: Infinity, ease: 'easeInOut' }}
         >
-        <path d="M58 70q20-40 65-31 38-34 78 0 47-8 68 32l-18 18q-42 4-63 27l-31-4-34 24-23-15-36 5-13-25-26-7z" fill="#294354" />
-        <path d="M72 67q24-28 62-22 40-33 74 0 41-7 59 26-29 12-61 6-39 14-72 0-33 10-62-10z" fill="#91a89b" />
+        <path d="M58 70q20-40 65-31 38-34 78 0 47-8 68 32l-18 18q-42 4-63 27l-31-4-34 24-23-15-36 5-13-25-26-7z" fill={edition.islands.deep} />
+        <path d="M72 67q24-28 62-22 40-33 74 0 41-7 59 26-29 12-61 6-39 14-72 0-33 10-62-10z" fill={edition.islands.leftTop} />
         <path d="M131 52h22v26h-22zM126 53l16-15 16 15z" fill="#e2bd98" />
-        <path d="M92 59v-20m-7 12 7-13 7 13m123 4V37m-7 12 7-13 7 13" stroke="#294354" strokeWidth="3" fill="none" strokeLinecap="round" />
+        <path d="M92 59v-20m-7 12 7-13 7 13m123 4V37m-7 12 7-13 7 13" stroke={edition.islands.deep} strokeWidth="3" fill="none" strokeLinecap="round" />
         <CottageWindows active={worldMilestone >= 1} reducedMotion={reducedMotion} />
         <Lantern x={95} y={49} lit={Math.floor(game.perfects / 5) >= 1} celebration={beaconCelebration} sequence={8} />
         <Lantern x={142} y={66} lit={Math.floor(game.perfects / 5) >= 2} celebration={beaconCelebration} sequence={6} />
@@ -939,7 +1059,7 @@ function GameScene({
         </motion.g>
         </motion.g>
       </g>
-      <g transform={`translate(0 ${height * 0.41})`}>
+      <g transform={`translate(${edition.islands.rightOffsetX} ${height * 0.41 + edition.islands.rightOffsetY})`}>
         <motion.g
           initial={false}
           animate={{ y: reducedMotion ? 0 : climbProgress * 0.065 * sceneryIntensity }}
@@ -955,10 +1075,10 @@ function GameScene({
             ? { duration: 0 }
             : { duration: compact ? 12 : 9, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
         >
-        <path d="M760 82q24-42 67-34 42-36 82-1 44-8 71 33l-18 20q-43 7-64 26l-33-6-35 25-23-14-36 4-13-24-27-7z" fill="#294354" />
-        <path d="M774 78q24-30 62-25 42-34 78 0 41-6 58 28-28 11-60 4-39 15-72 1-34 9-66-8z" fill="#9db19f" />
+        <path d="M760 82q24-42 67-34 42-36 82-1 44-8 71 33l-18 20q-43 7-64 26l-33-6-35 25-23-14-36 4-13-24-27-7z" fill={edition.islands.deep} />
+        <path d="M774 78q24-30 62-25 42-34 78 0 41-6 58 28-28 11-60 4-39 15-72 1-34 9-66-8z" fill={edition.islands.rightTop} />
         <path d="M835 64h26v30h-26zM829 65l19-18 19 18z" fill="#e4c19a" />
-        <path d="M885 66V43m-8 13 8-14 8 14m37 12V47m-7 12 7-13 7 13" stroke="#294354" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+        <path d="M885 66V43m-8 13 8-14 8 14m37 12V47m-7 12 7-13 7 13" stroke={edition.islands.deep} strokeWidth="3.4" fill="none" strokeLinecap="round" />
         <Lighthouse active={worldMilestone >= 3} reducedMotion={reducedMotion} />
         <Lantern x={848} y={80} lit={Math.floor(game.perfects / 5) >= 4} celebration={beaconCelebration} sequence={3} />
         <Lantern x={887} y={57} lit={Math.floor(game.perfects / 5) >= 5} celebration={beaconCelebration} sequence={5} />
@@ -983,13 +1103,13 @@ function GameScene({
         animate={{ y: 0 }}
         transition={{ type: 'spring', stiffness: 390, damping: 24, mass: 0.48 }}
       >
-        <ellipse cx="500" cy={groundY + 12} rx="276" ry="36" fill="#132a3e" opacity=".38" />
-        <path d={`M224 ${groundY - 8}q38-58 116-48 50-49 117-28 60-47 125-12 77-32 134 20 73 2 103 56l-34 30q-57-4-92 26l-57-13-66 42-53-20-70 34-44-25-75 17-32-31-64-11z`} fill="#294354" />
-        <path d={`M240 ${groundY - 14}q46-45 108-32 55-49 118-24 61-46 122-10 71-25 124 21 60 5 88 45-44 19-104 10-66 23-122 4-67 22-127 3-74 22-123-1-42 10-84-16z`} fill="#9fb29d" />
-        <path d={`M267 ${groundY + 14}q69-19 127 0 69-19 132 0 66-20 133 4 41 5 78-3l-35 29q-49 1-77 21l-58-14-63 41-52-21-66 33-43-26-74 16-31-28z`} fill="#718f88" />
-        <g fill="#294657">
+        <ellipse cx="500" cy={groundY + 12} rx="276" ry="36" fill={edition.tower.shadow} opacity=".38" />
+        <path d={`M224 ${groundY - 8}q38-58 116-48 50-49 117-28 60-47 125-12 77-32 134 20 73 2 103 56l-34 30q-57-4-92 26l-57-13-66 42-53-20-70 34-44-25-75 17-32-31-64-11z`} fill={edition.tower.deep} />
+        <path d={`M240 ${groundY - 14}q46-45 108-32 55-49 118-24 61-46 122-10 71-25 124 21 60 5 88 45-44 19-104 10-66 23-122 4-67 22-127 3-74 22-123-1-42 10-84-16z`} fill={edition.tower.top} />
+        <path d={`M267 ${groundY + 14}q69-19 127 0 69-19 132 0 66-20 133 4 41 5 78-3l-35 29q-49 1-77 21l-58-14-63 41-52-21-66 33-43-26-74 16-31-28z`} fill={edition.tower.shore} />
+        <g fill={edition.tower.trees}>
           <path d={`M340 ${groundY - 42}l15-34 15 34zM383 ${groundY - 41}l12-26 12 26zM710 ${groundY - 42}l16-36 16 36zM753 ${groundY - 41}l11-25 12 25z`} />
-          <path d={`M347 ${groundY - 42}v17m42-17v17m344-17v17m41-17v17`} stroke="#294657" strokeWidth="4" />
+          <path d={`M347 ${groundY - 42}v17m42-17v17m344-17v17m41-17v17`} stroke={edition.tower.trees} strokeWidth="4" />
         </g>
         <Lantern x={355} y={groundY - 65} lit={Math.floor(game.perfects / 5) >= 7} celebration={beaconCelebration} sequence={2} />
         <Lantern x={397} y={groundY - 62} lit={Math.floor(game.perfects / 5) >= 8} celebration={beaconCelebration} sequence={0} />
@@ -1039,6 +1159,7 @@ function GameScene({
               trimmedLeft={trimmedLeft}
               trimmedRight={trimmedRight}
               stoneWarmth={Math.min(1, index / 32 + dawnProgress * 0.18)}
+              stonePalette={edition.stone}
             />
           )
         })}
@@ -1075,6 +1196,7 @@ function GameScene({
               block={piece}
               y={groundY - piece.level * BLOCK_HEIGHT}
               active
+              stonePalette={edition.stone}
             />
           </motion.g>
         ))}
@@ -1097,6 +1219,7 @@ function GameScene({
                 block={game.moving}
                 y={groundY - (game.stack.length + 1) * BLOCK_HEIGHT}
                 active
+                stonePalette={edition.stone}
               />
             </motion.g>
             {isWaking && (
