@@ -31,8 +31,10 @@ const starPositions = [
 
 const BLOCK_BEVEL = 10
 const BLOCK_FACE_HEIGHT = BLOCK_HEIGHT - BLOCK_BEVEL
+const NEAR_PERFECT_TRIM = 22
 
 type FeedbackSound = 'place' | 'perfect' | 'miss'
+type LandingFeedbackKind = 'landed' | 'near-perfect' | 'perfect' | null
 
 type LensGeometry = {
   x: number
@@ -57,6 +59,17 @@ function lensGeometry(block: Block, y: number): LensGeometry {
     centerX: x + width / 2,
     centerY: lensY + height / 2,
   }
+}
+
+function getLandingFeedback(game: GameState): LandingFeedbackKind {
+  if (game.phase !== 'playing' || game.stack.length < 2) return null
+  if (game.lastDropWasPerfect) return 'perfect'
+
+  const supportingBlock = game.stack.at(-2)!
+  const landedBlock = game.stack.at(-1)!
+  const trimmedWidth = Math.max(0, supportingBlock.width - landedBlock.width)
+
+  return trimmedWidth <= NEAR_PERFECT_TRIM ? 'near-perfect' : 'landed'
 }
 
 function readSoundPreference() {
@@ -250,6 +263,114 @@ function BeaconSignal({
   )
 }
 
+function LandingFeedback({
+  kind,
+  block,
+  support,
+  y,
+  placement,
+  reducedMotion,
+}: {
+  kind: Exclude<LandingFeedbackKind, null>
+  block: Block
+  support: Block
+  y: number
+  placement: number
+  reducedMotion: boolean
+}) {
+  if (reducedMotion) return null
+
+  const contactLeft = Math.max(block.x, support.x) + 4
+  const contactRight = Math.min(block.x + block.width, support.x + support.width) - 4
+  const contactWidth = contactRight - contactLeft
+  if (contactWidth <= 0) return null
+
+  const contactCenter = contactLeft + contactWidth / 2
+  const seamY = y + BLOCK_HEIGHT - 2
+  const lens = lensGeometry(block, y)
+
+  return (
+    <motion.g key={`landing-feedback-${placement}`} pointerEvents="none">
+      <motion.ellipse
+        cx={contactCenter}
+        cy={seamY + 4}
+        rx={Math.max(18, contactWidth * 0.45)}
+        ry="4"
+        fill="#10293a"
+        initial={{ opacity: 0, scaleX: 0.72 }}
+        animate={{ opacity: [0, 0.46, 0.18, 0], scaleX: [0.72, 1.08, 1, 0.94] }}
+        transition={{ duration: 0.48, ease: 'easeOut' }}
+        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+      />
+
+      {kind === 'near-perfect' && (
+        <>
+          <motion.path
+            d={`M${contactLeft} ${seamY}H${contactRight}`}
+            fill="none"
+            stroke="#ebb86f"
+            strokeWidth="6"
+            strokeLinecap="round"
+            filter="url(#soft-bloom)"
+            initial={{ opacity: 0, pathLength: 0 }}
+            animate={{ opacity: [0, 0.38, 0], pathLength: [0, 1, 1] }}
+            transition={{ duration: 0.58, ease: 'easeOut' }}
+          />
+          <motion.path
+            d={`M${contactLeft} ${seamY}H${contactRight}`}
+            fill="none"
+            stroke="#fff0c7"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            initial={{ opacity: 0, pathLength: 0 }}
+            animate={{ opacity: [0, 0.82, 0], pathLength: [0, 1, 1] }}
+            transition={{ duration: 0.58, ease: 'easeOut' }}
+          />
+        </>
+      )}
+
+      {kind === 'perfect' && (
+        <>
+          <motion.path
+            d={`M${contactLeft} ${seamY}H${contactRight}`}
+            fill="none"
+            stroke="#f6ca83"
+            strokeWidth="7"
+            strokeLinecap="round"
+            filter="url(#soft-bloom)"
+            initial={{ opacity: 0, pathLength: 0 }}
+            animate={{ opacity: [0, 0.72, 0], pathLength: [0, 1, 1] }}
+            transition={{ duration: 0.56, ease: 'easeOut' }}
+          />
+          <motion.path
+            d={`M${contactLeft} ${seamY}H${contactRight}`}
+            fill="none"
+            stroke="#fff1ca"
+            strokeWidth="2.3"
+            strokeLinecap="round"
+            initial={{ opacity: 0, pathLength: 0 }}
+            animate={{ opacity: [0, 1, 0], pathLength: [0, 1, 1] }}
+            transition={{ duration: 0.46, ease: 'easeOut' }}
+          />
+          <motion.rect
+            x={lens.x - 6}
+            y={lens.y - 6}
+            width={lens.width + 12}
+            height={lens.height + 12}
+            rx={(lens.width + 12) / 2}
+            fill="#fff0c5"
+            filter="url(#soft-bloom)"
+            initial={{ opacity: 0, scale: 0.38 }}
+            animate={{ opacity: [0, 0.86, 0], scale: [0.38, 1.22, 1.7] }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+          />
+        </>
+      )}
+    </motion.g>
+  )
+}
+
 function Lantern({
   x,
   y,
@@ -360,6 +481,8 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
   const signalStartIndex = game.perfectStreak > 0
     ? Math.max(0, game.stack.length - game.perfectStreak - 1)
     : game.stack.length
+  const landingFeedback = getLandingFeedback(game)
+  const perfectCameraSettle = landingFeedback === 'perfect' && !reducedMotion
   const windStrength = Math.abs(game.windPercent)
   const windDirection = game.windPercent < 0 ? -1 : 1
   const sceneryIntensity = compact ? 0.7 : 1
@@ -548,6 +671,12 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
             ? { duration: 0.42, ease: 'easeOut' }
             : { type: 'spring', stiffness: 78, damping: 27, mass: 0.85 }}
       >
+      <motion.g
+        key={`tower-settle-${game.placementTicks.length}`}
+        initial={perfectCameraSettle ? { y: -8 } : false}
+        animate={{ y: 0 }}
+        transition={{ type: 'spring', stiffness: 390, damping: 24, mass: 0.48 }}
+      >
         <ellipse cx="500" cy={groundY + 12} rx="276" ry="36" fill="#132a3e" opacity=".38" />
         <path d={`M224 ${groundY - 8}q38-58 116-48 50-49 117-28 60-47 125-12 77-32 134 20 73 2 103 56l-34 30q-57-4-92 26l-57-13-66 42-53-20-70 34-44-25-75 17-32-31-64-11z`} fill="#294354" />
         <path d={`M240 ${groundY - 14}q46-45 108-32 55-49 118-24 61-46 122-10 71-25 124 21 60 5 88 45-44 19-104 10-66 23-122 4-67 22-127 3-74 22-123-1-42 10-84-16z`} fill="#9fb29d" />
@@ -595,6 +724,16 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
           placement={game.placementTicks.length}
           reducedMotion={reducedMotion}
         />
+        {landingFeedback && game.stack.length > 1 && (
+          <LandingFeedback
+            kind={landingFeedback}
+            block={game.stack.at(-1)!}
+            support={game.stack.at(-2)!}
+            y={groundY - game.stack.length * BLOCK_HEIGHT}
+            placement={game.placementTicks.length}
+            reducedMotion={reducedMotion}
+          />
+        )}
         {game.fallingPieces.map((piece) => (
           <motion.g
             key={`${piece.id}-${piece.x}`}
@@ -640,6 +779,7 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
             r="18"
           />
         )}
+      </motion.g>
       </motion.g>
 
       <path d={`M0 ${height - 58}q112-32 224 0 130-31 264 1 133-35 268 0 111-30 244 4v${58}`} fill="url(#sea)" opacity=".88" />
