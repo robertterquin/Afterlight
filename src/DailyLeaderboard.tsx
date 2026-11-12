@@ -1,6 +1,6 @@
 import { memo, useEffect, useState, type FormEvent } from 'react'
 import { formatDailyDate } from './game'
-import type { LeaderboardEntry } from './leaderboard'
+import type { LeaderboardEntry, TowerProfile } from './leaderboard'
 
 type Props = {
   challengeDate: string
@@ -14,29 +14,91 @@ type Props = {
   onClose: () => void
 }
 
-function TowerGlyph({ entry, detail = false }: { entry: LeaderboardEntry; detail?: boolean }) {
+type TowerGlyphFloor = {
+  level: number
+  width: number
+  left: number
+  bottom: number
+  lit: boolean
+}
+
+function fallbackTowerFloors(entry: LeaderboardEntry, detail: boolean): TowerGlyphFloor[] {
   const floors = Math.min(6, Math.max(2, Math.ceil(entry.height / 8)))
   const litFloors = Math.min(floors, Math.round((entry.perfects / Math.max(entry.height, 1)) * floors))
-  const rankTone = Math.min(entry.rank, 4)
   const baseWidth = detail ? 46 : 30
   const taper = detail ? 3.7 : 2.4
+  const containerWidth = detail ? 60 : 40
+  const floorHeight = detail ? 7 : 5
+  const gap = detail ? 2 : 1
+
+  return Array.from({ length: floors }, (_, floor) => {
+    const width = baseWidth - floor * taper
+    return {
+      level: floor + 1,
+      width,
+      left: (containerWidth - width) / 2,
+      bottom: floor * (floorHeight + gap),
+      lit: floor < litFloors,
+    }
+  })
+}
+
+function profileTowerFloors(profile: TowerProfile, detail: boolean): TowerGlyphFloor[] | null {
+  const blocks = profile.blocks.filter(
+    (block) => Number.isFinite(block.x) && Number.isFinite(block.width) && block.width > 0,
+  )
+  if (blocks.length < 2) return null
+
+  const placedBlocks = blocks.slice(1)
+  const floors = Math.min(detail ? 7 : 6, placedBlocks.length)
+  const sampledIndexes = Array.from(
+    { length: floors },
+    (_, floor) => Math.round((floor * (placedBlocks.length - 1)) / Math.max(1, floors - 1)),
+  )
+  const baseBlock = blocks[0]
+  const maximumWidth = Math.max(...blocks.map((block) => block.width))
+  const baseWidth = detail ? 46 : 30
+  const containerWidth = detail ? 60 : 40
+  const minimumWidth = detail ? 16 : 11
+  const floorHeight = detail ? 7 : 5
+  const gap = detail ? 2 : 1
+  const baseCenter = baseBlock.x + baseBlock.width / 2
+  const perfectLevels = new Set(profile.perfectLevels.filter((level) => Number.isInteger(level) && level > 0))
+
+  return sampledIndexes.map((blockIndex, floor) => {
+    const block = placedBlocks[blockIndex]
+    const width = Math.max(minimumWidth, Math.min(baseWidth, (block.width / maximumWidth) * baseWidth))
+    const centerOffset = ((block.x + block.width / 2 - baseCenter) / maximumWidth) * baseWidth * 0.9
+    const left = Math.max(0, Math.min(containerWidth - width, (containerWidth - width) / 2 + centerOffset))
+    const sampleStart = floor === 0 ? 0 : sampledIndexes[floor - 1] + 1
+    const lit = Array.from(perfectLevels).some((level) => level - 1 >= sampleStart && level - 1 <= blockIndex)
+
+    return {
+      level: blockIndex + 1,
+      width,
+      left,
+      bottom: floor * (floorHeight + gap),
+      lit,
+    }
+  })
+}
+
+function TowerGlyph({ entry, detail = false }: { entry: LeaderboardEntry; detail?: boolean }) {
+  const floors = entry.tower_profile ? profileTowerFloors(entry.tower_profile, detail) : null
+  const visibleFloors = floors ?? fallbackTowerFloors(entry, detail)
+  const rankTone = Math.min(entry.rank, 4)
 
   return (
     <span className={`tower-glyph rank-${rankTone}${entry.is_you ? ' is-you' : ''}${detail ? ' is-detail' : ''}`} aria-hidden="true">
-      {Array.from({ length: floors }, (_, floor) => {
-        const lit = floor < litFloors
-        const width = baseWidth - floor * taper
-
-        return (
-          <span
-            key={floor}
-            className={`tower-floor${lit ? ' is-lit' : ''}`}
-            style={{ width }}
-          >
-            <span className="tower-lens" />
-          </span>
-        )
-      })}
+      {visibleFloors.map((floor) => (
+        <span
+          key={floor.level}
+          className={`tower-floor${floor.lit ? ' is-lit' : ''}`}
+          style={{ width: floor.width, left: floor.left, bottom: floor.bottom }}
+        >
+          <span className="tower-lens" />
+        </span>
+      ))}
     </span>
   )
 }

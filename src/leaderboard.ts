@@ -2,11 +2,22 @@ import { ensureAnonymousUser, supabase } from './supabase'
 
 export const isConfigured = () => Boolean(supabase)
 
+export type TowerBlockProfile = {
+  x: number
+  width: number
+}
+
+export type TowerProfile = {
+  blocks: TowerBlockProfile[]
+  perfectLevels: number[]
+}
+
 export type LeaderboardEntry = {
   rank: number
   display_name: string
   height: number
   perfects: number
+  tower_profile: TowerProfile | null
   is_you: boolean
 }
 

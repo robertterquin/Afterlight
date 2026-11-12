@@ -70,6 +70,7 @@ const submit = withSupabase({ auth: "user" }, async (req, ctx) => {
 
   let game = startGame(createGame({ date: challengeDate, seed: seedForDate(challengeDate) }))
   let previousTick = -1
+  const perfectLevels: number[] = []
   for (const tick of placementTicks as number[]) {
     if (tick < previousTick || game.phase !== "playing") {
       return json({ error: "The run could not be verified." }, 400)
@@ -79,17 +80,26 @@ const submit = withSupabase({ auth: "user" }, async (req, ctx) => {
       return json({ error: "The run could not be verified." }, 400)
     }
     game = placeBlock(game)
+    if (game.lastDropWasPerfect) perfectLevels.push(heightOf(game))
     previousTick = tick
   }
 
   const height = heightOf(game)
   if (height < 1) return json({ error: "Place at least one stone to submit a score." }, 400)
+  const towerProfile = {
+    blocks: game.stack.map(({ x, width }) => ({
+      x: Math.round(x * 10) / 10,
+      width: Math.round(width * 10) / 10,
+    })),
+    perfectLevels,
+  }
 
   const { data: personalBest, error } = await ctx.supabaseAdmin.rpc("record_daily_score", {
     p_player_id: playerId,
     p_challenge_date: challengeDate,
     p_height: height,
     p_perfects: game.perfects,
+    p_tower_profile: towerProfile,
   })
 
   if (error) {

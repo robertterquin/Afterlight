@@ -261,19 +261,15 @@
 }
 
 .tower-glyph {
+  position: relative;
   width: 40px;
   height: 44px;
-  display: flex;
-  flex-direction: column-reverse;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 1px;
-  padding-top: 5px;
+  display: block;
   box-sizing: border-box;
 }
 
 .tower-floor {
-  position: relative;
+  position: absolute;
   height: 5px;
   min-width: 15px;
   display: block;
@@ -329,8 +325,6 @@
 .tower-glyph.is-detail {
   width: 60px;
   height: 64px;
-  gap: 2px;
-  padding-top: 4px;
 }
 
 .tower-glyph.is-detail .tower-floor {
