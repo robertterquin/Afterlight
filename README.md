@@ -44,3 +44,12 @@ Before enabling ranked play:
 4. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in Vercel. The legacy anon key is also supported as a fallback.
 
 Never put a Supabase secret or `service_role` key in the browser or a `VITE_` variable. Without a working Supabase setup, the game remains playable, but scores stay local and do not appear on the shared board.
+
+## Sound effects
+
+All effects in `public/sfx` are CC0 (public domain), converted to small AAC files:
+
+- Stone landings, cloud puff: [Impact Sounds](https://kenney.nl/assets/impact-sounds) by Kenney
+- Ticks, menus, pause/resume, toggles, confirmations: [Interface Sounds](https://kenney.nl/assets/interface-sounds) by Kenney
+- Perfect-drop bell: [pleasing bell sound effect](https://opengameart.org/content/pleasing-bell-sound-effect) by Spring Spring
+- Splashes: [6 short water splashes](https://opengameart.org/content/6-short-water-splashes) cut by qubodup from pdsounds.org recordings
