@@ -571,18 +571,24 @@
   display: block;
   width: 100%;
   height: 100%;
-  transition: filter .9s ease .42s;
+  transition: filter .72s ease .78s;
 }
 
 .stage.is-over .game-scene {
-  filter: saturate(.76) brightness(.76);
+  filter: saturate(.74) brightness(.72);
 }
 
-.over-card {
-  border-color: rgba(234, 221, 193, .19);
-  background: linear-gradient(160deg, rgba(32, 53, 66, .7), rgba(15, 35, 49, .64));
-  box-shadow: 0 20px 60px rgba(3, 15, 25, .2);
-  backdrop-filter: blur(8px);
+.state-card.over-card {
+  top: auto;
+  bottom: clamp(24px, 3vw, 38px);
+  width: min(340px, calc(100% - 44px));
+  padding: 0;
+  transform: translateX(-50%);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-shadow: 0 3px 18px rgba(5, 20, 31, .56);
+  backdrop-filter: none;
 }
 
 .height-readout {
@@ -799,6 +805,11 @@
   letter-spacing: -.025em;
 }
 
+.state-card.over-card h1 {
+  margin-bottom: 8px;
+  font-size: clamp(30px, 4vw, 36px);
+}
+
 .primary-button {
   min-height: 46px;
   padding: 0 20px;
@@ -848,6 +859,12 @@
   line-height: 1.35;
 }
 
+.state-card.over-card .result-line {
+  margin: 0;
+  color: rgba(225, 235, 224, .9);
+  font-size: 12px;
+}
+
 .result-line strong {
   color: #f2ce9e;
   font-size: 22px;
@@ -862,12 +879,22 @@
   line-height: 1.4;
 }
 
+.state-card.over-card .result-detail {
+  margin: 5px 0 0;
+  color: rgba(192, 210, 201, .88);
+  font-size: 11px;
+}
+
 .result-submission {
   max-width: 250px;
   margin: 14px auto 0;
   color: #b9c9be;
   font-size: 11px;
   line-height: 1.5;
+}
+
+.state-card.over-card .result-submission {
+  margin: 10px auto 0;
 }
 
 .result-submission.is-saved {
@@ -888,12 +915,21 @@
   margin-top: 22px;
 }
 
+.state-card.over-card .result-line + .primary-button,
+.state-card.over-card .result-detail + .primary-button {
+  margin-top: 16px;
+}
+
 .result-detail + .primary-button {
   margin-top: 2px;
 }
 
 .result-submission ~ .primary-button {
   margin-top: 18px;
+}
+
+.state-card.over-card .result-submission ~ .primary-button {
+  margin-top: 14px;
 }
 
 @media (max-width: 700px) {
@@ -981,6 +1017,15 @@
   }
 
   .ready-card { padding: 0; }
+
+  .over-card {
+    bottom: 22px;
+    padding: 0;
+  }
+
+  .over-card h1 {
+    font-size: 31px;
+  }
 
   .ready-card .keyboard-hint {
     display: none;

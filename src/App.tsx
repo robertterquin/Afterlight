@@ -1771,14 +1771,13 @@ function App() {
                 key="over"
                 className="state-card over-card"
                 role="dialog"
-                aria-modal="true"
                 aria-labelledby="over-title"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: reducedMotion ? 0.2 : 0.32, delay: reducedMotion ? 0 : 1.08, ease: 'easeOut' }}
+                transition={{ duration: reducedMotion ? 0.2 : 0.36, delay: reducedMotion ? 0 : 1.18, ease: 'easeOut' }}
               >
-                <h1 id="over-title">Run over</h1>
+                <h1 id="over-title">The tide keeps it</h1>
                 <p className="result-line"><strong>{height}</strong> {height === 1 ? 'stone' : 'stones'} placed</p>
                 {game.perfects > 0 && <p className="result-detail">{game.perfects} perfect {game.perfects === 1 ? 'landing' : 'landings'}</p>}
                 {submissionStatus !== 'idle' && (
@@ -1803,7 +1802,7 @@ function App() {
                   whileTap={{ scale: 0.97 }}
                   transition={{ type: 'spring', stiffness: 460, damping: 24 }}
                 >
-                  Try again
+                  Climb again
                 </motion.button>
               </motion.div>
             )}
