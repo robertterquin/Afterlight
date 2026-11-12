@@ -53,6 +53,7 @@ type StonePalette = {
 }
 
 type DailyEdition = {
+  name: string
   sky: readonly [string, string, string, string]
   dawnSky: readonly [string, string, string, string]
   sea: readonly [string, string]
@@ -88,6 +89,7 @@ type DailyEdition = {
 
 const DAILY_EDITIONS: readonly DailyEdition[] = [
   {
+    name: 'Ember tide',
     sky: ['#252b43', '#60516b', '#b77876', '#4f7477'],
     dawnSky: ['#9b7d8c', '#c77b74', '#eea16e', '#f4c794'],
     sea: ['#5b7379', '#243a4a'],
@@ -107,6 +109,7 @@ const DAILY_EDITIONS: readonly DailyEdition[] = [
     },
   },
   {
+    name: 'First light',
     sky: ['#26394c', '#5b7180', '#a6a9a5', '#5d8581'],
     dawnSky: ['#91a3aa', '#c4a797', '#e8ae86', '#f3ca9d'],
     sea: ['#527d80', '#1f4651'],
@@ -126,6 +129,7 @@ const DAILY_EDITIONS: readonly DailyEdition[] = [
     },
   },
   {
+    name: 'Salt moon',
     sky: ['#17263a', '#4b526d', '#bb8c8c', '#365f6c'],
     dawnSky: ['#a9909a', '#d18e83', '#e9a678', '#f0c18f'],
     sea: ['#4b7780', '#142e42'],
@@ -1624,6 +1628,7 @@ function App() {
   }, [closeLeaderboard, commitGame, handlePlace, leaderboardOpen, start])
 
   const height = heightOf(game)
+  const dailyEdition = dailyEditionForSeed(game.challenge.seed)
   const isFocusedRun = height > 0 && game.phase !== 'over'
 
   return (
@@ -1687,10 +1692,12 @@ function App() {
         >
           <GameScene game={game} height={sceneHeight} isWaking={isWaking} />
 
-          <div className="height-readout" aria-live="polite">
-            <span>Height</span>
-            <strong>{String(height).padStart(2, '0')}</strong>
-          </div>
+          {game.phase !== 'ready' && (
+            <div className="height-readout" aria-live="polite">
+              <span>Height</span>
+              <strong>{String(height).padStart(2, '0')}</strong>
+            </div>
+          )}
 
           <div
             className="daily-readout"
@@ -1712,23 +1719,25 @@ function App() {
             {game.phase === 'ready' && (
               <motion.div
                 key="ready"
-                className="state-card ready-card"
+                className="ready-state"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22 }}
               >
-                <motion.button
-                  className="primary-button"
-                  type="button"
-                  onClick={start}
-                  whileHover={{ y: -1 }}
-                  whileTap={{ scale: 0.97 }}
-                  transition={{ type: 'spring', stiffness: 460, damping: 24 }}
-                >
-                  Start climb
-                </motion.button>
-                <span className="keyboard-hint">or press Space</span>
+                <h1 className="ready-course-title">{dailyEdition.name}</h1>
+                <div className="ready-actions">
+                  <motion.button
+                    className="primary-button"
+                    type="button"
+                    onClick={start}
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ type: 'spring', stiffness: 460, damping: 24 }}
+                  >
+                    Start climb
+                  </motion.button>
+                </div>
               </motion.div>
             )}
 
