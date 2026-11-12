@@ -654,6 +654,29 @@ function DawnWaterPath({
   )
 }
 
+function WindSignature({ windPercent }: { windPercent: number }) {
+  const strength = Math.abs(windPercent)
+  const isCalm = strength === 0
+  const duration = Math.max(1.6, 3.8 - strength * 0.22)
+  const classes = [
+    'wind-signature',
+    isCalm ? 'is-calm' : 'is-breezy',
+    windPercent < 0 && 'is-leftward',
+  ].filter(Boolean).join(' ')
+  const style = { '--wind-mark-duration': `${duration}s` } as CSSProperties
+
+  return (
+    <div className={classes} style={style} aria-hidden="true">
+      <svg className="wind-glyph" viewBox="0 0 30 18" focusable="false">
+        <path d="M1.5 4.5h15c4.5 0 4.5-3.2 1.7-3.2M6 9h20.5c3.1 0 3.8 3.6.5 3.6M1.5 14h12.5" />
+      </svg>
+      <strong className="wind-value">
+        {isCalm ? 'Calm' : `${windPercent > 0 ? '+' : '−'}${strength}%`}
+      </strong>
+    </div>
+  )
+}
+
 function WaterImpact({
   piece,
   waterY,
@@ -743,6 +766,10 @@ function GameScene({
   const sceneryIntensity = compact ? 0.7 : 1
   const cloudDrift = (12 + windStrength * 1.5) * sceneryIntensity
   const cloudDuration = (42 - windStrength * 1.1) * (compact ? 1.28 : 1)
+  const waterGlintDrift = windDirection * (2 + windStrength * 1.45) * sceneryIntensity
+  const waterGlintDuration = Math.max(3.6, 6.2 - windStrength * 0.24) * (compact ? 1.18 : 1)
+  const blockSway = Math.min(2.3, windStrength * 0.28)
+  const blockSwayDuration = Math.max(1.65, 3.2 - windStrength * 0.12)
   const nearCloudStyle = {
     '--wind-drift': `${windDirection * cloudDrift}px`,
     '--wind-duration': `${cloudDuration}s`,
@@ -751,6 +778,10 @@ function GameScene({
     '--wind-drift': `${windDirection * cloudDrift * 0.68}px`,
     '--wind-duration': `${cloudDuration * 1.18}s`,
     '--wind-delay': `${-cloudDuration * 1.18 * 0.37}s`,
+  } as CSSProperties
+  const waterGlintStyle = {
+    '--water-drift': `${waterGlintDrift}px`,
+    '--water-duration': `${waterGlintDuration}s`,
   } as CSSProperties
 
   useEffect(() => {
@@ -1040,11 +1071,25 @@ function GameScene({
                 fill="url(#ray)"
               />
             )}
-            <BlockShape
-              block={game.moving}
-              y={groundY - (game.stack.length + 1) * BLOCK_HEIGHT}
-              active
-            />
+            <motion.g
+              initial={false}
+              animate={reducedMotion || windStrength === 0 || isWaking
+                ? { y: 0, rotate: 0 }
+                : {
+                    y: [0, -blockSway, 0, blockSway * 0.52, 0],
+                    rotate: [0, windDirection * 0.42, 0, windDirection * -0.26, 0],
+                  }}
+              transition={reducedMotion || windStrength === 0 || isWaking
+                ? { duration: 0 }
+                : { duration: blockSwayDuration, repeat: Infinity, ease: 'easeInOut' }}
+              style={{ transformBox: 'fill-box', transformOrigin: 'center bottom' }}
+            >
+              <BlockShape
+                block={game.moving}
+                y={groundY - (game.stack.length + 1) * BLOCK_HEIGHT}
+                active
+              />
+            </motion.g>
             {isWaking && (
               <StartWake
                 block={game.moving}
@@ -1107,7 +1152,7 @@ function GameScene({
           />
         </motion.g>
       )}
-      <path className="water-glint" d={`M418 ${height - 45}h166m-140 13h116m-96 12h76`} stroke="#efd2ad" strokeWidth="1.6" opacity=".2" strokeLinecap="round" />
+      <path className="water-glint" style={waterGlintStyle} d={`M418 ${height - 45}h166m-140 13h116m-96 12h76`} stroke="#efd2ad" strokeWidth="1.6" opacity=".2" strokeLinecap="round" />
     </svg>
   )
 }
@@ -1516,11 +1561,7 @@ function App() {
             aria-label={`Daily challenge ${game.challenge.date}. ${game.windPercent === 0 ? 'Wind calm' : `Wind ${game.windPercent > 0 ? 'plus ' : 'minus '}${Math.abs(game.windPercent)} percent`}.`}
           >
             <span className="daily-date">Daily · {formatDailyDate(game.challenge.date)}</span>
-            <strong className="wind-value">
-              {game.windPercent === 0
-                ? 'Wind calm'
-                : `Wind ${game.windPercent > 0 ? '+' : '−'}${Math.abs(game.windPercent)}%`}
-            </strong>
+            <WindSignature windPercent={game.windPercent} />
           </div>
 
           {game.phase === 'playing' && !isWaking && (
