@@ -261,7 +261,6 @@ export const Leaderboard = memo(function Leaderboard({
               </form>
             ) : (
               <div className="player-name-line">
-                <span className="player-avatar" aria-hidden="true">{playerName.charAt(0).toLowerCase()}</span>
                 <span><small>Climbing as</small><strong>{playerName}</strong></span>
                 <button
                   type="button"
