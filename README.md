@@ -18,7 +18,7 @@ Copy `.env.example` to `.env.local` and add the Supabase project URL and public 
 - Use the pause button or **Escape** to pause and resume.
 - Use the sound button to mute or enable placement feedback; the preference is saved in this browser.
 
-The prototype includes block overlap, perfect placements, height scoring, a speed increase every five stones, miss detection, replay, placement sounds, and settling animations. Every fifth consecutive perfect landing grows the new block by 60 logical units, up to 340; a non-perfect placement resets the streak. Every five perfect placements also lights another beacon detail; this is visual progress only.
+The prototype includes block overlap, perfect placements, height scoring, a speed increase every five stones, miss detection, replay, placement sounds, and settling animations. The fifth consecutive perfect landing awakens the beacon and grows the new block by 32 logical units. Each uninterrupted perfect after that grows it by 18 more units, up to 340; a non-perfect placement resets the streak. Every five perfect placements also lights another beacon detail; this is visual progress only.
 
 ## Animation
 

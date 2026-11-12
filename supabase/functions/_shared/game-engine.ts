@@ -9,8 +9,9 @@ const LANE_LEFT = 90
 const LANE_RIGHT = 910
 const PERFECT_TOLERANCE = 5
 const MAX_SPEED = STARTING_SPEED * 2.2
-const PERFECTS_PER_GROWTH = 5
-const PERFECT_GROWTH = 60
+const PERFECTS_TO_AWAKEN = 5
+const AWAKENING_GROWTH = 32
+const CONTINUING_PERFECT_GROWTH = 18
 const MAX_BLOCK_WIDTH = STARTING_WIDTH + 120
 const FLOORS_PER_WIND_CHANGE = 5
 
@@ -187,7 +188,11 @@ export const placeBlock = (game: GameState): GameState => {
   const movingCenter = game.moving.x + game.moving.width / 2
   const perfect = Math.abs(previousCenter - movingCenter) <= PERFECT_TOLERANCE
   const perfectStreak = perfect ? game.perfectStreak + 1 : 0
-  const growthStep = perfect && perfectStreak % PERFECTS_PER_GROWTH === 0
+  const growth = perfectStreak < PERFECTS_TO_AWAKEN
+    ? 0
+    : perfectStreak === PERFECTS_TO_AWAKEN
+      ? AWAKENING_GROWTH
+      : CONTINUING_PERFECT_GROWTH
   const id = placementTicks.length - 1
   const fallingPieces: FallingPiece[] = []
   if (!perfect) {
@@ -214,9 +219,7 @@ export const placeBlock = (game: GameState): GameState => {
   let landed: Block
   let lastDropGrew = false
   if (perfect) {
-    const width = growthStep
-      ? Math.min(MAX_BLOCK_WIDTH, previous.width + PERFECT_GROWTH)
-      : previous.width
+    const width = Math.min(MAX_BLOCK_WIDTH, previous.width + growth)
     const center = previous.x + previous.width / 2
     const x = Math.max(LANE_LEFT, Math.min(center - width / 2, LANE_RIGHT - width))
     landed = { x, width }
