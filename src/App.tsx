@@ -850,8 +850,15 @@ function GameScene({
   height: number
   isWaking?: boolean
 }) {
-  const [beaconCelebration, setBeaconCelebration] = useState(0)
   const { compact, reducedMotion } = useScenePreferences()
+  // Count celebrations while rendering (React's "adjust state on prop change" pattern), not in an effect.
+  const placement = game.placementTicks.length
+  const celebrating = game.lastDropWasPerfect && game.perfectStreak > 0 && game.perfectStreak % 5 === 0
+  const [celebration, setCelebration] = useState({ count: 0, placement })
+  if (celebration.placement !== placement) {
+    setCelebration({ count: celebration.count + Number(celebrating), placement })
+  }
+  const beaconCelebration = celebration.count
   const edition = dailyEditionForSeed(game.challenge.seed)
   const groundY = height - 105
   const activeY = groundY - (game.stack.length + 1) * BLOCK_HEIGHT
@@ -898,12 +905,6 @@ function GameScene({
     '--water-glint-low': `${waterReflectionOpacity * 0.45}`,
     '--water-glint-high': `${waterReflectionOpacity}`,
   } as CSSProperties
-
-  useEffect(() => {
-    if (game.lastDropWasPerfect && game.perfectStreak > 0 && game.perfectStreak % 5 === 0) {
-      setBeaconCelebration((count) => count + 1)
-    }
-  }, [game.lastDropWasPerfect, game.perfectStreak, game.placementTicks.length])
 
   return (
     <svg
@@ -1790,7 +1791,8 @@ function App() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: reducedMotion ? 0.2 : 0.36, delay: reducedMotion ? 0 : 1.18, ease: 'easeOut' }}
               >
-                <h1 id="over-title">The tide keeps it</h1>
+                {/* A miss records a placement that never joined the stack; ending from pause does not. */}
+                <h1 id="over-title">{game.placementTicks.length > height ? 'The tide keeps it' : 'The beacon rests'}</h1>
                 <p className="result-line"><strong>{height}</strong> {height === 1 ? 'stone' : 'stones'} placed</p>
                 {game.perfects > 0 && <p className="result-detail">{game.perfects} perfect {game.perfects === 1 ? 'landing' : 'landings'}</p>}
                 {submissionStatus !== 'idle' && (
