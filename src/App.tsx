@@ -34,6 +34,7 @@ const BLOCK_FACE_HEIGHT = BLOCK_HEIGHT - BLOCK_BEVEL
 const NEAR_PERFECT_TRIM = 22
 const FLOORS_PER_WORLD_MILESTONE = 5
 const MAX_WORLD_MILESTONE = 6
+const START_WAKE_DURATION = 460
 
 type FeedbackSound = 'place' | 'perfect' | 'miss'
 type LandingFeedbackKind = 'landed' | 'near-perfect' | 'perfect' | null
@@ -255,6 +256,48 @@ function BlockShape({
           fill="#fff7da"
           opacity=".88"
         />
+    </motion.g>
+  )
+}
+
+function StartWake({
+  block,
+  y,
+  reducedMotion,
+}: {
+  block: Block
+  y: number
+  reducedMotion: boolean
+}) {
+  if (reducedMotion) return null
+
+  const lens = lensGeometry(block, y)
+  return (
+    <motion.g pointerEvents="none">
+      <motion.rect
+        x={lens.x - 9}
+        y={lens.y - 9}
+        width={lens.width + 18}
+        height={lens.height + 18}
+        rx={(lens.width + 18) / 2}
+        fill="#fff0c4"
+        filter="url(#soft-bloom)"
+        initial={{ opacity: 0, scale: 0.24 }}
+        animate={{ opacity: [0, .92, .28], scale: [.24, 1.2, 1.55] }}
+        transition={{ duration: START_WAKE_DURATION / 1000, ease: 'easeOut' }}
+        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+      />
+      <motion.path
+        d={`M${lens.centerX} ${lens.y - 18}V${lens.y - 4}`}
+        fill="none"
+        stroke="#fff1cd"
+        strokeWidth="2"
+        strokeLinecap="round"
+        filter="url(#soft-bloom)"
+        initial={{ opacity: 0, pathLength: 0, y: 5 }}
+        animate={{ opacity: [0, .78, 0], pathLength: [0, 1, 1], y: [5, 0, -3] }}
+        transition={{ duration: START_WAKE_DURATION / 1000, ease: 'easeOut' }}
+      />
     </motion.g>
   )
 }
@@ -668,7 +711,15 @@ function WaterImpact({
   )
 }
 
-function GameScene({ game, height }: { game: GameState; height: number }) {
+function GameScene({
+  game,
+  height,
+  isWaking = false,
+}: {
+  game: GameState
+  height: number
+  isWaking?: boolean
+}) {
   const [beaconCelebration, setBeaconCelebration] = useState(0)
   const { compact, reducedMotion } = useScenePreferences()
   const groundY = height - 105
@@ -994,6 +1045,13 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
               y={groundY - (game.stack.length + 1) * BLOCK_HEIGHT}
               active
             />
+            {isWaking && (
+              <StartWake
+                block={game.moving}
+                y={groundY - (game.stack.length + 1) * BLOCK_HEIGHT}
+                reducedMotion={reducedMotion}
+              />
+            )}
           </g>
         )}
         {game.lastDropWasPerfect && game.stack.length > 1 && (
@@ -1058,6 +1116,7 @@ function App() {
   const [game, setGame] = useState(createGame)
   const [sceneHeight, setSceneHeight] = useState(760)
   const [perfectToast, setPerfectToast] = useState(false)
+  const [isWaking, setIsWaking] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(readSoundPreference)
   const [playerId, setPlayerId] = useState<string | null>(null)
   const [playerName, setPlayerName] = useState('')
@@ -1069,6 +1128,7 @@ function App() {
   const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'saved' | 'not-best' | 'failed' | 'offline'>('idle')
   const [submissionError, setSubmissionError] = useState('')
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
+  const { reducedMotion } = useScenePreferences()
   const stageRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef(game)
   const soundEnabledRef = useRef(soundEnabled)
@@ -1076,6 +1136,7 @@ function App() {
   const runIdRef = useRef(0)
   const autoSubmittedRunRef = useRef(-1)
   const resumeAfterLeaderboardRef = useRef(false)
+  const startWakeTimerRef = useRef<number | null>(null)
 
   useLayoutEffect(() => {
     gameRef.current = game
@@ -1174,21 +1235,27 @@ function App() {
     }
   }, [])
 
-  const start = useCallback(() => {
-    const current = gameRef.current
-    if (current.phase === 'ready') {
-      runIdRef.current += 1
-      setSubmissionStatus('idle')
-      setSubmissionError('')
-      commitGame(startGame(createGame(createDailyChallenge())))
-    }
-  }, [commitGame])
-  const retry = useCallback(() => {
+  const beginRun = useCallback(() => {
     runIdRef.current += 1
     setSubmissionStatus('idle')
     setSubmissionError('')
+    if (startWakeTimerRef.current !== null) window.clearTimeout(startWakeTimerRef.current)
+    setIsWaking(!reducedMotion)
     commitGame(startGame(createGame(createDailyChallenge())))
-  }, [commitGame])
+
+    if (!reducedMotion) {
+      startWakeTimerRef.current = window.setTimeout(() => {
+        startWakeTimerRef.current = null
+        setIsWaking(false)
+      }, START_WAKE_DURATION)
+    }
+  }, [commitGame, reducedMotion])
+  const start = useCallback(() => {
+    if (gameRef.current.phase === 'ready' && !isWaking) beginRun()
+  }, [beginRun, isWaking])
+  const retry = useCallback(() => {
+    beginRun()
+  }, [beginRun])
   const toggleSound = useCallback(() => {
     const next = !soundEnabledRef.current
     soundEnabledRef.current = next
@@ -1285,6 +1352,10 @@ function App() {
     }
   }, [soundEnabled])
 
+  useEffect(() => () => {
+    if (startWakeTimerRef.current !== null) window.clearTimeout(startWakeTimerRef.current)
+  }, [])
+
   useEffect(() => {
     const stage = stageRef.current
     if (!stage) return
@@ -1300,7 +1371,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (game.phase !== 'playing') return
+    if (game.phase !== 'playing' || isWaking) return
 
     let animationFrame = 0
     let previousTime: number | null = null
@@ -1323,7 +1394,7 @@ function App() {
     }
     animationFrame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(animationFrame)
-  }, [game.phase])
+  }, [game.phase, isWaking])
 
   useEffect(() => {
     if (!game.lastDropWasPerfect) return
@@ -1333,6 +1404,7 @@ function App() {
   }, [game.lastDropWasPerfect, game.stack.length])
 
   const handlePlace = useCallback(() => {
+    if (isWaking) return
     const current = gameRef.current
     const next = placeBlock(current)
     if (next === current) return
@@ -1342,7 +1414,7 @@ function App() {
     else if (next.stack.length > current.stack.length) {
       playFeedback(next.lastDropWasPerfect ? 'perfect' : 'place')
     }
-  }, [commitGame, playFeedback])
+  }, [commitGame, isWaking, playFeedback])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1410,7 +1482,7 @@ function App() {
                 : <path d="M4 10v4h4l5 4V6l-5 4H4zm12 1 5 5m0-5-5 5" />}
             </svg>
           </motion.button>
-          {game.phase === 'playing' && (
+          {game.phase === 'playing' && !isWaking && (
             <motion.button
               className="icon-button"
               type="button"
@@ -1428,11 +1500,11 @@ function App() {
 
       <section className="play-layout" aria-label="Afterlight game">
         <div
-          className={`stage ${game.phase === 'playing' ? 'is-playing' : ''}`}
+          className={`stage ${game.phase === 'playing' ? 'is-playing' : ''} ${game.phase === 'over' ? 'is-over' : ''} ${isWaking ? 'is-waking' : ''}`}
           ref={stageRef}
           onPointerDown={handlePlace}
         >
-          <GameScene game={game} height={sceneHeight} />
+          <GameScene game={game} height={sceneHeight} isWaking={isWaking} />
 
           <div className="height-readout" aria-live="polite">
             <span>Height</span>
@@ -1451,7 +1523,7 @@ function App() {
             </strong>
           </div>
 
-          {game.phase === 'playing' && (
+          {game.phase === 'playing' && !isWaking && (
             <div className="play-prompt" aria-hidden="true">
               <span className="tap-dot"><i /></span>
               <span>Tap to place</span>
@@ -1524,14 +1596,14 @@ function App() {
             {game.phase === 'over' && (
               <motion.div
                 key="over"
-                className="state-card"
+                className="state-card over-card"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="over-title"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.24 }}
+                transition={{ duration: reducedMotion ? 0.2 : 0.32, delay: reducedMotion ? 0 : 1.08, ease: 'easeOut' }}
               >
                 <h1 id="over-title">Run over</h1>
                 <p className="result-line"><strong>{height}</strong> {height === 1 ? 'stone' : 'stones'} placed</p>
