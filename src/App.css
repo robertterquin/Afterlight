@@ -2139,3 +2139,57 @@
   }
 
 }
+
+/* Height cues --------------------------------------------------------
+   All transform/opacity only, on a few small layers. */
+
+.cloud-pass {
+  animation: cloud-pass 14s ease-in-out infinite alternate;
+}
+
+@keyframes cloud-pass {
+  from { transform: translateX(-14px); }
+  to { transform: translateX(14px); }
+}
+
+.aurora {
+  animation: aurora 9s ease-in-out infinite;
+}
+
+@keyframes aurora {
+  0%, 100% { opacity: .55; transform: translateX(0); }
+  50% { opacity: 1; transform: translateX(24px); }
+}
+
+.shooting-star {
+  opacity: 0;
+  animation: shooting-star 11s ease-out infinite 3s;
+}
+
+@keyframes shooting-star {
+  0%, 88% { opacity: 0; transform: translate(0, 0); }
+  90% { opacity: .9; }
+  96% { opacity: 0; transform: translate(-90px, 30px); }
+  100% { opacity: 0; transform: translate(-90px, 30px); }
+}
+
+.wind-streak {
+  animation: wind-streak 2.6s linear infinite;
+}
+
+@keyframes wind-streak {
+  0% { opacity: 0; transform: translateX(calc(var(--wind-sign, 1) * -60px)); }
+  30%, 70% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(calc(var(--wind-sign, 1) * 60px)); }
+}
+
+.pennant {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: pennant 2.4s ease-in-out infinite;
+}
+
+@keyframes pennant {
+  0%, 100% { transform: skewY(0deg) scaleX(1); }
+  50% { transform: skewY(4deg) scaleX(.9); }
+}

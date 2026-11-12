@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import afterlightMark from './assets/afterlight-mark.svg'
 import { Leaderboard } from './DailyLeaderboard'
@@ -243,6 +243,7 @@ function BlockShape({
   trimmedLeft = 0,
   trimmedRight = 0,
   stoneWarmth = 0,
+  haze = 0,
   stonePalette,
 }: {
   block: Block
@@ -256,6 +257,7 @@ function BlockShape({
   trimmedLeft?: number
   trimmedRight?: number
   stoneWarmth?: number
+  haze?: number
   stonePalette: StonePalette
 }) {
   const bevel = BLOCK_BEVEL
@@ -265,10 +267,12 @@ function BlockShape({
   const weatheredFront = blendColor(stonePalette.front, '#b59c78', stoneWarmth)
   const weatheredSide = blendColor(stonePalette.side, '#77635a', stoneWarmth)
   const weatheredJoint = blendColor(stonePalette.joint, '#876f5d', stoneWarmth)
-  const top = active ? stonePalette.activeTop : cleanStone ? blendColor(weatheredTop, '#f6e8c8', .18) : weatheredTop
-  const front = active ? stonePalette.activeFront : cleanStone ? blendColor(weatheredFront, '#c9ad85', .2) : weatheredFront
-  const side = active ? stonePalette.activeSide : cleanStone ? blendColor(weatheredSide, '#9b7b65', .18) : weatheredSide
-  const jointColor = active ? stonePalette.activeJoint : cleanStone ? blendColor(weatheredJoint, '#a88669', .25) : weatheredJoint
+  // Stones far below the top fade toward the sky, so the climb reads as distance.
+  const hazed = (color: string) => haze > 0 ? blendColor(color, '#8f95ad', haze) : color
+  const top = hazed(active ? stonePalette.activeTop : cleanStone ? blendColor(weatheredTop, '#f6e8c8', .18) : weatheredTop)
+  const front = hazed(active ? stonePalette.activeFront : cleanStone ? blendColor(weatheredFront, '#c9ad85', .2) : weatheredFront)
+  const side = hazed(active ? stonePalette.activeSide : cleanStone ? blendColor(weatheredSide, '#9b7b65', .18) : weatheredSide)
+  const jointColor = hazed(active ? stonePalette.activeJoint : cleanStone ? blendColor(weatheredJoint, '#a88669', .25) : weatheredJoint)
   const lensColor = active ? '#fff0b7' : signalActive ? '#ffe4a7' : cleanStone ? '#ffe0a2' : '#d6a86d'
   const roughCut = blendColor(stonePalette.roughCut, '#63534c', stoneWarmth)
   const roughCutHighlight = blendColor(stonePalette.roughCutHighlight, '#b89b78', stoneWarmth)
@@ -1097,6 +1101,166 @@ const IslandReflection = memo(function IslandReflection({
   )
 })
 
+const smoothstep = (from: number, to: number, value: number) => {
+  const t = Math.min(1, Math.max(0, (value - from) / (to - from)))
+  return t * t * (3 - 2 * t)
+}
+
+function cloudPuff(x: number, y: number, width: number) {
+  const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
+    `M${round1(cx - rx)} ${round1(cy)}a${round1(rx)} ${round1(ry)} 0 1 0 ${round1(rx * 2)} 0a${round1(rx)} ${round1(ry)} 0 1 0 ${round1(-rx * 2)} 0`
+  return ellipse(x, y, width, width * 0.17)
+    + ellipse(x - width * 0.32, y - width * 0.08, width * 0.42, width * 0.19)
+    + ellipse(x + width * 0.22, y - width * 0.12, width * 0.38, width * 0.21)
+}
+
+/**
+ * Clouds pinned to floors 8 to 15 of the tower, so they slide past as the camera climbs.
+ * The front layer is thin and kept to the sides so it never hides the moving stone.
+ */
+const CloudBelt = memo(function CloudBelt({ groundY, layer, reducedMotion }: { groundY: number; layer: 'back' | 'front'; reducedMotion: boolean }) {
+  const floor = (level: number) => groundY - level * BLOCK_HEIGHT
+  if (layer === 'back') {
+    return (
+      <g pointerEvents="none" fill="#efdfe1">
+        <path d={cloudPuff(170, floor(8.2), 150) + cloudPuff(840, floor(9.4), 170)} opacity=".42" />
+        <path d={cloudPuff(560, floor(11), 210) + cloudPuff(130, floor(12.6), 160)} opacity=".36" />
+        <path d={cloudPuff(860, floor(14), 180) + cloudPuff(420, floor(15.2), 150)} opacity=".3" />
+      </g>
+    )
+  }
+  return (
+    <g pointerEvents="none" fill="#f6eaea" className={reducedMotion ? undefined : 'cloud-pass'}>
+      <path d={cloudPuff(60, floor(9.8), 120) + cloudPuff(950, floor(12.2), 130)} opacity=".5" />
+      <path d={cloudPuff(940, floor(7.4), 110) + cloudPuff(70, floor(14.4), 120)} opacity=".38" />
+    </g>
+  )
+})
+
+/** A sea of cloud that rises from below the frame to the horizon between floors 12 and 22. */
+const CloudBank = memo(function CloudBank({ height, horizon, rise, reducedMotion }: { height: number; horizon: number; rise: number; reducedMotion: boolean }) {
+  // Rows of cloud tops grow larger and darker toward the viewer, so the bank reads as depth, not a wall.
+  const rows = useMemo(() => {
+    const random = seededRandom(31)
+    const tones = [['#f3e2df', '#d9c3c9'], ['#e9d3d3', '#c9b0bd'], ['#dcc3c8', '#b49cb0'], ['#cbb0bb', '#9a86a0'], ['#b9a0b1', '#83748f']]
+    let y = 10
+    return tones.map(([lit, shade], row) => {
+      const size = 46 + row * 26
+      let tops = ''
+      let undersides = ''
+      for (let x = -size; x <= WORLD_WIDTH + size; x += size * 0.9) {
+        const lift = (random() - 0.5) * size * 0.3
+        tops += cloudPuff(round1(x + random() * 20), round1(y + lift), size)
+        undersides += cloudPuff(round1(x + 10), round1(y + lift + size * 0.16), size * 0.95)
+      }
+      const band = { lit, shade, tops, undersides, y }
+      y += 16 + row * 22
+      return band
+    })
+  }, [])
+  const top = height + 40 - rise * (height + 40 - (horizon - 12))
+  if (rise === 0) return null
+  const last = rows.at(-1)!
+  return (
+    <motion.g
+      pointerEvents="none"
+      initial={false}
+      animate={{ y: top, opacity: Math.min(1, rise * 2.5) }}
+      transition={reducedMotion ? { duration: 0 } : { duration: 1.6, ease: 'easeOut' }}
+    >
+      <defs>
+        <linearGradient id="cloud-deep" x2="0" y2="1">
+          <stop stopColor={last.shade} />
+          <stop offset="1" stopColor="#4d4866" />
+        </linearGradient>
+      </defs>
+      {rows.map((band) => (
+        <g key={band.y}>
+          <rect y={band.y} width={WORLD_WIDTH} height={height + 160} fill={band.shade} />
+          <path d={band.undersides} fill={band.shade} />
+          <path d={band.tops} fill={band.lit} />
+        </g>
+      ))}
+      <rect y={last.y + 40} width={WORLD_WIDTH} height={height + 120} fill="url(#cloud-deep)" />
+    </motion.g>
+  )
+})
+
+/** Deep sky, extra stars, an aurora and the odd shooting star once the tower reaches floor 26 and beyond. */
+const HighSky = memo(function HighSky({ horizon, presence, reducedMotion }: { horizon: number; presence: number; reducedMotion: boolean }) {
+  const stars = useMemo(() => {
+    const random = seededRandom(23)
+    let path = ''
+    for (let index = 0; index < 90; index += 1) {
+      const x = round1(random() * WORLD_WIDTH)
+      const y = round1(Math.pow(random(), 1.3) * horizon * 0.75)
+      const radius = random() > 0.85 ? 1.5 : 0.9
+      path += `M${x - radius} ${y}a${radius} ${radius} 0 1 0 ${radius * 2} 0a${radius} ${radius} 0 1 0 ${-radius * 2} 0`
+    }
+    return path
+  }, [horizon])
+  if (presence === 0) return null
+  const auroraY = round1(horizon * 0.24)
+  return (
+    <motion.g pointerEvents="none" initial={false} animate={{ opacity: presence }} transition={{ duration: reducedMotion ? 0 : 1.8 }}>
+      <defs>
+        <linearGradient id="high-sky" x2="0" y2="1">
+          <stop stopColor="#050a16" stopOpacity=".9" />
+          <stop offset=".55" stopColor="#0b1428" stopOpacity=".45" />
+          <stop offset="1" stopColor="#0b1428" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="aurora" x2="1">
+          <stop stopColor="#7fe0c2" stopOpacity="0" />
+          <stop offset=".45" stopColor="#9ff0d0" stopOpacity=".45" />
+          <stop offset="1" stopColor="#b9a6f0" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <rect width={WORLD_WIDTH} height={round1(horizon * 0.8)} fill="url(#high-sky)" />
+      <path d={stars} fill="#f8eed9" opacity=".8" />
+      <path
+        className={reducedMotion ? undefined : 'aurora'}
+        d={`M0 ${auroraY + 30}q160-90 330-34 170 56 330-20 180-70 340 10v60q-160-80-340-10-160 76-330 20-170-56-330 34z`}
+        fill="url(#aurora)"
+      />
+      {!reducedMotion && (
+        <path className="shooting-star" d={`M760 ${round1(horizon * 0.12)}l-120 40`} stroke="#fff6e0" strokeWidth="2" strokeLinecap="round" />
+      )}
+    </motion.g>
+  )
+})
+
+/** Faint streaks that blow past when the wind is strong. */
+const WindStreaks = memo(function WindStreaks({ height, direction, reducedMotion }: { height: number; direction: number; reducedMotion: boolean }) {
+  const lines = [0.22, 0.34, 0.47, 0.6].map((row, index) => {
+    const y = round1(height * row)
+    const x = 120 + index * 210
+    return `M${x} ${y}h${110 + index * 20}`
+  }).join('')
+  return (
+    <path
+      className={reducedMotion ? undefined : 'wind-streak'}
+      style={{ '--wind-sign': direction } as CSSProperties}
+      d={lines}
+      stroke="#f1e6dc"
+      strokeOpacity=".22"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      pointerEvents="none"
+    />
+  )
+})
+
+/** A small pennant on every tenth stone, so the tower records its own height. */
+function Pennant({ block, y, floor }: { block: Block; y: number; floor: number }) {
+  const x = block.x + block.width - 16
+  return (
+    <g pointerEvents="none" aria-label={`Floor ${floor}`}>
+      <path d={`M${x} ${y + 2}V${y - 30}`} stroke="#2a3b4a" strokeWidth="2.4" strokeLinecap="round" />
+      <path className="pennant" d={`M${x + 1} ${y - 30}l22 6-22 7z`} fill="#f2c58f" />
+    </g>
+  )
+}
+
 function GameScene({
   game,
   height,
@@ -1138,6 +1302,9 @@ function GameScene({
   const sceneryIntensity = compact ? 0.7 : 1
   const blockSway = Math.min(2.3, windStrength * 0.28)
   const blockSwayDuration = Math.max(1.65, 3.2 - windStrength * 0.12)
+  const towerHeight = heightOf(game)
+  const cloudRise = smoothstep(12, 22, towerHeight)
+  const highSky = smoothstep(26, 36, towerHeight)
   const baseBlocks = game.stack.slice(0, 3).map((block) => `${block.x},${block.width}`).join('|')
 
   return (
@@ -1155,7 +1322,7 @@ function GameScene({
       </defs>
 
       <SeaBackdrop edition={edition} height={height} horizon={horizon} dawnProgress={dawnProgress} reducedMotion={reducedMotion} />
-      <BirdFlock active={worldMilestone >= 5} reducedMotion={reducedMotion} />
+      <HighSky horizon={horizon} presence={highSky} reducedMotion={reducedMotion} />
       <SideIslets
         edition={edition}
         height={height}
@@ -1167,6 +1334,9 @@ function GameScene({
         compact={compact}
         climb={climbProgress * sceneryIntensity}
       />
+      <CloudBank height={height} horizon={horizon} rise={cloudRise} reducedMotion={reducedMotion} />
+      <BirdFlock active={towerHeight >= 8} reducedMotion={reducedMotion} />
+      {windStrength >= 6 && <WindStreaks height={height} direction={windDirection} reducedMotion={reducedMotion} />}
 
       {/* The beacon island and tower follow the camera as the stack climbs. */}
       <motion.g
@@ -1217,6 +1387,7 @@ function GameScene({
           />
         )}
 
+        <CloudBelt groundY={groundY} layer="back" reducedMotion={reducedMotion} />
         {game.stack.map((block, index) => {
           const support = game.stack[index - 1]
           const historicalPerfect = support
@@ -1228,8 +1399,8 @@ function GameScene({
             : 0
 
           return (
+            <Fragment key={index}>
             <BlockShape
-              key={index}
               block={block}
               y={groundY - (index + 1) * BLOCK_HEIGHT}
               landed={index === game.stack.length - 1 && game.stack.length > 1}
@@ -1240,8 +1411,13 @@ function GameScene({
               trimmedLeft={trimmedLeft}
               trimmedRight={trimmedRight}
               stoneWarmth={Math.min(1, index / 32 + dawnProgress * 0.18)}
+              haze={Math.min(0.45, Math.max(0, (game.stack.length - 1 - index - 10) / 24))}
               stonePalette={edition.stone}
             />
+            {index > 0 && index % 10 === 0 && (
+              <Pennant block={block} y={groundY - (index + 1) * BLOCK_HEIGHT} floor={index} />
+            )}
+            </Fragment>
           )
         })}
         <BeaconSignal
@@ -1312,10 +1488,11 @@ function GameScene({
             )}
           </g>
         )}
+        <CloudBelt groundY={groundY} layer="front" reducedMotion={reducedMotion} />
       </motion.g>
       </motion.g>
 
-      <HarborBuoy active waterY={waterY} reducedMotion={reducedMotion} />
+      <HarborBuoy active={cloudRise < 0.5} waterY={waterY} reducedMotion={reducedMotion} />
       {game.fallingPieces.map((piece) => (
         <WaterImpact
           key={`water-impact-${piece.id}-${piece.x}`}
