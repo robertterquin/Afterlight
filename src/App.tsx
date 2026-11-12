@@ -39,6 +39,34 @@ function readSoundPreference() {
   }
 }
 
+function useScenePreferences() {
+  const [preferences, setPreferences] = useState(() => ({
+    compact: window.matchMedia('(max-width: 700px)').matches,
+    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  }))
+
+  useEffect(() => {
+    const compactQuery = window.matchMedia('(max-width: 700px)')
+    const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const updatePreferences = () => {
+      setPreferences({
+        compact: compactQuery.matches,
+        reducedMotion: reducedMotionQuery.matches,
+      })
+    }
+
+    compactQuery.addEventListener('change', updatePreferences)
+    reducedMotionQuery.addEventListener('change', updatePreferences)
+
+    return () => {
+      compactQuery.removeEventListener('change', updatePreferences)
+      reducedMotionQuery.removeEventListener('change', updatePreferences)
+    }
+  }, [])
+
+  return preferences
+}
+
 function BlockShape({
   block,
   y,
@@ -188,9 +216,10 @@ function WaterImpact({
 
 function GameScene({ game, height }: { game: GameState; height: number }) {
   const [beaconCelebration, setBeaconCelebration] = useState(0)
+  const { compact, reducedMotion } = useScenePreferences()
   const groundY = height - 105
   const activeY = groundY - (game.stack.length + 1) * BLOCK_HEIGHT
-  const targetY = height * 0.43
+  const targetY = height * (compact ? 0.47 : 0.43)
   const cameraShift = targetY - activeY
   const climbProgress = game.stack.length * BLOCK_HEIGHT
   const horizon = height * 0.59
@@ -199,8 +228,9 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
   const dawnProgress = dawnStage * dawnStage * (3 - 2 * dawnStage)
   const windStrength = Math.abs(game.windPercent)
   const windDirection = game.windPercent < 0 ? -1 : 1
-  const cloudDrift = 12 + windStrength * 1.5
-  const cloudDuration = 42 - windStrength * 1.1
+  const sceneryIntensity = compact ? 0.7 : 1
+  const cloudDrift = (12 + windStrength * 1.5) * sceneryIntensity
+  const cloudDuration = (42 - windStrength * 1.1) * (compact ? 1.28 : 1)
   const nearCloudStyle = {
     '--wind-drift': `${windDirection * cloudDrift}px`,
     '--wind-duration': `${cloudDuration}s`,
@@ -268,8 +298,12 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
       <g transform={`translate(0 ${height * 0.16})`}>
         <motion.g
           initial={false}
-          animate={{ y: climbProgress * 0.012 }}
-          transition={{ type: 'spring', stiffness: 24, damping: 18 }}
+          animate={{ y: reducedMotion ? 0 : climbProgress * 0.012 * sceneryIntensity }}
+          transition={reducedMotion
+            ? { duration: 0 }
+            : compact
+              ? { duration: 0.52, ease: 'easeOut' }
+              : { type: 'spring', stiffness: 24, damping: 18 }}
         >
           <g className="cloud-drift" style={nearCloudStyle} fill="none" stroke="#e8ded0" strokeLinecap="round">
             <path d="M-100 0c86-25 142-25 224-2s136 20 211-5 140-20 222 5" strokeWidth="22" opacity=".07" />
@@ -280,8 +314,12 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
       <g transform={`translate(0 ${height * 0.32})`}>
         <motion.g
           initial={false}
-          animate={{ y: climbProgress * 0.018 }}
-          transition={{ type: 'spring', stiffness: 20, damping: 17 }}
+          animate={{ y: reducedMotion ? 0 : climbProgress * 0.018 * sceneryIntensity }}
+          transition={reducedMotion
+            ? { duration: 0 }
+            : compact
+              ? { duration: 0.62, ease: 'easeOut' }
+              : { type: 'spring', stiffness: 20, damping: 17 }}
         >
           <g className="cloud-drift cloud-drift--far" style={farCloudStyle} fill="none" stroke="#c7c7ce" strokeLinecap="round">
             <path d="M550 0c68-19 112-17 177 0s113 17 176-2 117-14 175 4" strokeWidth="25" opacity=".055" />
@@ -316,12 +354,18 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
       <g transform={`translate(0 ${height * 0.45})`}>
         <motion.g
           initial={false}
-          animate={{ y: climbProgress * 0.035 }}
-          transition={{ type: 'spring', stiffness: 24, damping: 18 }}
+          animate={{ y: reducedMotion ? 0 : climbProgress * 0.035 * sceneryIntensity }}
+          transition={reducedMotion
+            ? { duration: 0 }
+            : compact
+              ? { duration: 0.56, ease: 'easeOut' }
+              : { type: 'spring', stiffness: 24, damping: 18 }}
         >
         <motion.g
-          animate={{ y: [0, -2.5, 0] }}
-          transition={{ duration: 7.5, repeat: Infinity, ease: 'easeInOut' }}
+          animate={{ y: reducedMotion ? 0 : [0, compact ? -1.25 : -2.5, 0] }}
+          transition={reducedMotion
+            ? { duration: 0 }
+            : { duration: compact ? 10 : 7.5, repeat: Infinity, ease: 'easeInOut' }}
         >
         <path d="M58 70q20-40 65-31 38-34 78 0 47-8 68 32l-18 18q-42 4-63 27l-31-4-34 24-23-15-36 5-13-25-26-7z" fill="#294354" />
         <path d="M72 67q24-28 62-22 40-33 74 0 41-7 59 26-29 12-61 6-39 14-72 0-33 10-62-10z" fill="#91a89b" />
@@ -336,12 +380,18 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
       <g transform={`translate(0 ${height * 0.41})`}>
         <motion.g
           initial={false}
-          animate={{ y: climbProgress * 0.065 }}
-          transition={{ type: 'spring', stiffness: 20, damping: 17 }}
+          animate={{ y: reducedMotion ? 0 : climbProgress * 0.065 * sceneryIntensity }}
+          transition={reducedMotion
+            ? { duration: 0 }
+            : compact
+              ? { duration: 0.66, ease: 'easeOut' }
+              : { type: 'spring', stiffness: 20, damping: 17 }}
         >
         <motion.g
-          animate={{ y: [0, 2, 0] }}
-          transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
+          animate={{ y: reducedMotion ? 0 : [0, compact ? 1 : 2, 0] }}
+          transition={reducedMotion
+            ? { duration: 0 }
+            : { duration: compact ? 12 : 9, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
         >
         <path d="M760 82q24-42 67-34 42-36 82-1 44-8 71 33l-18 20q-43 7-64 26l-33-6-35 25-23-14-36 4-13-24-27-7z" fill="#294354" />
         <path d="M774 78q24-30 62-25 42-34 78 0 41-6 58 28-28 11-60 4-39 15-72 1-34 9-66-8z" fill="#9db19f" />
@@ -358,7 +408,11 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
       <motion.g
         initial={false}
         animate={{ y: cameraShift }}
-        transition={{ type: 'spring', stiffness: 78, damping: 27, mass: 0.85 }}
+        transition={reducedMotion
+          ? { duration: 0 }
+          : compact
+            ? { duration: 0.42, ease: 'easeOut' }
+            : { type: 'spring', stiffness: 78, damping: 27, mass: 0.85 }}
       >
         <ellipse cx="500" cy={groundY + 12} rx="276" ry="36" fill="#132a3e" opacity=".38" />
         <path d={`M224 ${groundY - 8}q38-58 116-48 50-49 117-28 60-47 125-12 77-32 134 20 73 2 103 56l-34 30q-57-4-92 26l-57-13-66 42-53-20-70 34-44-25-75 17-32-31-64-11z`} fill="#294354" />
@@ -419,7 +473,7 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
           </motion.g>
         ))}
         {game.moving && (
-          <>
+          <g className="active-block-layer">
             {game.lastDropWasPerfect && (
               <path
                 key={game.stack.length}
@@ -433,7 +487,7 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
               y={groundY - (game.stack.length + 1) * BLOCK_HEIGHT}
               active
             />
-          </>
+          </g>
         )}
         {game.lastDropWasPerfect && game.stack.length > 1 && (
           <circle

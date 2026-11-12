@@ -22,7 +22,7 @@ The prototype includes block overlap, perfect placements, height scoring, a spee
 
 ## Animation
 
-Motion for React powers the camera easing, block landings, falling overhangs, water impacts, and state-panel transitions. Trimmed stone pieces now fall into the ocean with a small ripple; a final miss makes a stronger splash. Every fifth consecutive perfect landing sends a beacon flare across the tower, lights island windows in sequence, and sends a wave across the sea without changing scoring. The daily wind steers slow cloud ribbons while distant beacon islands drift at different rates as the tower climbs. Over the first 36 floors, the sky warms toward dawn as the stars and moonlight fade. CSS also adds subtle star and water movement. Animations respect the device's reduced-motion setting.
+Motion for React powers the camera easing, block landings, falling overhangs, water impacts, and state-panel transitions. Trimmed stone pieces now fall into the ocean with a small ripple; a final miss makes a stronger splash. Every fifth consecutive perfect landing sends a beacon flare across the tower, lights island windows in sequence, and sends a wave across the sea without changing scoring. The daily wind steers slow cloud ribbons while distant beacon islands drift at different rates as the tower climbs. Over the first 36 floors, the sky warms toward dawn as the stars and moonlight fade. Small screens use a calmer parallax pace and a lower camera target so the active stone remains clear of the HUD; the active stone is also rendered in its own foreground layer. CSS adds subtle star and water movement. Animations respect the device's reduced-motion setting, which removes scenic travel and looping island motion.
 
 ## Daily challenge
 
