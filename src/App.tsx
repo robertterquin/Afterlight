@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import './App.css'
 import {
@@ -114,7 +114,21 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
   const activeY = groundY - (game.stack.length + 1) * BLOCK_HEIGHT
   const targetY = height * 0.43
   const cameraShift = targetY - activeY
+  const climbProgress = game.stack.length * BLOCK_HEIGHT
   const horizon = height * 0.59
+  const windStrength = Math.abs(game.windPercent)
+  const windDirection = game.windPercent < 0 ? -1 : 1
+  const cloudDrift = 12 + windStrength * 1.5
+  const cloudDuration = 42 - windStrength * 1.1
+  const nearCloudStyle = {
+    '--wind-drift': `${windDirection * cloudDrift}px`,
+    '--wind-duration': `${cloudDuration}s`,
+  } as CSSProperties
+  const farCloudStyle = {
+    '--wind-drift': `${windDirection * cloudDrift * 0.68}px`,
+    '--wind-duration': `${cloudDuration * 1.18}s`,
+    '--wind-delay': `${-cloudDuration * 1.18 * 0.37}s`,
+  } as CSSProperties
 
   return (
     <svg
@@ -149,6 +163,30 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
       </defs>
 
       <rect width={WORLD_WIDTH} height={height} fill="url(#sky)" />
+      <g transform={`translate(0 ${height * 0.16})`}>
+        <motion.g
+          initial={false}
+          animate={{ y: climbProgress * 0.012 }}
+          transition={{ type: 'spring', stiffness: 24, damping: 18 }}
+        >
+          <g className="cloud-drift" style={nearCloudStyle} fill="none" stroke="#e8ded0" strokeLinecap="round">
+            <path d="M-100 0c86-25 142-25 224-2s136 20 211-5 140-20 222 5" strokeWidth="22" opacity=".07" />
+            <path d="M-60 10c72-14 124-13 190 1s121 13 186-3 132-13 196 4" strokeWidth="3" opacity=".18" />
+          </g>
+        </motion.g>
+      </g>
+      <g transform={`translate(0 ${height * 0.32})`}>
+        <motion.g
+          initial={false}
+          animate={{ y: climbProgress * 0.018 }}
+          transition={{ type: 'spring', stiffness: 20, damping: 17 }}
+        >
+          <g className="cloud-drift cloud-drift--far" style={farCloudStyle} fill="none" stroke="#c7c7ce" strokeLinecap="round">
+            <path d="M550 0c68-19 112-17 177 0s113 17 176-2 117-14 175 4" strokeWidth="25" opacity=".055" />
+            <path d="M603 10c61-11 103-10 160 1s101 10 153-2 100-11 153 1" strokeWidth="3" opacity=".14" />
+          </g>
+        </motion.g>
+      </g>
       <circle cx="820" cy={height * 0.27} r="150" fill="url(#moonlight)" />
       <circle cx="820" cy={height * 0.27} r="42" fill="#f1d9ba" opacity=".92" />
       <path d={`M830 ${height * 0.27 - 39}a42 42 0 1 0 28 68 38 38 0 0 1-28-68z`} fill="#d1aa99" opacity=".25" />
@@ -164,6 +202,11 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
       {/* Far islands */}
       <g transform={`translate(0 ${height * 0.45})`}>
         <motion.g
+          initial={false}
+          animate={{ y: climbProgress * 0.035 }}
+          transition={{ type: 'spring', stiffness: 24, damping: 18 }}
+        >
+        <motion.g
           animate={{ y: [0, -2.5, 0] }}
           transition={{ duration: 7.5, repeat: Infinity, ease: 'easeInOut' }}
         >
@@ -175,8 +218,14 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
         <Lantern x={142} y={66} lit={Math.floor(game.perfects / 5) >= 2} />
         <Lantern x={215} y={47} lit={Math.floor(game.perfects / 5) >= 3} />
         </motion.g>
+        </motion.g>
       </g>
       <g transform={`translate(0 ${height * 0.41})`}>
+        <motion.g
+          initial={false}
+          animate={{ y: climbProgress * 0.065 }}
+          transition={{ type: 'spring', stiffness: 20, damping: 17 }}
+        >
         <motion.g
           animate={{ y: [0, 2, 0] }}
           transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
@@ -188,6 +237,7 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
         <Lantern x={848} y={80} lit={Math.floor(game.perfects / 5) >= 4} />
         <Lantern x={887} y={57} lit={Math.floor(game.perfects / 5) >= 5} />
         <Lantern x={923} y={60} lit={Math.floor(game.perfects / 5) >= 6} />
+        </motion.g>
         </motion.g>
       </g>
 

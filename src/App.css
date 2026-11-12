@@ -78,6 +78,14 @@
   animation: star-shimmer 7.5s 1.8s ease-in-out infinite;
 }
 
+.cloud-drift {
+  animation: cloud-drift var(--wind-duration) ease-in-out infinite;
+}
+
+.cloud-drift--far {
+  animation-delay: var(--wind-delay);
+}
+
 .water-glint {
   animation: water-glint 5.5s ease-in-out infinite;
 }
@@ -110,6 +118,11 @@
 @keyframes star-shimmer {
   0%, 100% { opacity: .48; }
   50% { opacity: .9; }
+}
+
+@keyframes cloud-drift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(var(--wind-drift)); }
 }
 
 @keyframes water-glint {
