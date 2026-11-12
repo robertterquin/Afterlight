@@ -166,7 +166,7 @@ function BlockShape({
   const roughBottom = y + BLOCK_HEIGHT - 5
   const leftRoughWidth = Math.min(11, Math.max(4, trimmedLeft * 0.35))
   const rightRoughWidth = Math.min(11, Math.max(4, trimmedRight * 0.35))
-  const classes = [active && 'moving-block', perfect && 'perfect-stone', signalActive && 'signal-stone']
+  const classes = [active && 'moving-block', signalActive && 'signal-stone']
     .filter(Boolean)
     .join(' ')
 
@@ -440,35 +440,23 @@ function LandingFeedback({
           <motion.path
             d={`M${contactLeft} ${seamY}H${contactRight}`}
             fill="none"
-            stroke="#f6ca83"
-            strokeWidth="7"
-            strokeLinecap="round"
-            filter="url(#soft-bloom)"
-            initial={{ opacity: 0, pathLength: 0 }}
-            animate={{ opacity: [0, 0.72, 0], pathLength: [0, 1, 1] }}
-            transition={{ duration: 0.56, ease: 'easeOut' }}
-          />
-          <motion.path
-            d={`M${contactLeft} ${seamY}H${contactRight}`}
-            fill="none"
-            stroke="#fff1ca"
-            strokeWidth="2.3"
+            stroke="#ffe0a2"
+            strokeWidth="2.4"
             strokeLinecap="round"
             initial={{ opacity: 0, pathLength: 0 }}
-            animate={{ opacity: [0, 1, 0], pathLength: [0, 1, 1] }}
-            transition={{ duration: 0.46, ease: 'easeOut' }}
+            animate={{ opacity: [0, .9, 0], pathLength: [0, 1, 1] }}
+            transition={{ duration: 0.34, ease: 'easeOut' }}
           />
           <motion.rect
-            x={lens.x - 6}
-            y={lens.y - 6}
-            width={lens.width + 12}
-            height={lens.height + 12}
-            rx={(lens.width + 12) / 2}
+            x={lens.x - 2}
+            y={lens.y - 2}
+            width={lens.width + 4}
+            height={lens.height + 4}
+            rx={(lens.width + 4) / 2}
             fill="#fff0c5"
-            filter="url(#soft-bloom)"
-            initial={{ opacity: 0, scale: 0.38 }}
-            animate={{ opacity: [0, 0.86, 0], scale: [0.38, 1.22, 1.7] }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
+            initial={{ opacity: 0, scale: .88 }}
+            animate={{ opacity: [0, .72, 0], scale: [.88, 1.06, 1.12] }}
+            transition={{ duration: .34, ease: 'easeOut' }}
             style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
           />
         </>
@@ -819,10 +807,6 @@ function GameScene({
           <stop stopColor="#f6d9b6" stopOpacity=".48" />
           <stop offset="1" stopColor="#f6d9b6" stopOpacity="0" />
         </radialGradient>
-        <linearGradient id="ray" x2="0" y2="1">
-          <stop stopColor="#ffe5b5" stopOpacity="0" />
-          <stop offset="1" stopColor="#ffe5b5" stopOpacity=".22" />
-        </linearGradient>
         <filter id="soft-bloom" x="-100%" y="-100%" width="300%" height="300%">
           <feGaussianBlur stdDeviation="5" />
         </filter>
@@ -962,7 +946,7 @@ function GameScene({
       >
       <motion.g
         key={`tower-settle-${game.placementTicks.length}`}
-        initial={perfectCameraSettle ? { y: -8 } : false}
+        initial={perfectCameraSettle ? { y: -4 } : false}
         animate={{ y: 0 }}
         transition={{ type: 'spring', stiffness: 390, damping: 24, mass: 0.48 }}
       >
@@ -1063,14 +1047,6 @@ function GameScene({
         ))}
         {game.moving && (
           <g className="active-block-layer">
-            {game.lastDropWasPerfect && (
-              <path
-                key={game.stack.length}
-                className="perfect-ray"
-                d={`M500 ${groundY - (game.stack.length + 1) * BLOCK_HEIGHT}L455 ${groundY - (game.stack.length + 1) * BLOCK_HEIGHT - 130}Q500 ${groundY - (game.stack.length + 1) * BLOCK_HEIGHT - 100} 545 ${groundY - (game.stack.length + 1) * BLOCK_HEIGHT - 130}Z`}
-                fill="url(#ray)"
-              />
-            )}
             <motion.g
               initial={false}
               animate={reducedMotion || windStrength === 0 || isWaking
@@ -1098,15 +1074,6 @@ function GameScene({
               />
             )}
           </g>
-        )}
-        {game.lastDropWasPerfect && game.stack.length > 1 && (
-          <circle
-            key={game.stack.length}
-            className="perfect-pulse"
-            cx={game.stack.at(-1)!.x + game.stack.at(-1)!.width / 2}
-            cy={groundY - game.stack.length * BLOCK_HEIGHT + BLOCK_HEIGHT / 2}
-            r="18"
-          />
         )}
       </motion.g>
       </motion.g>
@@ -1160,7 +1127,6 @@ function GameScene({
 function App() {
   const [game, setGame] = useState(createGame)
   const [sceneHeight, setSceneHeight] = useState(760)
-  const [perfectToast, setPerfectToast] = useState(false)
   const [isWaking, setIsWaking] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(readSoundPreference)
   const [playerId, setPlayerId] = useState<string | null>(null)
@@ -1441,13 +1407,6 @@ function App() {
     return () => cancelAnimationFrame(animationFrame)
   }, [game.phase, isWaking])
 
-  useEffect(() => {
-    if (!game.lastDropWasPerfect) return
-    setPerfectToast(true)
-    const timer = window.setTimeout(() => setPerfectToast(false), 700)
-    return () => window.clearTimeout(timer)
-  }, [game.lastDropWasPerfect, game.stack.length])
-
   const handlePlace = useCallback(() => {
     if (isWaking) return
     const current = gameRef.current
@@ -1570,10 +1529,6 @@ function App() {
               <span>Tap to place</span>
               <kbd>SPACE</kbd>
             </div>
-          )}
-
-          {perfectToast && game.phase === 'playing' && (
-            <div className="perfect-toast" role="status">Perfect</div>
           )}
 
           <AnimatePresence mode="wait">
