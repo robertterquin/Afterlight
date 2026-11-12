@@ -905,7 +905,8 @@ const SeaBackdrop = memo(function SeaBackdrop({
         ))}
       </motion.g>
 
-      <ellipse cx={dawnProgress > 0.5 ? sunX : moonX} cy={horizon} rx="640" ry={round1(Math.max(110, (height - horizon) * 0.3))} fill="url(#sea-horizon-glow)" />
+      <motion.ellipse cx={moonX} cy={horizon} rx="640" ry={round1(Math.max(110, (height - horizon) * 0.3))} fill="url(#sea-horizon-glow)" initial={false} animate={{ opacity: 1 - dawnProgress }} transition={dawnTransition} />
+      <motion.ellipse cx={sunX} cy={horizon} rx="640" ry={round1(Math.max(110, (height - horizon) * 0.3))} fill="url(#sea-horizon-glow)" initial={false} animate={{ opacity: dawnProgress }} transition={dawnTransition} />
 
       <motion.g initial={false} animate={{ opacity: 1 - dawnProgress }} transition={dawnTransition}>
         <circle cx={moonX} cy={moonY} r={edition.moon.radius * 5} fill="url(#moonlight)" />
@@ -1035,15 +1036,16 @@ const SideIslets = memo(function SideIslets({
         <rect x={lx - 9} y={ly - 110} width="18" height="13" rx="2" fill="#ffe7b0" />
         <path d={`M${lx - 11} ${ly - 110}l11-10 11 10z`} fill="#33445a" />
         <circle cx={lx} cy={ly - 103} r="22" fill="#ffe4a8" opacity=".7" filter="url(#soft-bloom)" />
-        <motion.path
-          d={`M${lx - 6} ${ly - 104}L${lx - 420} ${ly - 150}L${lx - 420} ${ly - 70}Z`}
-          fill="url(#lighthouse-beam)"
-          initial={false}
-          animate={reducedMotion
-            ? { opacity: 0.8 - dawnProgress * 0.45 }
-            : { opacity: [0.55 - dawnProgress * 0.3, 0.85 - dawnProgress * 0.45, 0.55 - dawnProgress * 0.3] }}
-          transition={reducedMotion ? { duration: 0 } : { duration: 6.4, repeat: Infinity, ease: 'easeInOut' }}
-        />
+        {/* Dawn dims the beam on the wrapper, so the pulse inside never restarts. */}
+        <motion.g initial={false} animate={{ opacity: 1 - dawnProgress * 0.55 }} transition={reducedMotion ? { duration: 0 } : { duration: 1.6, ease: 'easeInOut' as const }}>
+          <motion.path
+            d={`M${lx - 6} ${ly - 104}L${lx - 420} ${ly - 150}L${lx - 420} ${ly - 70}Z`}
+            fill="url(#lighthouse-beam)"
+            initial={false}
+            animate={reducedMotion ? { opacity: 0.8 } : { opacity: [0.6, 0.9, 0.6] }}
+            transition={reducedMotion ? { duration: 0 } : { duration: 6.4, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </motion.g>
         <Lantern x={lx - 48} y={ly - 6} lit={lit >= 4} celebration={celebration} sequence={3} />
         <Lantern x={lx + 32} y={ly - 10} lit={lit >= 5} celebration={celebration} sequence={5} />
         <Lantern x={lx + 70} y={ly - 4} lit={lit >= 6} celebration={celebration} sequence={7} />
@@ -1053,9 +1055,11 @@ const SideIslets = memo(function SideIslets({
         <motion.g {...drift(0.07)}>
           <g transform="translate(0 60) scale(1 -1)" opacity=".22">{cottage}</g>
           {cottage}
-          <rect x="124" y="14" width="7" height="8" rx="1" fill="#ffd98f" opacity={windows} />
-          <rect x="135" y="14" width="7" height="8" rx="1" fill="#ffd98f" opacity={windows} />
-          <circle cx="133" cy="18" r="16" fill="#ffd27f" opacity={0.55 * windows} filter="url(#soft-bloom)" />
+          <motion.g initial={false} animate={{ opacity: windows }} transition={reducedMotion ? { duration: 0 } : { duration: 1.6, ease: 'easeInOut' as const }}>
+            <rect x="124" y="14" width="7" height="8" rx="1" fill="#ffd98f" />
+            <rect x="135" y="14" width="7" height="8" rx="1" fill="#ffd98f" />
+            <circle cx="133" cy="18" r="16" fill="#ffd27f" opacity=".55" filter="url(#soft-bloom)" />
+          </motion.g>
           <path d="M52 31q100 8 196 0" stroke="#eef4ee" strokeOpacity=".35" strokeWidth="1.5" fill="none" />
           <Lantern x={92} y={16} lit={lit >= 1} celebration={celebration} sequence={8} />
           <Lantern x={168} y={10} lit={lit >= 2} celebration={celebration} sequence={6} />
@@ -1159,14 +1163,13 @@ const CloudBank = memo(function CloudBank({ height, horizon, rise, reducedMotion
     })
   }, [])
   const top = height + 40 - rise * (height + 40 - (horizon - 12))
-  if (rise === 0) return null
   const last = rows.at(-1)!
   return (
     <motion.g
       pointerEvents="none"
       initial={false}
       animate={{ y: top, opacity: Math.min(1, rise * 2.5) }}
-      transition={reducedMotion ? { duration: 0 } : { duration: 1.6, ease: 'easeOut' }}
+      transition={reducedMotion ? { duration: 0 } : { duration: 1.6, ease: 'easeInOut' as const }}
     >
       <defs>
         <linearGradient id="cloud-deep" x2="0" y2="1">
@@ -1199,10 +1202,9 @@ const HighSky = memo(function HighSky({ horizon, presence, reducedMotion }: { ho
     }
     return path
   }, [horizon])
-  if (presence === 0) return null
   const auroraY = round1(horizon * 0.24)
   return (
-    <motion.g pointerEvents="none" initial={false} animate={{ opacity: presence }} transition={{ duration: reducedMotion ? 0 : 1.8 }}>
+    <motion.g pointerEvents="none" initial={false} animate={{ opacity: presence }} transition={reducedMotion ? { duration: 0 } : { duration: 1.6, ease: 'easeInOut' as const }}>
       <defs>
         <linearGradient id="high-sky" x2="0" y2="1">
           <stop stopColor="#050a16" stopOpacity=".9" />
@@ -1230,23 +1232,24 @@ const HighSky = memo(function HighSky({ horizon, presence, reducedMotion }: { ho
 })
 
 /** Faint streaks that blow past when the wind is strong. */
-const WindStreaks = memo(function WindStreaks({ height, direction, reducedMotion }: { height: number; direction: number; reducedMotion: boolean }) {
+const WindStreaks = memo(function WindStreaks({ height, direction, visible, reducedMotion }: { height: number; direction: number; visible: boolean; reducedMotion: boolean }) {
   const lines = [0.22, 0.34, 0.47, 0.6].map((row, index) => {
     const y = round1(height * row)
     const x = 120 + index * 210
     return `M${x} ${y}h${110 + index * 20}`
   }).join('')
   return (
-    <path
-      className={reducedMotion ? undefined : 'wind-streak'}
-      style={{ '--wind-sign': direction } as CSSProperties}
-      d={lines}
-      stroke="#f1e6dc"
-      strokeOpacity=".22"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      pointerEvents="none"
-    />
+    <motion.g initial={false} animate={{ opacity: visible ? 1 : 0 }} transition={reducedMotion ? { duration: 0 } : { duration: 0.9 }} pointerEvents="none">
+      <path
+        className={reducedMotion ? undefined : 'wind-streak'}
+        style={{ '--wind-sign': direction } as CSSProperties}
+        d={lines}
+        stroke="#f1e6dc"
+        strokeOpacity=".22"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </motion.g>
   )
 })
 
@@ -1254,10 +1257,16 @@ const WindStreaks = memo(function WindStreaks({ height, direction, reducedMotion
 function Pennant({ block, y, floor }: { block: Block; y: number; floor: number }) {
   const x = block.x + block.width - 16
   return (
-    <g pointerEvents="none" aria-label={`Floor ${floor}`}>
+    <motion.g
+      pointerEvents="none"
+      aria-label={`Floor ${floor}`}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay: 0.25, ease: 'easeOut' }}
+    >
       <path d={`M${x} ${y + 2}V${y - 30}`} stroke="#2a3b4a" strokeWidth="2.4" strokeLinecap="round" />
       <path className="pennant" d={`M${x + 1} ${y - 30}l22 6-22 7z`} fill="#f2c58f" />
-    </g>
+    </motion.g>
   )
 }
 
@@ -1336,7 +1345,7 @@ function GameScene({
       />
       <CloudBank height={height} horizon={horizon} rise={cloudRise} reducedMotion={reducedMotion} />
       <BirdFlock active={towerHeight >= 8} reducedMotion={reducedMotion} />
-      {windStrength >= 6 && <WindStreaks height={height} direction={windDirection} reducedMotion={reducedMotion} />}
+      <WindStreaks height={height} direction={windDirection} visible={windStrength >= 6} reducedMotion={reducedMotion} />
 
       {/* The beacon island and tower follow the camera as the stack climbs. */}
       <motion.g
