@@ -1231,14 +1231,20 @@ const CloudBelt = memo(function CloudBelt({ groundY, layer, reducedMotion }: { g
   )
 })
 
-/** A sea of cloud that rises from below the frame to the horizon between floors 12 and 22. */
-const CloudBank = memo(function CloudBank({ height, top, rise, reducedMotion }: { height: number; top: number; rise: number; reducedMotion: boolean }) {
-  // Rows of cloud tops grow larger and darker toward the viewer, so the bank reads as depth, not a wall.
+/**
+ * Once the climber leaves the passing clouds, a sea of cloud forms below them. Like any layer seen
+ * from above, it appears at the horizon first and spreads toward the viewer, row by row, so it moves
+ * the same way as the rest of the world instead of rising against it.
+ */
+const CloudBank = memo(function CloudBank({ height, horizon, rise, reducedMotion }: { height: number; horizon: number; rise: number; reducedMotion: boolean }) {
   const rows = useMemo(() => {
     const random = seededRandom(31)
     const tones = [['#f3e2df', '#d9c3c9'], ['#e9d3d3', '#c9b0bd'], ['#dcc3c8', '#b49cb0'], ['#cbb0bb', '#9a86a0'], ['#b9a0b1', '#83748f']]
-    let y = 10
+    const depth = height - horizon + 40
     return tones.map(([lit, shade], row) => {
+      // Rows bunch up near the horizon and spread out toward the viewer.
+      const y = round1(horizon - 12 + Math.pow(row / tones.length, 1.5) * depth)
+      const nextY = row === tones.length - 1 ? height + 40 : round1(horizon - 12 + Math.pow((row + 1) / tones.length, 1.5) * depth)
       const size = 46 + row * 26
       let tops = ''
       let undersides = ''
@@ -1247,34 +1253,25 @@ const CloudBank = memo(function CloudBank({ height, top, rise, reducedMotion }: 
         tops += cloudPuff(round1(x + random() * 20), round1(y + lift), size)
         undersides += cloudPuff(round1(x + 10), round1(y + lift + size * 0.16), size * 0.95)
       }
-      const band = { lit, shade, tops, undersides, y }
-      y += 16 + row * 22
-      return band
+      return { lit, shade, tops, undersides, y, bandHeight: round1(nextY - y + size * 0.3) }
     })
-  }, [])
-  const last = rows.at(-1)!
+  }, [height, horizon])
+
   return (
-    <motion.g
-      pointerEvents="none"
-      initial={false}
-      animate={{ y: top, opacity: Math.min(1, rise * 2.5) }}
-      transition={reducedMotion ? { duration: 0 } : { duration: 1.6, ease: 'easeInOut' as const }}
-    >
-      <defs>
-        <linearGradient id="cloud-deep" x2="0" y2="1">
-          <stop stopColor={last.shade} />
-          <stop offset="1" stopColor="#4d4866" />
-        </linearGradient>
-      </defs>
-      {rows.map((band) => (
-        <g key={band.y}>
-          <rect y={band.y} width={WORLD_WIDTH} height={height + 160} fill={band.shade} />
+    <g pointerEvents="none">
+      {rows.map((band, index) => (
+        <motion.g
+          key={index}
+          initial={false}
+          animate={{ opacity: smoothstep(index / rows.length, (index + 1.4) / rows.length, rise) }}
+          transition={reducedMotion ? { duration: 0 } : { duration: 1.2, ease: 'easeInOut' }}
+        >
+          <rect y={band.y} width={WORLD_WIDTH} height={band.bandHeight} fill={band.shade} />
           <path d={band.undersides} fill={band.shade} />
           <path d={band.tops} fill={band.lit} />
-        </g>
+        </motion.g>
       ))}
-      <rect y={last.y + 40} width={WORLD_WIDTH} height={height + 120} fill="url(#cloud-deep)" />
-    </motion.g>
+    </g>
   )
 })
 
@@ -1401,13 +1398,19 @@ function GameScene({
   const blockSway = Math.min(2.3, windStrength * 0.28)
   const blockSwayDuration = Math.max(1.65, 3.2 - windStrength * 0.12)
   const towerHeight = heightOf(game)
-  const cloudRise = smoothstep(12, 22, towerHeight)
+  // Starts once the top stone has climbed out of the passing clouds (floors 7 to 15).
+  const cloudRise = smoothstep(14, 22, towerHeight)
   const highSky = smoothstep(26, 36, towerHeight)
-  const cloudTop = height + 40 - cloudRise * (height + 40 - (horizon - 12))
-  // Trimmed stones fall in front of the island into the water, or into the cloud sea once it covers the view.
+  // How far below the horizon the cloud sea currently reaches.
+  const cloudCover = horizon - 12 + cloudRise * (height - horizon + 52)
+  // Trimmed stones fall in front of the island: they splash in open water, sink into cloud where it already
+  // covers the sea, or fall out of frame when the island is off-screen and nothing below is covered.
   const splashY = waterline + 26 + cameraShift
-  const impactSurface: ImpactSurface = cloudRise >= 0.6 ? 'cloud' : splashY <= height - 16 ? 'water' : 'none'
-  const impactY = impactSurface === 'cloud' ? cloudTop + 46 : impactSurface === 'water' ? splashY : height + 160
+  const splashVisible = splashY <= height - 16
+  const impactSurface: ImpactSurface = splashVisible
+    ? (splashY <= cloudCover ? 'cloud' : 'water')
+    : (cloudRise >= 0.95 ? 'cloud' : 'none')
+  const impactY = splashVisible ? splashY : impactSurface === 'cloud' ? height - 70 : height + 160
   const baseBlocks = game.stack.slice(0, 3).map((block) => `${block.x},${block.width}`).join('|')
 
   return (
@@ -1437,7 +1440,7 @@ function GameScene({
         compact={compact}
         climb={climbProgress * sceneryIntensity}
       />
-      <CloudBank height={height} top={cloudTop} rise={cloudRise} reducedMotion={reducedMotion} />
+      <CloudBank height={height} horizon={horizon} rise={cloudRise} reducedMotion={reducedMotion} />
       <BirdFlock active={towerHeight >= 8} reducedMotion={reducedMotion} />
       <WindStreaks height={height} direction={windDirection} visible={windStrength >= 6} reducedMotion={reducedMotion} />
 
