@@ -1,5 +1,7 @@
 :root {
-  font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+  --font-ui: 'Manrope Variable', 'Avenir Next', 'Segoe UI', sans-serif;
+  --font-display: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+  font-family: var(--font-ui);
   color: #eef0e6;
   background: #0a1926;
   font-synthesis: none;
@@ -9,6 +11,7 @@
 
   font-optical-sizing: auto;
   font-weight: 400;
+  font-variant-numeric: proportional-nums;
 }
 
 * {
