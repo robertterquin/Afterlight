@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
+import afterlightMark from './assets/afterlight-mark.svg'
 import { Leaderboard } from './DailyLeaderboard'
 import type { LeaderboardEntry } from './leaderboard'
 import './App.css'
@@ -35,17 +36,6 @@ function readSoundPreference() {
   } catch {
     return true
   }
-}
-
-function LighthouseMark() {
-  return (
-    <svg className="brand-mark" viewBox="0 0 38 38" aria-hidden="true">
-      <path d="M5 33h28l-4-5H9z" fill="#e5b884" />
-      <path d="M11 28V11l8-6 8 6v17z" fill="#dcebd7" />
-      <path d="M15 14h8v7h-8z" fill="#e5b884" />
-      <path d="M19 2v-1M9 7 6 4m23 3 3-3" stroke="#e5b884" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  )
 }
 
 function BlockShape({
@@ -753,7 +743,7 @@ function App() {
     <main className="app-shell">
       <header className="topbar">
         <a className="brand" href="#top" aria-label="Afterlight home">
-          <LighthouseMark />
+          <img className="brand-mark" src={afterlightMark} alt="" aria-hidden="true" />
           <span>AFTERLIGHT</span>
         </a>
         <div className="topbar-actions">
