@@ -28,4 +28,17 @@ Motion for React powers the camera easing, block landings, falling overhangs, an
 
 The challenge date uses UTC (`YYYY-MM-DD`) and changes at 00:00 UTC. FNV-1a hashes that date into the daily seed. Wind changes every five floors: each segment uses Mulberry32 seeded with the daily seed XOR the segment number multiplied by `0x9e3779b9`, then maps its first value to an integer from −8% to +8%. The wind modifier is applied before the 2.2× speed cap.
 
-The game simulation advances at a fixed 60 ticks per second. Each placement, including the final miss, records its simulation tick in the run state so a later server can replay the inputs against the same daily seed.
+The game simulation advances at a fixed 60 ticks per second. Each placement, including the final miss, records its simulation tick so the score function can replay the run against the same daily seed.
+
+## Daily leaderboard
+
+The leaderboard uses Supabase anonymous sign-in, a public daily board, and a verified score function. The client submits placement ticks only; the Edge Function replays them using the shared game engine before saving the player's best score for that UTC date. Display names can be edited from the board.
+
+Before enabling ranked play:
+
+1. Enable **Anonymous sign-ins** in Supabase Authentication settings.
+2. Apply `supabase/migrations/20261112034907_leaderboard_schema.sql` to the project.
+3. Deploy `supabase/functions/submit-score` with JWT verification enabled.
+4. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in Vercel. The legacy anon key is also supported as a fallback.
+
+Never put a Supabase secret or `service_role` key in the browser or a `VITE_` variable. Without a working Supabase setup, the game remains playable, but scores stay local and do not appear on the shared board.

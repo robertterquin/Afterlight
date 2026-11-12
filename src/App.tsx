@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
+import { Leaderboard } from './DailyLeaderboard'
+import type { LeaderboardEntry } from './leaderboard'
 import './App.css'
 import {
   advanceGame,
@@ -432,10 +434,23 @@ function App() {
   const [sceneHeight, setSceneHeight] = useState(760)
   const [perfectToast, setPerfectToast] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(readSoundPreference)
+  const [playerId, setPlayerId] = useState<string | null>(null)
+  const [playerName, setPlayerName] = useState('')
+  const [authInitialized, setAuthInitialized] = useState(false)
+  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([])
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true)
+  const [leaderboardError, setLeaderboardError] = useState<string | null>(null)
+  const [nameSaving, setNameSaving] = useState(false)
+  const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'saved' | 'not-best' | 'failed' | 'offline'>('idle')
+  const [submissionError, setSubmissionError] = useState('')
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false)
   const stageRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef(game)
   const soundEnabledRef = useRef(soundEnabled)
   const audioContextRef = useRef<AudioContext | null>(null)
+  const runIdRef = useRef(0)
+  const autoSubmittedRunRef = useRef(-1)
+  const resumeAfterLeaderboardRef = useRef(false)
 
   useLayoutEffect(() => {
     gameRef.current = game
@@ -443,9 +458,61 @@ function App() {
   }, [game, soundEnabled])
 
   const commitGame = useCallback((next: GameState) => {
+    if (gameRef.current.challenge.date !== next.challenge.date) setLeaderboardEntries([])
     gameRef.current = next
     setGame(next)
   }, [])
+
+  const refreshLeaderboard = useCallback(async (challengeDate: string) => {
+    setLeaderboardLoading(true)
+    setLeaderboardError(null)
+    try {
+      const { getDailyLeaderboard, isConfigured } = await import('./leaderboard')
+      if (!isConfigured()) throw new Error('Add the Supabase URL and publishable key to enable the daily board.')
+      const entries = await getDailyLeaderboard(challengeDate)
+      if (gameRef.current.challenge.date === challengeDate) setLeaderboardEntries(entries)
+    } catch (cause) {
+      if (gameRef.current.challenge.date === challengeDate) {
+        setLeaderboardError(cause instanceof Error ? cause.message : 'Could not load today’s board.')
+      }
+    } finally {
+      if (gameRef.current.challenge.date === challengeDate) setLeaderboardLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const { connectAnonymousPlayer, isConfigured } = await import('./leaderboard')
+        if (!isConfigured()) {
+          setLeaderboardError('Add your Supabase URL and publishable key to enable the daily board.')
+          setLeaderboardLoading(false)
+          return
+        }
+        const { id, name } = await connectAnonymousPlayer()
+        if (cancelled) return
+        setPlayerId(id)
+        setPlayerName(name)
+        setLeaderboardError(null)
+      } catch {
+        if (cancelled) return
+        setLeaderboardError('Could not connect. Check anonymous sign-in and the database migration.')
+        setLeaderboardLoading(false)
+      } finally {
+        if (!cancelled) setAuthInitialized(true)
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    if (!authInitialized || !playerId) return
+    const challengeDate = game.challenge.date
+    const timer = window.setTimeout(() => void refreshLeaderboard(challengeDate), 0)
+    return () => window.clearTimeout(timer)
+  }, [authInitialized, game.challenge.date, playerId, refreshLeaderboard])
 
   const playFeedback = useCallback((kind: FeedbackSound) => {
     if (!soundEnabledRef.current || typeof window === 'undefined') return
@@ -485,10 +552,16 @@ function App() {
   const start = useCallback(() => {
     const current = gameRef.current
     if (current.phase === 'ready') {
+      runIdRef.current += 1
+      setSubmissionStatus('idle')
+      setSubmissionError('')
       commitGame(startGame(createGame(createDailyChallenge())))
     }
   }, [commitGame])
   const retry = useCallback(() => {
+    runIdRef.current += 1
+    setSubmissionStatus('idle')
+    setSubmissionError('')
     commitGame(startGame(createGame(createDailyChallenge())))
   }, [commitGame])
   const toggleSound = useCallback(() => {
@@ -496,6 +569,72 @@ function App() {
     soundEnabledRef.current = next
     setSoundEnabled(next)
   }, [])
+
+  const submitRun = useCallback(async (finishedGame: GameState) => {
+    const submissionRunId = runIdRef.current
+    setSubmissionStatus('submitting')
+    setSubmissionError('')
+    try {
+      const api = await import('./leaderboard')
+      if (!api.isConfigured()) {
+        if (runIdRef.current === submissionRunId) setSubmissionStatus('offline')
+        return
+      }
+      let userId = playerId
+      if (!userId) {
+        const player = await api.connectAnonymousPlayer()
+        userId = player.id
+        setPlayerId(userId)
+        setPlayerName(player.name)
+      }
+
+      const result = await api.submitDailyScore(finishedGame.challenge.date, finishedGame.placementTicks)
+      if (runIdRef.current === submissionRunId) {
+        setSubmissionStatus(result.personalBest ? 'saved' : 'not-best')
+      }
+      await refreshLeaderboard(finishedGame.challenge.date)
+    } catch (cause) {
+      if (runIdRef.current === submissionRunId) {
+        setSubmissionStatus('failed')
+        setSubmissionError(cause instanceof Error ? cause.message : 'Could not sync this run.')
+      }
+    }
+  }, [playerId, refreshLeaderboard])
+
+  useEffect(() => {
+    if (game.phase !== 'over' || !authInitialized || heightOf(game) < 1 || game.placementTicks.length === 0) return
+    const runId = runIdRef.current
+    if (autoSubmittedRunRef.current === runId) return
+    autoSubmittedRunRef.current = runId
+    void submitRun(game)
+  }, [authInitialized, game, submitRun])
+
+  const openLeaderboard = useCallback(() => {
+    resumeAfterLeaderboardRef.current = gameRef.current.phase === 'playing'
+    if (resumeAfterLeaderboardRef.current) commitGame(pauseGame(gameRef.current))
+    setLeaderboardOpen(true)
+  }, [commitGame])
+
+  const closeLeaderboard = useCallback(() => {
+    setLeaderboardOpen(false)
+    if (resumeAfterLeaderboardRef.current && gameRef.current.phase === 'paused') {
+      commitGame(resumeGame(gameRef.current))
+    }
+    resumeAfterLeaderboardRef.current = false
+  }, [commitGame])
+
+  const updatePlayerName = useCallback(async (name: string) => {
+    if (!playerId) throw new Error('Player profile is still connecting.')
+    setNameSaving(true)
+    try {
+      const { savePlayerName } = await import('./leaderboard')
+      const savedName = await savePlayerName(playerId, name)
+      setPlayerName(savedName)
+      await refreshLeaderboard(gameRef.current.challenge.date)
+    } finally {
+      setNameSaving(false)
+    }
+  }, [playerId, refreshLeaderboard])
 
   useEffect(() => {
     if (game.phase !== 'ready') return
@@ -582,6 +721,17 @@ function App() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.code === 'Escape') {
+        if (leaderboardOpen) {
+          closeLeaderboard()
+          return
+        }
+        const current = gameRef.current
+        if (current.phase === 'playing') commitGame(pauseGame(current))
+        if (current.phase === 'paused') commitGame(resumeGame(current))
+        return
+      }
+
       const target = event.target
       if (target instanceof HTMLElement && target.closest('button')) return
 
@@ -589,16 +739,12 @@ function App() {
         event.preventDefault()
         if (gameRef.current.phase === 'ready') start()
         else handlePlace()
-      } else if (event.code === 'Escape') {
-        const current = gameRef.current
-        if (current.phase === 'playing') commitGame(pauseGame(current))
-        if (current.phase === 'paused') commitGame(resumeGame(current))
       }
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [commitGame, handlePlace, start])
+  }, [closeLeaderboard, commitGame, handlePlace, leaderboardOpen, start])
 
   const height = heightOf(game)
 
@@ -611,6 +757,18 @@ function App() {
           <span>AFTERLIGHT</span>
         </a>
         <div className="topbar-actions">
+          <motion.button
+            className="icon-button leaderboard-toggle"
+            type="button"
+            onClick={openLeaderboard}
+            aria-label="Open daily leaderboard"
+            aria-expanded={leaderboardOpen}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.94 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 22 }}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9" /><path d="M3 6h.01M3 12h.01M3 18h.01" /></svg>
+          </motion.button>
           <motion.button
             className="icon-button"
             type="button"
@@ -753,6 +911,20 @@ function App() {
                 <h1 id="over-title">Run over</h1>
                 <p className="result-line"><strong>{height}</strong> {height === 1 ? 'stone' : 'stones'} placed</p>
                 {game.perfects > 0 && <p className="result-detail">{game.perfects} perfect {game.perfects === 1 ? 'landing' : 'landings'}</p>}
+                {submissionStatus !== 'idle' && (
+                  <p className={`result-submission is-${submissionStatus}`} role="status">
+                    {submissionStatus === 'submitting' && 'Verifying today’s run…'}
+                    {submissionStatus === 'saved' && 'Personal best saved to today’s board.'}
+                    {submissionStatus === 'not-best' && 'Run verified · your best stays on the board.'}
+                    {submissionStatus === 'offline' && 'Offline · score not submitted.'}
+                    {submissionStatus === 'failed' && (submissionError || 'Could not sync this run.')}
+                  </p>
+                )}
+                {submissionStatus === 'failed' && (
+                  <button className="text-button retry-submit" type="button" onClick={() => void submitRun(gameRef.current)}>
+                    Retry score sync
+                  </button>
+                )}
                 <motion.button
                   className="primary-button"
                   type="button"
@@ -767,6 +939,17 @@ function App() {
             )}
           </AnimatePresence>
         </div>
+        <Leaderboard
+          challengeDate={game.challenge.date}
+          entries={leaderboardEntries}
+          loading={leaderboardLoading}
+          error={leaderboardError}
+          playerName={playerName}
+          nameSaving={nameSaving}
+          onSaveName={updatePlayerName}
+          mobileOpen={leaderboardOpen}
+          onClose={closeLeaderboard}
+        />
       </section>
     </main>
     </MotionConfig>
