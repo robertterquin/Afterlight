@@ -24,56 +24,30 @@ function useCountdown() {
   return label
 }
 
-const WindIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8" /></svg>
-)
-const ClockIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2M9 2h6" /></svg>
-)
-
 export function ReadyOverlay({
   editionName,
   dateLabel,
-  windPercent,
   entries,
   onStart,
 }: {
   editionName: string
   dateLabel: string
-  windPercent: number
   entries: LeaderboardEntry[]
   onStart: () => void
 }) {
   const countdown = useCountdown()
   const you = entries.find((entry) => entry.is_you)
   const third = entries.find((entry) => entry.rank === 3)
-  const wind = windPercent === 0 ? 'Calm start' : `Wind ${windPercent > 0 ? '+' : '−'}${Math.abs(windPercent)}% at start`
-
-  let goal = 'Your first climb today puts you on the board.'
-  if (you && you.rank <= 3) goal = `You hold #${you.rank} on the podium. Climb higher to keep it.`
-  else if (you && third) goal = `Climb past ${third.height} to reach the podium, ahead of ${third.display_name}.`
 
   return (
     <div className="ready-panel">
       <div className="ready-intro">
-        <span className="eyebrow">Today’s course · {dateLabel}</span>
+        <span className="eyebrow">Today · {dateLabel}</span>
         <h1 className="ready-course-title">{editionName}</h1>
-        <p className="ready-description">Everyone climbs the same tower today. The wind shifts every five floors.</p>
-        <div className="ready-chips">
-          <span className="chip only-wide"><WindIcon />{wind}</span>
-          {you && <span className="chip only-compact">Best <b>{you.height}</b> · #{you.rank}</span>}
-          {third && <span className="chip only-compact">Podium at <b>{third.height}</b></span>}
-          <span className="chip"><ClockIcon /><span className="only-wide">New course in</span><span className="only-compact">New in</span> <b className="num">{countdown}</b></span>
-        </div>
+        <span className="ready-countdown">New course in <b className="num">{countdown}</b></span>
       </div>
 
-      <div className="goal-card glass">
-        <div className="goal-stats">
-          <div><span>Your best</span><strong>{you?.height ?? '–'}</strong></div>
-          <div><span>Your rank</span><strong>{you ? `#${you.rank}` : '–'}</strong></div>
-          <div><span>Top 3 at</span><strong>{third?.height ?? '–'}</strong></div>
-        </div>
-        <p className="goal-line">{goal}</p>
+      <div className="ready-start">
         <motion.button
           className="primary-button start-button"
           type="button"
@@ -84,7 +58,18 @@ export function ReadyOverlay({
         >
           Start climb<kbd>SPACE</kbd>
         </motion.button>
-        <p className="goal-howto">Drop each stone onto the one below. Land five perfect drops in a row and the next stone grows wider.</p>
+        {you ? (
+          <p className="ready-line">
+            Best today <b className="num">{you.height}</b> · {you.rank <= 3 || !third
+              ? <b>#{you.rank}</b>
+              : <>podium at <b className="num">{third.height}</b></>}
+          </p>
+        ) : (
+          <>
+            <p className="ready-line">Your first climb today puts you on the board.</p>
+            <p className="ready-hint">Five perfect drops in a row grow the next stone.</p>
+          </>
+        )}
       </div>
     </div>
   )

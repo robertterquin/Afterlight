@@ -1788,7 +1788,6 @@ function App() {
                 <ReadyOverlay
                   editionName={dailyEdition.name}
                   dateLabel={formatDailyDate(game.challenge.date)}
-                  windPercent={game.windPercent}
                   entries={leaderboardEntries}
                   onStart={start}
                 />
