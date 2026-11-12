@@ -1361,13 +1361,15 @@ function App() {
     let cancelled = false
     void (async () => {
       try {
-        const { connectAnonymousPlayer, isConfigured } = await import('./leaderboard')
+        const { connectAnonymousPlayer, isConfigured, retryPendingRuns } = await import('./leaderboard')
         if (!isConfigured()) {
           setLeaderboardError('Add your Supabase URL and publishable key to enable the daily board.')
           setLeaderboardLoading(false)
           return
         }
         const { id, name } = await connectAnonymousPlayer()
+        // Send runs that failed to sync last visit before the board first loads.
+        await retryPendingRuns()
         if (cancelled) return
         setPlayerId(id)
         setPlayerName(name)
@@ -1463,6 +1465,8 @@ function App() {
         if (runIdRef.current === submissionRunId) setSubmissionStatus('offline')
         return
       }
+      // Saved before sign-in too, so a run that ends offline is still sent on the next visit.
+      api.rememberPendingRun(finishedGame.challenge.date, finishedGame.placementTicks, heightOf(finishedGame))
       let userId = playerId
       if (!userId) {
         const player = await api.connectAnonymousPlayer()

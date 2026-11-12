@@ -34,6 +34,8 @@ The game simulation advances at a fixed 60 ticks per second. Each placement, inc
 
 The leaderboard uses Supabase anonymous sign-in, a public daily board, and a verified score function. The client submits placement ticks only; the Edge Function replays them using the shared game engine before saving the player's best score for that UTC date. Display names can be edited from the board.
 
+If a run cannot reach the server (offline, or a server error), its placement ticks are kept in the browser under `afterlight.pendingRuns`, one best run per day, and sent automatically on the next visit. Runs the server rejects, such as an expired day, are dropped.
+
 Before enabling ranked play:
 
 1. Enable **Anonymous sign-ins** in Supabase Authentication settings.

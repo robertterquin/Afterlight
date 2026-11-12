@@ -1,3 +1,4 @@
+import { FunctionsHttpError } from '@supabase/supabase-js'
 import { ensureAnonymousUser, supabase } from './supabase'
 
 export const isConfigured = () => Boolean(supabase)
@@ -83,10 +84,62 @@ export async function savePlayerName(userId: string, displayName: string) {
   return data.display_name
 }
 
+// Runs that have not reached the server yet, one (the highest) per challenge date.
+const PENDING_RUNS_KEY = 'afterlight.pendingRuns'
+type PendingRuns = Record<string, { placementTicks: number[]; height: number }>
+
+function readPendingRuns(): PendingRuns {
+  try {
+    const runs = JSON.parse(window.localStorage.getItem(PENDING_RUNS_KEY) ?? '{}')
+    return runs && typeof runs === 'object' && !Array.isArray(runs) ? runs : {}
+  } catch {
+    return {}
+  }
+}
+
+function writePendingRuns(runs: PendingRuns) {
+  try {
+    if (Object.keys(runs).length > 0) window.localStorage.setItem(PENDING_RUNS_KEY, JSON.stringify(runs))
+    else window.localStorage.removeItem(PENDING_RUNS_KEY)
+  } catch {
+    // Without storage the run is only kept until the page closes.
+  }
+}
+
+export function rememberPendingRun(challengeDate: string, placementTicks: number[], height: number) {
+  const runs = readPendingRuns()
+  if ((runs[challengeDate]?.height ?? -1) >= height) return
+  writePendingRuns({ ...runs, [challengeDate]: { placementTicks, height } })
+}
+
+function forgetPendingRun(challengeDate: string, placementTicks: number[]) {
+  const runs = readPendingRuns()
+  if (JSON.stringify(runs[challengeDate]?.placementTicks) !== JSON.stringify(placementTicks)) return
+  delete runs[challengeDate]
+  writePendingRuns(runs)
+}
+
 export async function submitDailyScore(challengeDate: string, placementTicks: number[]) {
   const { data, error } = await requireSupabase().functions.invoke('submit-score', {
     body: { challengeDate, placementTicks },
   })
-  if (error) throw error
-  return data as ScoreSubmission
+  if (!error) {
+    forgetPendingRun(challengeDate, placementTicks)
+    return data as ScoreSubmission
+  }
+
+  const status = error instanceof FunctionsHttpError ? (error.context as Response).status : 0
+  // 400/413 mean the server will never accept this run (expired or invalid), so stop retrying it.
+  if (status === 400 || status === 413) {
+    forgetPendingRun(challengeDate, placementTicks)
+    const body = await (error.context as Response).json().catch(() => null)
+    throw new Error(typeof body?.error === 'string' ? body.error : 'This run could not be verified.')
+  }
+  throw new Error('Could not sync · saved on this device and will retry on your next visit.')
+}
+
+export async function retryPendingRuns() {
+  for (const [challengeDate, run] of Object.entries(readPendingRuns())) {
+    await submitDailyScore(challengeDate, run.placementTicks).catch(() => undefined)
+  }
 }
