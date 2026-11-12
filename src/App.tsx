@@ -570,29 +570,42 @@ function LandingFeedback({
   )
 }
 
+/**
+ * A small lamp. On a post, (x, y) is where the post meets the ground; hanging, it is the lamp itself.
+ * The glass stays dark until lit, so it reads as a lamp either way.
+ */
 function Lantern({
   x,
   y,
   lit,
   celebration = 0,
   sequence = 0,
+  hanging = false,
 }: {
   x: number
   y: number
   lit: boolean
   celebration?: number
   sequence?: number
+  hanging?: boolean
 }) {
+  const frame = '#2a3a45'
+  const lampY = hanging ? y : y - 13
   return (
     <g className={lit ? 'lantern is-lit' : 'lantern'}>
-      {lit && <circle cx={x} cy={y} r="10" fill="#ffd995" opacity=".55" filter="url(#soft-bloom)" />}
-      <circle cx={x} cy={y} r="3" fill={lit ? '#ffe8b9' : '#5c777b'} />
-      <circle cx={x} cy={y} r="1.25" fill={lit ? '#fff5d7' : '#819391'} />
+      {hanging
+        ? <path d={`M${x} ${lampY - 10}v4`} stroke={frame} strokeWidth="1.2" strokeLinecap="round" />
+        : <path d={`M${x} ${lampY + 4}V${y + 1}`} stroke={frame} strokeWidth="1.8" strokeLinecap="round" />}
+      {lit && <circle cx={x} cy={lampY} r="11" fill="#ffd995" opacity=".55" filter="url(#soft-bloom)" />}
+      <path d={`M${x - 4.4} ${lampY - 4.6}l4.4-3.4 4.4 3.4z`} fill={frame} />
+      <rect x={x - 3.4} y={lampY - 4.6} width="6.8" height="9.2" rx="1.4" fill={frame} />
+      <rect x={x - 2.2} y={lampY - 3.4} width="4.4" height="6.8" rx=".9" fill={lit ? '#ffe8b9' : '#4d6670'} />
+      {lit && <rect x={x - 0.9} y={lampY - 2.5} width="1.8" height="4.8" rx=".9" fill="#fff8e0" />}
       {celebration > 0 && (
         <motion.circle
           key={celebration}
           cx={x}
-          cy={y}
+          cy={lampY}
           r="3.5"
           fill="#fff1c7"
           filter="url(#soft-bloom)"
@@ -606,6 +619,47 @@ function Lantern({
     </g>
   )
 }
+
+/** A two-tier pine with a trunk and a shaded right side; (x, base) is the foot of the trunk. */
+function Pine({ x, base, height, color }: { x: number; base: number; height: number; color: string }) {
+  const width = height * 0.56
+  const shade = blendColor(color, '#0b1622', 0.3)
+  const low = { apex: base - height * 0.72, foot: base - 4, half: width / 2 }
+  const high = { apex: base - height, foot: base - height * 0.42, half: width * 0.38 }
+  return (
+    <g>
+      <rect x={x - 1.6} y={base - 7} width="3.2" height="8" rx="1" fill="#4b3d38" />
+      {[low, high].map((tier, index) => (
+        <g key={index}>
+          <path d={`M${x - tier.half} ${tier.foot}L${x} ${tier.apex}L${x + tier.half} ${tier.foot}Z`} fill={color} />
+          <path d={`M${x} ${tier.apex}L${x + tier.half} ${tier.foot}H${x}Z`} fill={shade} />
+        </g>
+      ))}
+    </g>
+  )
+}
+
+/** Rounded shore stones along a waterline, lit on top. */
+function ShoreRocks({ rocks, waterline, deep, light }: { rocks: ReadonlyArray<readonly [number, number, number]>; waterline: number; deep: string; light: string }) {
+  return (
+    <g>
+      {rocks.map(([x, rx, ry]) => (
+        <g key={x}>
+          <ellipse cx={x} cy={waterline - ry * 0.45} rx={rx} ry={ry} fill={deep} />
+          <ellipse cx={x - rx * 0.15} cy={waterline - ry * 0.85} rx={rx * 0.62} ry={ry * 0.42} fill={light} opacity=".55" />
+        </g>
+      ))}
+    </g>
+  )
+}
+
+const HOME_SHORE_ROCKS = [
+  // None directly under the tower, where they would poke out beneath the base stone.
+  [252, 10, 5], [276, 14, 6], [304, 9, 5], [338, 12, 6], [366, 8, 4],
+  [640, 9, 5], [668, 12, 6], [700, 9, 5], [734, 13, 6], [764, 10, 5],
+] as const
+const HOME_TUFTS = [[300, -24], [452, -52], [560, -50], [612, -30], [470, -18], [690, -26], [420, -40], [330, -40]] as const
+const COTTAGE_SHORE_ROCKS = [[56, 7, 4], [76, 9, 5], [100, 6, 3], [176, 8, 4], [204, 10, 5], [230, 7, 4]] as const
 
 function BirdFlock({ active, reducedMotion }: { active: boolean; reducedMotion: boolean }) {
   return (
@@ -1065,11 +1119,23 @@ const SideIslets = memo(function SideIslets({
   const windows = 1 - dawnProgress * 0.65
   const cottage = (
     <>
+      <defs>
+        <linearGradient id="cottage-grass" x2="0" y2="1">
+          <stop stopColor={blendColor(edition.islands.leftTop, '#eef3e2', 0.35)} />
+          <stop offset="1" stopColor={blendColor(edition.islands.leftTop, '#4f6d66', 0.25)} />
+        </linearGradient>
+      </defs>
       <path d="M40 30q20-32 66-26 38-26 80 0 40-6 62 26z" fill={edition.islands.deep} />
-      <path d="M48 22q24-24 62-20 40-26 76 0 38-4 56 22-30 10-64 6-38 12-72 0-32 8-58-8z" fill={edition.islands.leftTop} />
+      <path d="M48 22q24-24 62-20 40-26 76 0 38-4 56 22-30 10-64 6-38 12-72 0-32 8-58-8z" fill="url(#cottage-grass)" />
+      <ShoreRocks rocks={COTTAGE_SHORE_ROCKS} waterline={30} deep={edition.islands.deep} light={edition.islands.leftTop} />
+      <rect x="141" y="-7" width="5" height="10" fill="#8b5f52" />
       <path d="M118 8h30v26h-30z" fill="#e6caa4" />
+      <path d="M118 8h30v3h-30z" fill="#000" opacity=".12" />
       <path d="M114 9l19-17 19 17z" fill="#9b6f60" />
-      <path d="M72 14l8-22 8 22zM196 12l9-26 9 26z" fill={edition.tower.trees} />
+      <path d="M133 -8l19 17h-6z" fill="#000" opacity=".15" />
+      <rect x="129" y="23" width="7" height="11" rx="1" fill="#6f4c40" />
+      <Pine x={80} base={16} height={24} color={edition.tower.trees} />
+      <Pine x={205} base={14} height={28} color={edition.tower.trees} />
     </>
   )
 
@@ -1086,6 +1152,9 @@ const SideIslets = memo(function SideIslets({
         <path d={`M${lx - 75} ${ly}q20-26 54-24 30-16 60 4 24 4 40 20z`} fill={edition.islands.deep} />
         <path d={`M${lx - 12} ${ly - 14}l5-82h14l5 82z`} fill="#ece1d0" />
         <path d={`M${lx - 9.6} ${ly - 42}h18l-.8 12h-16.4zM${lx - 7.8} ${ly - 72}h15.6l-.7 11h-14.2z`} fill="#b8665a" />
+        <path d={`M${lx - 62} ${ly - 4}q22-20 50-18 26-12 52 4`} stroke="#ffffff" strokeOpacity=".14" strokeWidth="3" fill="none" strokeLinecap="round" />
+        <rect x={lx - 3} y={ly - 27} width="6" height="13" rx="3" fill="#6f4c40" />
+        <path d={`M${lx - 12} ${ly - 96}h24M${lx - 10} ${ly - 96}v-4M${lx - 4} ${ly - 96}v-4M${lx + 4} ${ly - 96}v-4M${lx + 10} ${ly - 96}v-4M${lx - 12} ${ly - 100}h24`} stroke="#33445a" strokeWidth="1.4" />
         <rect x={lx - 9} y={ly - 110} width="18" height="13" rx="2" fill="#ffe7b0" />
         <path d={`M${lx - 11} ${ly - 110}l11-10 11 10z`} fill="#33445a" />
         <circle cx={lx} cy={ly - 103} r="22" fill="#ffe4a8" opacity=".7" filter="url(#soft-bloom)" />
@@ -1120,8 +1189,8 @@ const SideIslets = memo(function SideIslets({
           <g transform="translate(0 60) scale(1 -1)" opacity=".22">{cottage}</g>
           {cottage}
           <motion.g initial={false} animate={{ opacity: windows }} transition={reducedMotion ? { duration: 0 } : { duration: 1.6, ease: 'easeInOut' as const }}>
-            <rect x="124" y="14" width="7" height="8" rx="1" fill="#ffd98f" />
-            <rect x="135" y="14" width="7" height="8" rx="1" fill="#ffd98f" />
+            <rect x="121" y="14" width="6" height="7" rx="1" fill="#ffd98f" />
+            <rect x="139" y="14" width="6" height="7" rx="1" fill="#ffd98f" />
             <circle cx="133" cy="18" r="16" fill="#ffd27f" opacity=".55" filter="url(#soft-bloom)" />
           </motion.g>
           <path d="M52 31q100 8 196 0" stroke="#eef4ee" strokeOpacity=".35" strokeWidth="1.5" fill="none" />
@@ -1437,16 +1506,32 @@ function GameScene({
             : { type: 'spring', stiffness: 78, damping: 27, mass: 0.85 }}
       >
         <IslandReflection edition={edition} groundY={groundY} waterline={waterline} baseBlocks={baseBlocks} />
-        <path d={islandTopPath(groundY)} fill={edition.tower.top} />
+        <defs>
+          <linearGradient id="home-grass" x2="0" y2="1">
+            <stop stopColor={blendColor(edition.tower.top, '#eef3e2', 0.35)} />
+            <stop offset=".55" stopColor={edition.tower.top} />
+            <stop offset="1" stopColor={blendColor(edition.tower.top, '#4f6d66', 0.3)} />
+          </linearGradient>
+        </defs>
+        <path d={islandTopPath(groundY)} fill="url(#home-grass)" />
+        <path
+          d={HOME_TUFTS.map(([x, dy]) => `M${x} ${groundY + dy}l-2.5-6M${x} ${groundY + dy}v-7.5M${x} ${groundY + dy}l2.5-6`).join('')}
+          stroke={blendColor(edition.tower.top, '#2f4d48', 0.35)}
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+        <ShoreRocks rocks={HOME_SHORE_ROCKS} waterline={waterline} deep={edition.tower.deep} light={edition.tower.shore} />
         <path d={`M232 ${waterline + 1}q268 16 540 0`} stroke="#eef4ee" strokeOpacity=".42" strokeWidth="2" fill="none" />
         <path d={`M262 ${waterline + 9}q238 12 480 0`} stroke="#eef4ee" strokeOpacity=".2" strokeWidth="1.5" fill="none" />
-        <g fill={edition.tower.trees}>
-          <path d={`M340 ${groundY - 42}l15-34 15 34zM383 ${groundY - 41}l12-26 12 26zM710 ${groundY - 42}l16-36 16 36zM753 ${groundY - 41}l11-25 12 25z`} />
-          <path d={`M347 ${groundY - 42}v17m42-17v17m344-17v17m41-17v17`} stroke={edition.tower.trees} strokeWidth="4" />
-        </g>
-        <Lantern x={355} y={groundY - 65} lit={Math.floor(game.perfects / 5) >= 7} celebration={celebrating ? beaconCelebration : 0} sequence={2} />
-        <Lantern x={397} y={groundY - 62} lit={Math.floor(game.perfects / 5) >= 8} celebration={celebrating ? beaconCelebration : 0} sequence={0} />
-        <Lantern x={726} y={groundY - 67} lit={Math.floor(game.perfects / 5) >= 9} celebration={celebrating ? beaconCelebration : 0} sequence={1} />
+        <Pine x={355} base={groundY - 36} height={44} color={edition.tower.trees} />
+        <Pine x={395} base={groundY - 36} height={32} color={edition.tower.trees} />
+        <Pine x={726} base={groundY - 36} height={46} color={edition.tower.trees} />
+        <Pine x={764} base={groundY - 34} height={31} color={edition.tower.trees} />
+        <Lantern hanging x={355} y={groundY - 65} lit={Math.floor(game.perfects / 5) >= 7} celebration={celebrating ? beaconCelebration : 0} sequence={2} />
+        <Lantern hanging x={397} y={groundY - 62} lit={Math.floor(game.perfects / 5) >= 8} celebration={celebrating ? beaconCelebration : 0} sequence={0} />
+        <Lantern hanging x={726} y={groundY - 67} lit={Math.floor(game.perfects / 5) >= 9} celebration={celebrating ? beaconCelebration : 0} sequence={1} />
         <Lantern x={278} y={groundY - 31} lit={worldMilestone >= 4} />
         <Lantern x={316} y={groundY - 42} lit={worldMilestone >= 4} />
         <Lantern x={678} y={groundY - 40} lit={worldMilestone >= 4} />
