@@ -637,6 +637,7 @@
   line-height: 1.2;
   letter-spacing: 1.4px;
   text-transform: uppercase;
+  transition: opacity .24s ease, letter-spacing .24s ease;
 }
 
 .wind-value {
@@ -653,6 +654,7 @@
   justify-content: flex-end;
   gap: 6px;
   min-height: 18px;
+  transition: gap .24s ease;
 }
 
 .wind-glyph {
@@ -666,6 +668,31 @@
   opacity: .7;
   transform-box: fill-box;
   transform-origin: center;
+  transition: width .24s ease, height .24s ease, opacity .24s ease;
+}
+
+.stage.is-focused .daily-readout {
+  gap: 4px;
+}
+
+.stage.is-focused .daily-date {
+  opacity: .48;
+  letter-spacing: 1.1px;
+}
+
+.stage.is-focused .wind-signature {
+  gap: 4px;
+}
+
+.stage.is-focused .wind-value {
+  color: #e8c99f;
+  font-size: 11px;
+}
+
+.stage.is-focused .wind-glyph {
+  width: 25px;
+  height: 16px;
+  opacity: .56;
 }
 
 .wind-signature.is-leftward .wind-glyph {

@@ -1499,6 +1499,7 @@ function App() {
   }, [closeLeaderboard, commitGame, handlePlace, leaderboardOpen, start])
 
   const height = heightOf(game)
+  const isFocusedRun = height > 0 && game.phase !== 'over'
 
   return (
     <MotionConfig reducedMotion="user">
@@ -1555,7 +1556,7 @@ function App() {
 
       <section className="play-layout" aria-label="Afterlight game">
         <div
-          className={`stage ${game.phase === 'playing' ? 'is-playing' : ''} ${game.phase === 'over' ? 'is-over' : ''} ${isWaking ? 'is-waking' : ''}`}
+          className={`stage ${game.phase === 'playing' ? 'is-playing' : ''} ${game.phase === 'over' ? 'is-over' : ''} ${isFocusedRun ? 'is-focused' : ''} ${isWaking ? 'is-waking' : ''}`}
           ref={stageRef}
           onPointerDown={handlePlace}
         >
