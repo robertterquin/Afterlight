@@ -2,8 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProp
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import afterlightMark from './assets/afterlight-mark.svg'
 import { Leaderboard } from './DailyLeaderboard'
-import { HeightLadder, Progress, ReadyOverlay, RunPanel, StreakPill } from './Hud'
-import { bestStreakOf, nextMark } from './runStats'
+import { HeightLadder, ReadyOverlay, RunPanel, StreakPill } from './Hud'
 import type { LeaderboardEntry } from './leaderboard'
 import './App.css'
 import {
@@ -1684,9 +1683,6 @@ function App() {
   const dailyEdition = dailyEditionForSeed(game.challenge.seed)
   const isFocusedRun = height > 0 && game.phase !== 'over'
   const inRun = game.phase === 'playing' || game.phase === 'paused'
-  const yourEntry = leaderboardEntries.find((entry) => entry.is_you)
-  const passMark = nextMark(leaderboardEntries, height)
-  const runVerified = submissionStatus === 'saved' || submissionStatus === 'not-best'
 
   return (
     <MotionConfig reducedMotion="user">
@@ -1836,7 +1832,7 @@ function App() {
             {game.phase === 'over' && (
               <motion.div
                 key="over"
-                className="state-card over-card glass"
+                className="state-card over-card"
                 role="dialog"
                 aria-labelledby="over-title"
                 initial={{ opacity: 0 }}
@@ -1846,50 +1842,30 @@ function App() {
               >
                 {/* A miss records a placement that never joined the stack; ending from pause does not. */}
                 <h1 id="over-title" className="eyebrow over-eyebrow">{game.placementTicks.length > height ? 'The tide keeps it' : 'The beacon rests'}</h1>
-                <p className="over-score"><strong>{height}</strong><span>{height === 1 ? 'stone' : 'stones'}</span></p>
-                {runVerified && (
-                  <div className="over-pills">
-                    {submissionStatus === 'saved' && <span className="pill is-accent">New best today</span>}
-                    {yourEntry && <span className="pill">Rank #{yourEntry.rank}</span>}
-                  </div>
-                )}
-                <div className="tiles is-compact">
-                  <div className="tile"><strong>{game.perfects}</strong><span>Perfect</span></div>
-                  <div className="tile"><strong>{bestStreakOf(game)}</strong><span>Best streak</span></div>
-                  <div className="tile"><strong>{Math.min(9, Math.floor(game.perfects / 5))}</strong><span>Lanterns lit</span></div>
-                </div>
-                {passMark && (
-                  <div className="mark">
-                    <div className="mark-line">
-                      <span>{passMark.gap} {passMark.gap === 1 ? 'stone' : 'stones'} to pass <b className="is-gold">{passMark.name}</b></span>
-                      <b className="is-muted">{passMark.height}</b>
-                    </div>
-                    <Progress value={height} max={passMark.height + 1} />
-                  </div>
-                )}
-                <div className="over-actions">
-                  <motion.button
-                    className="primary-button"
-                    type="button"
-                    onClick={retry}
-                    whileHover={{ y: -1 }}
-                    whileTap={{ scale: 0.97 }}
-                    transition={{ type: 'spring', stiffness: 460, damping: 24 }}
-                  >
-                    Climb again
-                  </motion.button>
-                  <button className="ghost-button" type="button" onClick={() => void shareRun()}>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>
-                    <span aria-live="polite">{shareNote || 'Share'}</span>
-                  </button>
-                </div>
-                {submissionStatus !== 'idle' && (
-                  <p className={`result-submission is-${submissionStatus}`} role="status">
-                    {submissionStatus === 'submitting' && 'Verifying today’s run…'}
-                    {submissionStatus === 'saved' && 'Personal best saved to today’s board.'}
-                    {submissionStatus === 'not-best' && 'Run verified · your best stays on the board.'}
-                    {submissionStatus === 'offline' && 'Offline · score not submitted.'}
-                    {submissionStatus === 'failed' && (submissionError || 'Could not sync this run.')}
+                <p className="over-score">
+                  <strong>{height}</strong>
+                  <span>
+                    {height === 1 ? 'stone' : 'stones'} · {game.perfects} perfect
+                    {submissionStatus === 'saved' && <> · <b>new best today</b></>}
+                  </span>
+                </p>
+                <motion.button
+                  className="primary-button"
+                  type="button"
+                  onClick={retry}
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: 'spring', stiffness: 460, damping: 24 }}
+                >
+                  Climb again
+                </motion.button>
+                <button className="text-button share-link" type="button" onClick={() => void shareRun()}>
+                  <span aria-live="polite">{shareNote || 'Share'}</span>
+                </button>
+                {/* Only problems are worth a line here; a clean save needs no message. */}
+                {(submissionStatus === 'failed' || submissionStatus === 'offline') && (
+                  <p className="result-submission is-failed" role="status">
+                    {submissionStatus === 'offline' ? 'Offline · score not saved.' : (submissionError || 'Could not sync this run.')}
                   </p>
                 )}
                 {submissionStatus === 'failed' && (
