@@ -1313,13 +1313,13 @@ const WindStreaks = memo(function WindStreaks({ height, direction, visible, redu
 })
 
 /** A small pennant on every tenth stone, so the tower records its own height. */
-function Pennant({ block, y, floor }: { block: Block; y: number; floor: number }) {
+function Pennant({ block, y, floor, fresh }: { block: Block; y: number; floor: number; fresh: boolean }) {
   const x = block.x + block.width - 16
   return (
     <motion.g
       pointerEvents="none"
       aria-label={`Floor ${floor}`}
-      initial={{ opacity: 0, y: 8 }}
+      initial={fresh ? { opacity: 0, y: 8 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: 0.25, ease: 'easeOut' }}
     >
@@ -1427,12 +1427,6 @@ function GameScene({
             ? { duration: 0.42, ease: 'easeOut' }
             : { type: 'spring', stiffness: 78, damping: 27, mass: 0.85 }}
       >
-      <motion.g
-        key={`tower-settle-${game.placementTicks.length}`}
-        initial={perfectCameraSettle ? { y: -4 } : false}
-        animate={{ y: 0 }}
-        transition={{ type: 'spring', stiffness: 390, damping: 24, mass: 0.48 }}
-      >
         <IslandReflection edition={edition} groundY={groundY} waterline={waterline} baseBlocks={baseBlocks} />
         <path d={islandTopPath(groundY)} fill={edition.tower.top} />
         <path d={`M232 ${waterline + 1}q268 16 540 0`} stroke="#eef4ee" strokeOpacity=".42" strokeWidth="2" fill="none" />
@@ -1441,15 +1435,15 @@ function GameScene({
           <path d={`M340 ${groundY - 42}l15-34 15 34zM383 ${groundY - 41}l12-26 12 26zM710 ${groundY - 42}l16-36 16 36zM753 ${groundY - 41}l11-25 12 25z`} />
           <path d={`M347 ${groundY - 42}v17m42-17v17m344-17v17m41-17v17`} stroke={edition.tower.trees} strokeWidth="4" />
         </g>
-        <Lantern x={355} y={groundY - 65} lit={Math.floor(game.perfects / 5) >= 7} celebration={beaconCelebration} sequence={2} />
-        <Lantern x={397} y={groundY - 62} lit={Math.floor(game.perfects / 5) >= 8} celebration={beaconCelebration} sequence={0} />
-        <Lantern x={726} y={groundY - 67} lit={Math.floor(game.perfects / 5) >= 9} celebration={beaconCelebration} sequence={1} />
+        <Lantern x={355} y={groundY - 65} lit={Math.floor(game.perfects / 5) >= 7} celebration={celebrating ? beaconCelebration : 0} sequence={2} />
+        <Lantern x={397} y={groundY - 62} lit={Math.floor(game.perfects / 5) >= 8} celebration={celebrating ? beaconCelebration : 0} sequence={0} />
+        <Lantern x={726} y={groundY - 67} lit={Math.floor(game.perfects / 5) >= 9} celebration={celebrating ? beaconCelebration : 0} sequence={1} />
         <Lantern x={278} y={groundY - 31} lit={worldMilestone >= 4} />
         <Lantern x={316} y={groundY - 42} lit={worldMilestone >= 4} />
         <Lantern x={678} y={groundY - 40} lit={worldMilestone >= 4} />
         <Lantern x={720} y={groundY - 30} lit={worldMilestone >= 4} />
 
-        {beaconCelebration > 0 && (
+        {celebrating && (
           <BeaconPulse
             key={`beacon-pulse-${beaconCelebration}`}
             block={game.stack.at(-1)!}
@@ -1459,6 +1453,13 @@ function GameScene({
         )}
 
         <CloudBelt groundY={groundY} layer="back" reducedMotion={reducedMotion} />
+        {/* Only the stones are rebuilt for the settle bounce; anything else in here would replay its entrance on every drop. */}
+        <motion.g
+          key={`tower-settle-${game.placementTicks.length}`}
+          initial={perfectCameraSettle ? { y: -4 } : false}
+          animate={{ y: 0 }}
+          transition={{ type: 'spring', stiffness: 390, damping: 24, mass: 0.48 }}
+        >
         {game.stack.map((block, index) => {
           const support = game.stack[index - 1]
           const historicalPerfect = support
@@ -1486,7 +1487,7 @@ function GameScene({
               stonePalette={edition.stone}
             />
             {index > 0 && index % 10 === 0 && (
-              <Pennant block={block} y={groundY - (index + 1) * BLOCK_HEIGHT} floor={index} />
+              <Pennant block={block} y={groundY - (index + 1) * BLOCK_HEIGHT} floor={index} fresh={index === game.stack.length - 1} />
             )}
             </Fragment>
           )
@@ -1508,6 +1509,7 @@ function GameScene({
             reducedMotion={reducedMotion}
           />
         )}
+        </motion.g>
         {game.fallingPieces.map((piece) => (
           <motion.g
             key={`${piece.id}-${piece.x}`}
@@ -1560,7 +1562,6 @@ function GameScene({
           </g>
         )}
         <CloudBelt groundY={groundY} layer="front" reducedMotion={reducedMotion} />
-      </motion.g>
       </motion.g>
 
       <HarborBuoy active={cloudRise < 0.5} waterY={waterY} reducedMotion={reducedMotion} />
