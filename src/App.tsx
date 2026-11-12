@@ -864,7 +864,7 @@ function GameScene({
       <motion.g
         initial={false}
         animate={{ opacity: 1 - dawnProgress }}
-        transition={{ duration: 1.8, ease: 'easeInOut' }}
+        transition={dawnTransition}
       >
         <circle cx="820" cy={height * 0.27} r="150" fill="url(#moonlight)" />
         <circle cx="820" cy={height * 0.27} r="42" fill="#f1d9ba" opacity=".92" />
@@ -882,8 +882,28 @@ function GameScene({
         ))}
       </motion.g>
       <BirdFlock active={worldMilestone >= 5} reducedMotion={reducedMotion} />
-      <path d={`M0 ${horizon}q130 -80 250 -26 130 -94 250 -10 140 -91 270 -8 110 -59 230 18v150H0z`} fill="#53536c" opacity=".72" />
-      <path d={`M0 ${horizon + 72}q120 -55 235 -8 111 -72 227 -5 131 -74 253 -9 124 -62 285 -3v140H0z`} fill="#344b61" opacity=".92" />
+      <motion.g
+        initial={false}
+        animate={{ y: reducedMotion ? 0 : climbProgress * 0.007 * sceneryIntensity }}
+        transition={reducedMotion
+          ? { duration: 0 }
+          : compact
+            ? { duration: 0.54, ease: 'easeOut' }
+            : { type: 'spring', stiffness: 18, damping: 18 }}
+      >
+        <path d={`M0 ${horizon}q130 -80 250 -26 130 -94 250 -10 140 -91 270 -8 110 -59 230 18v150H0z`} fill="#53536c" opacity=".72" />
+      </motion.g>
+      <motion.g
+        initial={false}
+        animate={{ y: reducedMotion ? 0 : climbProgress * 0.016 * sceneryIntensity }}
+        transition={reducedMotion
+          ? { duration: 0 }
+          : compact
+            ? { duration: 0.62, ease: 'easeOut' }
+            : { type: 'spring', stiffness: 21, damping: 18 }}
+      >
+        <path d={`M0 ${horizon + 72}q120 -55 235 -8 111 -72 227 -5 131 -74 253 -9 124 -62 285 -3v140H0z`} fill="#344b61" opacity=".92" />
+      </motion.g>
 
       {/* Far islands */}
       <g transform={`translate(0 ${height * 0.45})`}>
