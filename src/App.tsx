@@ -255,7 +255,8 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
   const { compact, reducedMotion } = useScenePreferences()
   const groundY = height - 105
   const activeY = groundY - (game.stack.length + 1) * BLOCK_HEIGHT
-  const targetY = height * (compact ? 0.47 : 0.43)
+  const tallMobileViewport = compact && height > WORLD_WIDTH * 1.15
+  const targetY = height * (tallMobileViewport ? 0.64 : compact ? 0.48 : 0.43)
   const cameraShift = targetY - activeY
   const climbProgress = game.stack.length * BLOCK_HEIGHT
   const horizon = height * 0.59
