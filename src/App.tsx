@@ -99,17 +99,45 @@ function BlockShape({
   )
 }
 
-function Lantern({ x, y, lit }: { x: number; y: number; lit: boolean }) {
+function Lantern({
+  x,
+  y,
+  lit,
+  celebration = 0,
+  sequence = 0,
+}: {
+  x: number
+  y: number
+  lit: boolean
+  celebration?: number
+  sequence?: number
+}) {
   return (
     <g className={lit ? 'lantern is-lit' : 'lantern'}>
       {lit && <circle cx={x} cy={y} r="10" fill="#ffd995" opacity=".55" filter="url(#soft-bloom)" />}
       <circle cx={x} cy={y} r="3" fill={lit ? '#ffe8b9' : '#5c777b'} />
       <circle cx={x} cy={y} r="1.25" fill={lit ? '#fff5d7' : '#819391'} />
+      {celebration > 0 && (
+        <motion.circle
+          key={celebration}
+          cx={x}
+          cy={y}
+          r="3.5"
+          fill="#fff1c7"
+          filter="url(#soft-bloom)"
+          initial={{ opacity: 0, scale: 0.3 }}
+          animate={{ opacity: [0, 1, 0], scale: [0.3, 1.5, 2.4] }}
+          transition={{ duration: 0.72, delay: sequence * 0.08, ease: 'easeOut' }}
+          style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+          pointerEvents="none"
+        />
+      )}
     </g>
   )
 }
 
 function GameScene({ game, height }: { game: GameState; height: number }) {
+  const [beaconCelebration, setBeaconCelebration] = useState(0)
   const groundY = height - 105
   const activeY = groundY - (game.stack.length + 1) * BLOCK_HEIGHT
   const targetY = height * 0.43
@@ -131,6 +159,12 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
     '--wind-duration': `${cloudDuration * 1.18}s`,
     '--wind-delay': `${-cloudDuration * 1.18 * 0.37}s`,
   } as CSSProperties
+
+  useEffect(() => {
+    if (game.lastDropWasPerfect && game.perfectStreak > 0 && game.perfectStreak % 5 === 0) {
+      setBeaconCelebration((count) => count + 1)
+    }
+  }, [game.lastDropWasPerfect, game.perfectStreak, game.placementTicks.length])
 
   return (
     <svg
@@ -242,9 +276,9 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
         <path d="M72 67q24-28 62-22 40-33 74 0 41-7 59 26-29 12-61 6-39 14-72 0-33 10-62-10z" fill="#91a89b" />
         <path d="M131 52h22v26h-22zM126 53l16-15 16 15z" fill="#e2bd98" />
         <path d="M92 59v-20m-7 12 7-13 7 13m123 4V37m-7 12 7-13 7 13" stroke="#294354" strokeWidth="3" fill="none" strokeLinecap="round" />
-        <Lantern x={95} y={49} lit={Math.floor(game.perfects / 5) >= 1} />
-        <Lantern x={142} y={66} lit={Math.floor(game.perfects / 5) >= 2} />
-        <Lantern x={215} y={47} lit={Math.floor(game.perfects / 5) >= 3} />
+        <Lantern x={95} y={49} lit={Math.floor(game.perfects / 5) >= 1} celebration={beaconCelebration} sequence={8} />
+        <Lantern x={142} y={66} lit={Math.floor(game.perfects / 5) >= 2} celebration={beaconCelebration} sequence={6} />
+        <Lantern x={215} y={47} lit={Math.floor(game.perfects / 5) >= 3} celebration={beaconCelebration} sequence={4} />
         </motion.g>
         </motion.g>
       </g>
@@ -262,9 +296,9 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
         <path d="M774 78q24-30 62-25 42-34 78 0 41-6 58 28-28 11-60 4-39 15-72 1-34 9-66-8z" fill="#9db19f" />
         <path d="M835 64h26v30h-26zM829 65l19-18 19 18z" fill="#e4c19a" />
         <path d="M885 66V43m-8 13 8-14 8 14m37 12V47m-7 12 7-13 7 13" stroke="#294354" strokeWidth="3.4" fill="none" strokeLinecap="round" />
-        <Lantern x={848} y={80} lit={Math.floor(game.perfects / 5) >= 4} />
-        <Lantern x={887} y={57} lit={Math.floor(game.perfects / 5) >= 5} />
-        <Lantern x={923} y={60} lit={Math.floor(game.perfects / 5) >= 6} />
+        <Lantern x={848} y={80} lit={Math.floor(game.perfects / 5) >= 4} celebration={beaconCelebration} sequence={3} />
+        <Lantern x={887} y={57} lit={Math.floor(game.perfects / 5) >= 5} celebration={beaconCelebration} sequence={5} />
+        <Lantern x={923} y={60} lit={Math.floor(game.perfects / 5) >= 6} celebration={beaconCelebration} sequence={7} />
         </motion.g>
         </motion.g>
       </g>
@@ -283,9 +317,26 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
           <path d={`M340 ${groundY - 42}l15-34 15 34zM383 ${groundY - 41}l12-26 12 26zM710 ${groundY - 42}l16-36 16 36zM753 ${groundY - 41}l11-25 12 25z`} />
           <path d={`M347 ${groundY - 42}v17m42-17v17m344-17v17m41-17v17`} stroke="#294657" strokeWidth="4" />
         </g>
-        <Lantern x={355} y={groundY - 65} lit={Math.floor(game.perfects / 5) >= 7} />
-        <Lantern x={397} y={groundY - 62} lit={Math.floor(game.perfects / 5) >= 8} />
-        <Lantern x={726} y={groundY - 67} lit={Math.floor(game.perfects / 5) >= 9} />
+        <Lantern x={355} y={groundY - 65} lit={Math.floor(game.perfects / 5) >= 7} celebration={beaconCelebration} sequence={2} />
+        <Lantern x={397} y={groundY - 62} lit={Math.floor(game.perfects / 5) >= 8} celebration={beaconCelebration} sequence={0} />
+        <Lantern x={726} y={groundY - 67} lit={Math.floor(game.perfects / 5) >= 9} celebration={beaconCelebration} sequence={1} />
+
+        {beaconCelebration > 0 && (
+          <motion.circle
+            key={beaconCelebration}
+            className="beacon-flare"
+            cx="500"
+            cy={groundY - game.stack.length * BLOCK_HEIGHT + BLOCK_HEIGHT / 2}
+            r="30"
+            fill="#ffe4ae"
+            filter="url(#soft-bloom)"
+            initial={{ opacity: 0, scale: 0.35 }}
+            animate={{ opacity: [0, 0.72, 0], scale: [0.35, 1.2, 2.6] }}
+            transition={{ duration: 1.05, ease: 'easeOut' }}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+            pointerEvents="none"
+          />
+        )}
 
         {game.stack.map((block, index) => (
           <BlockShape
@@ -341,6 +392,36 @@ function GameScene({ game, height }: { game: GameState; height: number }) {
       </motion.g>
 
       <path d={`M0 ${height - 58}q112-32 224 0 130-31 264 1 133-35 268 0 111-30 244 4v${58}`} fill="url(#sea)" opacity=".88" />
+      {beaconCelebration > 0 && (
+        <motion.g key={beaconCelebration} pointerEvents="none">
+          <motion.ellipse
+            cx="500"
+            cy={height - 47}
+            rx="560"
+            ry="18"
+            fill="none"
+            stroke="#ffe5b4"
+            strokeWidth="2.4"
+            initial={{ opacity: 0, scale: 0.015 }}
+            animate={{ opacity: [0, 0.78, 0], scale: [0.015, 1] }}
+            transition={{ duration: 1.15, ease: 'easeOut' }}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+          />
+          <motion.ellipse
+            cx="500"
+            cy={height - 47}
+            rx="470"
+            ry="13"
+            fill="none"
+            stroke="#c7eee0"
+            strokeWidth="1.5"
+            initial={{ opacity: 0, scale: 0.015 }}
+            animate={{ opacity: [0, 0.52, 0], scale: [0.015, 1] }}
+            transition={{ duration: 1.35, delay: 0.14, ease: 'easeOut' }}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+          />
+        </motion.g>
+      )}
       <path className="water-glint" d={`M418 ${height - 45}h166m-140 13h116m-96 12h76`} stroke="#efd2ad" strokeWidth="1.6" opacity=".2" strokeLinecap="round" />
     </svg>
   )
