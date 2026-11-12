@@ -107,7 +107,8 @@ const DAILY_EDITIONS: readonly DailyEdition[] = [
     dawnSky: ['#91a3aa', '#c4a797', '#e8ae86', '#f3ca9d'],
     sea: ['#527d80', '#1f4651'],
     dawnSea: ['#c9aa97', '#568184'],
-    moon: { x: 492, y: 0.43, radius: 34, light: '#f7d5ad', body: '#f1d3ad', shade: '#bc927e' },
+    // Kept left of centre so it never sits behind the course title or countdown.
+    moon: { x: 300, y: 0.36, radius: 34, light: '#f7d5ad', body: '#f1d3ad', shade: '#bc927e' },
     mountains: ['#627783', '#41616e'],
     islands: {
       deep: '#315363', leftTop: '#a9bcad', rightTop: '#b3c2b1',
