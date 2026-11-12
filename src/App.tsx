@@ -759,6 +759,8 @@ function GameScene({
   const cloudDuration = (42 - windStrength * 1.1) * (compact ? 1.28 : 1)
   const waterGlintDrift = windDirection * (2 + windStrength * 1.45) * sceneryIntensity
   const waterGlintDuration = Math.max(3.6, 6.2 - windStrength * 0.24) * (compact ? 1.18 : 1)
+  const waterReflectionColor = blendColor('#a5c5c6', '#efd0a4', dawnProgress)
+  const waterReflectionOpacity = 0.16 + dawnProgress * 0.12
   const blockSway = Math.min(2.3, windStrength * 0.28)
   const blockSwayDuration = Math.max(1.65, 3.2 - windStrength * 0.12)
   const nearCloudStyle = {
@@ -773,6 +775,8 @@ function GameScene({
   const waterGlintStyle = {
     '--water-drift': `${waterGlintDrift}px`,
     '--water-duration': `${waterGlintDuration}s`,
+    '--water-glint-low': `${waterReflectionOpacity * 0.45}`,
+    '--water-glint-high': `${waterReflectionOpacity}`,
   } as CSSProperties
 
   useEffect(() => {
@@ -1154,7 +1158,19 @@ function GameScene({
           />
         </motion.g>
       )}
-      <path className="water-glint" style={waterGlintStyle} d={`M418 ${height - 45}h166m-140 13h116m-96 12h76`} stroke="#efd2ad" strokeWidth="1.6" opacity=".2" strokeLinecap="round" />
+      <motion.path
+        className={reducedMotion ? undefined : 'water-glint'}
+        style={waterGlintStyle}
+        d={`M418 ${height - 45}h166m-140 13h116m-96 12h76`}
+        fill="none"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        initial={false}
+        animate={{ stroke: waterReflectionColor }}
+        transition={dawnTransition}
+        opacity={reducedMotion ? waterReflectionOpacity : undefined}
+        pointerEvents="none"
+      />
     </svg>
   )
 }

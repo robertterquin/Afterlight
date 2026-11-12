@@ -122,8 +122,8 @@
 }
 
 @keyframes water-glint {
-  0%, 100% { opacity: .12; transform: translateX(0); }
-  50% { opacity: .34; transform: translateX(var(--water-drift, 0)); }
+  0%, 100% { opacity: var(--water-glint-low, .12); transform: translateX(0); }
+  50% { opacity: var(--water-glint-high, .34); transform: translateX(var(--water-drift, 0)); }
 }
 
 @keyframes wind-glyph {
