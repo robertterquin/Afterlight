@@ -7,7 +7,7 @@ export const SIMULATION_HZ = 60
 
 const LANE_LEFT = 90
 const LANE_RIGHT = 910
-const PERFECT_TOLERANCE = 5
+const PERFECT_TOLERANCE = 8
 const MAX_SPEED = STARTING_SPEED * 2.2
 const PERFECTS_TO_AWAKEN = 5
 const AWAKENING_GROWTH = 32
@@ -101,6 +101,9 @@ const speedAtHeight = (height: number, windPercent: number) => {
   return Math.min(MAX_SPEED, climbSpeed * (1 + windPercent / 100))
 }
 
+const perfectToleranceAtSpeed = (speed: number) =>
+  Math.max(PERFECT_TOLERANCE, speed / SIMULATION_HZ)
+
 export const createGame = (challenge = createDailyChallenge()): GameState => ({
   phase: 'ready',
   challenge,
@@ -186,7 +189,7 @@ export const placeBlock = (game: GameState): GameState => {
 
   const previousCenter = previous.x + previous.width / 2
   const movingCenter = game.moving.x + game.moving.width / 2
-  const perfect = Math.abs(previousCenter - movingCenter) <= PERFECT_TOLERANCE
+  const perfect = Math.abs(previousCenter - movingCenter) <= perfectToleranceAtSpeed(game.speed)
   const perfectStreak = perfect ? game.perfectStreak + 1 : 0
   const growth = perfectStreak < PERFECTS_TO_AWAKEN
     ? 0
