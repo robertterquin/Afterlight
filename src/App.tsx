@@ -507,23 +507,11 @@ function LandingFeedback({
   const contactWidth = contactRight - contactLeft
   if (contactWidth <= 0) return null
 
-  const contactCenter = contactLeft + contactWidth / 2
   const seamY = y + BLOCK_HEIGHT - 2
   const lens = lensGeometry(block, y)
 
   return (
     <motion.g key={`landing-feedback-${placement}`} pointerEvents="none">
-      <motion.ellipse
-        cx={contactCenter}
-        cy={seamY + 4}
-        rx={Math.max(18, contactWidth * 0.45)}
-        ry="4"
-        fill="#10293a"
-        initial={{ opacity: 0, scaleX: 0.72 }}
-        animate={{ opacity: [0, 0.46, 0.18, 0], scaleX: [0.72, 1.08, 1, 0.94] }}
-        transition={{ duration: 0.48, ease: 'easeOut' }}
-        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-      />
 
       {kind === 'near-perfect' && (
         <>
@@ -716,7 +704,8 @@ function WaterImpact({
   surface: ImpactSurface
   forceful?: boolean
 }) {
-  if (surface === 'none') return null
+  // Slivers sink quietly; a splash for every tiny trim reads as noise.
+  if (surface === 'none' || (surface === 'water' && piece.width < 20 && !forceful)) return null
   const center = piece.x + piece.width / 2
   const impactDelay = forceful ? 0.78 : 0.64
   const size = Math.min(forceful ? 1.6 : 1, Math.max(0.55, piece.width / 110))
@@ -746,22 +735,6 @@ function WaterImpact({
   const crown = [[-16, -26], [-6, -36], [6, -34], [16, -24]]
   return (
     <motion.g pointerEvents="none">
-      {[0, 0.16].map((lag, ring) => (
-        <motion.ellipse
-          key={ring}
-          cx={center}
-          cy={surfaceY + 2}
-          rx={(ring ? 62 : 40) * size}
-          ry={(ring ? 9 : 6) * size}
-          fill="none"
-          stroke="#e3efe8"
-          strokeWidth={ring ? 1.2 : 2}
-          initial={{ opacity: 0, scale: 0.2 }}
-          animate={{ opacity: [0, ring ? 0.45 : 0.8, 0], scale: [0.2, 1, 1.4] }}
-          transition={{ duration: 0.9, delay: impactDelay + lag, ease: 'easeOut' }}
-          style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-        />
-      ))}
       {crown.map(([dx, dy], index) => (
         <motion.path
           key={index}
