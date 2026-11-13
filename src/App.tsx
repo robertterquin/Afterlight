@@ -1930,6 +1930,22 @@ function App() {
     return () => window.clearTimeout(timer)
   }, [authInitialized, game.challenge.date, playerId, refreshLeaderboard])
 
+  // Keep the board current while the page is open: every 30 seconds, and on coming back to the tab.
+  // Skipped mid-run so play stays smooth; the run's own submit refreshes it at the end.
+  useEffect(() => {
+    if (!authInitialized || !playerId) return
+    const refresh = () => {
+      if (document.visibilityState !== 'visible' || gameRef.current.phase === 'playing') return
+      void refreshLeaderboard(gameRef.current.challenge.date)
+    }
+    const timer = window.setInterval(refresh, 30_000)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [authInitialized, playerId, refreshLeaderboard])
+
   const playSound = useCallback((cue: Cue, delay = 0) => {
     if (soundEnabledRef.current) sounds.play(cue, delay)
   }, [sounds])

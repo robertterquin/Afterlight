@@ -164,8 +164,9 @@ export const Leaderboard = memo(function Leaderboard({
   const [draftName, setDraftName] = useState(playerName)
   const [nameError, setNameError] = useState<string | null>(null)
   const [expandedRank, setExpandedRank] = useState<number | null>(null)
-  const podium = entries.filter((entry) => entry.rank <= 3)
-  const personalEntry = entries.find((entry) => entry.is_you && entry.rank > 3)
+  // The server sends the top ten, plus the player's own row when they rank lower.
+  const topTen = entries.filter((entry) => entry.rank <= 10)
+  const personalEntry = entries.find((entry) => entry.is_you && entry.rank > 10)
 
   useEffect(() => {
     if (expandedRank === null) return
@@ -211,9 +212,9 @@ export const Leaderboard = memo(function Leaderboard({
           {!loading && !error && entries.length === 0 && (
             <p className="leaderboard-message">No scores yet. Set the first mark.</p>
           )}
-          {podium.length > 0 && (
-            <ol className="leaderboard-list" aria-label="Top three scores">
-              {podium.map((entry) => (
+          {topTen.length > 0 && (
+            <ol className="leaderboard-list" aria-label="Top ten scores">
+              {topTen.map((entry) => (
                 <ScoreRow
                   key={entry.rank}
                   entry={entry}
@@ -225,8 +226,8 @@ export const Leaderboard = memo(function Leaderboard({
           )}
           {personalEntry && (
             <div className="personal-rank">
-              {personalEntry.rank > 4 && (
-                <p className="leaderboard-between">{personalEntry.rank - 4} {personalEntry.rank === 5 ? 'climber' : 'climbers'} between</p>
+              {personalEntry.rank > 11 && (
+                <p className="leaderboard-between">{personalEntry.rank - 11} {personalEntry.rank === 12 ? 'climber' : 'climbers'} between</p>
               )}
               <ol className="leaderboard-list" aria-label="Your best rank">
                 <ScoreRow

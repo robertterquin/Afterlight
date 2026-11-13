@@ -1330,6 +1330,16 @@
   color: var(--accent);
 }
 
+/* Ranks 4 to 10 sit in tighter rows under the podium. */
+.leaderboard-row.rank-4 .leaderboard-row-button {
+  min-height: 50px;
+  padding-block: 6px;
+}
+
+.leaderboard-row.rank-4 .leaderboard-score strong {
+  font-size: 22px;
+}
+
 .personal-rank {
   margin-top: 14px;
   padding-top: 0;
