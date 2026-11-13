@@ -1,0 +1,39 @@
+{
+  "name": "afterlight-showreel",
+  "version": "1.0.0",
+  "description": "15-second Remotion showreel for Afterlight, in landscape and portrait.",
+  "repository": {},
+  "license": "UNLICENSED",
+  "engines": {
+    "node": "^20.19.0 || ^22.13.0 || >=24"
+  },
+  "private": true,
+  "dependencies": {
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@fontsource-variable/newsreader": "^5.3.0",
+    "@remotion/cli": "4.0.543",
+    "@remotion/fonts": "4.0.543",
+    "@remotion/media": "4.0.543",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "remotion": "4.0.543"
+  },
+  "devDependencies": {
+    "@remotion/eslint-config-flat": "4.0.543",
+    "@types/react": "19.3.0",
+    "@types/web": "0.0.166",
+    "eslint": "10.12.0",
+    "prettier": "3.8.1",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "audio": "node scripts/make-audio.mjs",
+    "dev": "npm run audio && remotion studio",
+    "stills": "npm run audio && ./scripts/stills.sh",
+    "render": "npm run audio && remotion render ShowreelLandscape out/showreel-landscape.mp4 --codec=h264 --crf=18 && remotion render ShowreelPortrait out/showreel-portrait.mp4 --codec=h264 --crf=18",
+    "lint": "eslint src && tsc"
+  },
+  "allowScripts": {
+    "esbuild": false
+  }
+}
