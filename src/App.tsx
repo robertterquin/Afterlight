@@ -1422,13 +1422,19 @@ function Pennant({ block, y, floor, fresh }: { block: Block; y: number; floor: n
   )
 }
 
+// On phones the scene shows only the play lanes (x 80 to 920, where the moving stone travels),
+// so everything draws about a fifth larger without hiding the stone at either end.
+const PHONE_VIEW_WIDTH = 840
+
 function GameScene({
   game,
   height,
+  viewWidth,
   isWaking = false,
 }: {
   game: GameState
   height: number
+  viewWidth: number
   isWaking?: boolean
 }) {
   const { compact, reducedMotion } = useScenePreferences()
@@ -1451,9 +1457,10 @@ function GameScene({
   const edition = dailyEditionForSeed(game.challenge.seed)
   const groundY = height - 105
   const activeY = groundY - (game.stack.length + 1) * BLOCK_HEIGHT
-  const tallMobileViewport = compact && height > WORLD_WIDTH * 1.15
+  const tallMobileViewport = compact && height > viewWidth * 1.15
   // On tall phones the full-height stage needs the tower higher, clear of the Start button and play hint.
-  const targetY = height * (tallMobileViewport ? 0.52 : compact ? 0.48 : 0.43)
+  // Before the climb the island must clear the Start button; once climbing, sit lower so less empty sea shows below.
+  const targetY = height * (tallMobileViewport ? (game.phase === 'ready' ? 0.52 : 0.6) : compact ? 0.48 : 0.43)
   const cameraShift = targetY - activeY
   const climbProgress = game.stack.length * BLOCK_HEIGHT
   const horizon = Math.round(height * 0.42)
@@ -1491,7 +1498,7 @@ function GameScene({
   return (
     <svg
       className="game-scene"
-      viewBox={`0 0 ${WORLD_WIDTH} ${height}`}
+      viewBox={`${(WORLD_WIDTH - viewWidth) / 2} 0 ${viewWidth} ${height}`}
       preserveAspectRatio="none"
       role="img"
       aria-label={`Afterlight tower, height ${heightOf(game)}`}
@@ -1685,7 +1692,7 @@ function GameScene({
 
 function App() {
   const [game, setGame] = useState(createGame)
-  const [sceneHeight, setSceneHeight] = useState(760)
+  const [sceneSize, setSceneSize] = useState({ height: 760, viewWidth: WORLD_WIDTH })
   const [isWaking, setIsWaking] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(readSoundPreference)
   const [playerId, setPlayerId] = useState<string | null>(null)
@@ -1965,7 +1972,8 @@ function App() {
     const resizeObserver = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect
       if (width > 0 && height > 0) {
-        setSceneHeight(Math.round((WORLD_WIDTH * height) / width))
+        const viewWidth = width <= 700 ? PHONE_VIEW_WIDTH : WORLD_WIDTH
+        setSceneSize({ height: Math.round((viewWidth * height) / width), viewWidth })
       }
     })
     resizeObserver.observe(stage)
@@ -2108,7 +2116,7 @@ function App() {
           ref={stageRef}
           onPointerDown={handlePlace}
         >
-          <GameScene game={game} height={sceneHeight} isWaking={isWaking} />
+          <GameScene game={game} height={sceneSize.height} viewWidth={sceneSize.viewWidth} isWaking={isWaking} />
 
           {inRun && (
             <div className="run-hud">
