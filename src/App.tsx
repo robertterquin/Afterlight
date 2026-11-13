@@ -4,6 +4,7 @@ import afterlightMark from './assets/afterlight-mark.svg'
 import { Leaderboard } from './DailyLeaderboard'
 import { createSoundBoard, type Cue } from './sound'
 import { readStreak, saveClimb, summarize } from './streak'
+import { brightestStar, zodiacForDate, type Zodiac } from './zodiac'
 import { drawShareCard, shareText, type ShareCardInput } from './shareCard'
 import { HeightLadder, ReadyOverlay, StreakPill } from './Hud'
 import type { LeaderboardEntry } from './leaderboard'
@@ -295,6 +296,7 @@ function shareInputFor(finished: GameState, rank: number | null): ShareCardInput
     island: { deep: edition.tower.deep, top: edition.tower.top },
     stone: { top: edition.stone.top, front: edition.stone.front, side: edition.stone.side },
     night: edition.night,
+    sign: zodiacForDate(finished.challenge.date),
   }
 }
 
@@ -1599,7 +1601,8 @@ const HighSky = memo(function HighSky({ horizon, presence, reducedMotion }: { ho
  * The sky above the clouds, for climbs past 36 stones. Three stages, each tied to height:
  * 40–55  the edge of the sky: night returns overhead, stars come out, the cloud sea curves like the world below.
  * 62–80  among the stars: every second stone, the beacon links one more star into a gold chain.
- * 94–100 the closing arch: from the chain's ends, stars climb toward the middle and meet at the beacon star at 100.
+ * 94–100 the season's constellation: the zodiac sign of the current date appears star by star, and at 100 its
+ *        brightest star (Antares for Scorpio, Spica for Virgo…) lights up.
  * Everything here is static paths and gradients that only change when a stone lands, so phones stay smooth.
  */
 const UPPER_EDGE_FROM = 40
@@ -1608,20 +1611,14 @@ const STAR_CHAIN_FROM = 62
 const STAR_CHAIN_STEP = 2
 const BEACON_CONSTELLATION_FROM = 94
 
-// Chain stars as [x in world units, y as a share of the horizon height]. Its two ends are where the arch starts.
+// Chain stars as [x in world units, y as a share of the horizon height].
 const STAR_CHAIN = [[200, 0.7], [255, 0.48], [310, 0.62], [370, 0.3], [440, 0.12], [560, 0.08], [700, 0.22], [720, 0.6], [770, 0.42], [800, 0.7]] as const
-
-// The closing arch: from the chain's two ends, three pairs of stars climb toward the middle and meet at the
-// beacon star, straight above the tower. Mirrored about the centre; the left side rises steeply enough to
-// clear the height counter and the perfect-streak pill on desktop.
-const ARCH_PAIRS = [[295, 0.6], [345, 0.45], [415, 0.31]] as const
-const ARCH_APEX = [500, 0.22] as const
 
 /** How many links of the star chain are drawn at this height. */
 const starLinks = (height: number) =>
   Math.max(0, Math.min(STAR_CHAIN.length - 1, Math.floor((height - STAR_CHAIN_FROM) / STAR_CHAIN_STEP) + 1))
 
-/** 0 before 94, then one more pair of arch stars every two stones; at 100 (4) the arch meets at the beacon star. */
+/** 0 before 94, then a third more of the constellation's stars every two stones; at 100 (4) its brightest star lights. */
 const beaconConstellationStage = (height: number) =>
   height < BEACON_CONSTELLATION_FROM ? 0 : Math.min(4, Math.floor((height - BEACON_CONSTELLATION_FROM) / 2) + 1)
 
@@ -1633,6 +1630,7 @@ const UpperSky = memo(function UpperSky({
   beam,
   portrait,
   palette,
+  sign,
   reducedMotion,
 }: {
   horizon: number
@@ -1644,6 +1642,8 @@ const UpperSky = memo(function UpperSky({
   /** Tall phone screens: the chain and constellation sit lower, clear of the height counter. */
   portrait: boolean
   palette: NightPalette
+  /** The zodiac constellation of the current season. */
+  sign: Zodiac
   reducedMotion: boolean
 }) {
   const stars = useMemo(() => {
@@ -1661,10 +1661,20 @@ const UpperSky = memo(function UpperSky({
     return { faint, bright }
   }, [horizon])
   const chain = STAR_CHAIN.map(([x, share]) => ({ x, y: round1(horizon * (portrait ? 0.27 + share * 0.6 : share)) }))
-  const skyY = (share: number) => round1(horizon * (portrait ? 0.27 + share * 0.6 : share))
-  const archLeft = [chain[0], ...ARCH_PAIRS.map(([x, share]) => ({ x, y: skyY(share) }))]
-  const archRight = [chain[chain.length - 1], ...ARCH_PAIRS.map(([x, share]) => ({ x: WORLD_WIDTH - x, y: skyY(share) }))]
-  const light = { x: ARCH_APEX[0], y: skyY(ARCH_APEX[1]) }
+  // The constellation sits straight above the tower: clear of the height counter and streak pill on desktop,
+  // below them on tall phone screens.
+  const scale = portrait ? 3 : 2.6
+  const originX = WORLD_WIDTH / 2 - 50 * scale
+  const originY = round1(horizon * (portrait ? 0.34 : 0.07))
+  const signStars = sign.stars.map(([x, y, magnitude, color]) => ({
+    x: round1(originX + x * scale),
+    y: round1(originY + y * scale),
+    // Sized by real brightness: each magnitude brighter is a clearly bigger star.
+    r: round1(Math.max(1.3, 1.7 + (5 - magnitude) * 1.25)),
+    color,
+  }))
+  const hero = brightestStar(sign)
+  const revealed = constellation >= 3 ? signStars.length : Math.ceil((signStars.length * constellation) / 3)
   const drawn = { duration: reducedMotion ? 0 : 1.1, ease: [0.22, 1, 0.36, 1] as const }
   const newest = chain[links]
 
@@ -1677,9 +1687,9 @@ const UpperSky = memo(function UpperSky({
           <stop offset="1" stopColor={palette.sky[2]} stopOpacity=".42" />
         </linearGradient>
         <radialGradient id="upper-flare">
-          <stop stopColor="#fff3d4" stopOpacity=".95" />
-          <stop offset=".35" stopColor="#f2c58f" stopOpacity=".35" />
-          <stop offset="1" stopColor="#f2c58f" stopOpacity="0" />
+          <stop stopColor="#fffaf2" stopOpacity=".9" />
+          <stop offset=".35" stopColor={sign.stars[brightestStar(sign)][3]} stopOpacity=".35" />
+          <stop offset="1" stopColor={sign.stars[brightestStar(sign)][3]} stopOpacity="0" />
         </radialGradient>
       </defs>
 
@@ -1703,7 +1713,7 @@ const UpperSky = memo(function UpperSky({
               strokeLinecap="round"
               fill="none"
               initial={reducedMotion ? false : { pathLength: 0, opacity: 0.24 }}
-              // Once the arch starts forming, the chain's lines fade and only its stars stay.
+              // Once the constellation starts forming, the chain's lines fade and only its stars stay.
               animate={{ pathLength: 1, opacity: constellation > 0 ? 0 : 0.24 }}
               transition={drawn}
             />
@@ -1727,46 +1737,50 @@ const UpperSky = memo(function UpperSky({
         />
       )}
 
-      {/* The closing arch: a pair of stars and their lines every two stones from 94; at 100 the arch meets at the beacon star. */}
+      {/* The season's constellation: its stars appear a third at a time from 94; at 100 the brightest one lights. */}
       {constellation > 0 && (
         <g>
-          {[archLeft, archRight].map((side, sideIndex) => {
-            const reached = Math.min(constellation, 3)
-            const points = constellation === 4 ? [...side, light] : side.slice(0, reached + 1)
-            return points.slice(1).map((star, index) => (
+          {sign.lines.filter(([from, to]) => from < revealed && to < revealed).map(([from, to]) => {
+            const a = signStars[from]
+            const b = signStars[to]
+            const length = Math.hypot(b.x - a.x, b.y - a.y)
+            // Like a star chart, each line stops just short of its stars.
+            const gapA = (a.r + 5) / length
+            const gapB = (b.r + 5) / length
+            if (gapA + gapB >= 1) return null
+            return (
               <motion.path
-                key={`${sideIndex}-${index}`}
-                d={`M${points[index].x} ${points[index].y}L${star.x} ${star.y}`}
+                key={`${from}-${to}`}
+                d={`M${round1(a.x + (b.x - a.x) * gapA)} ${round1(a.y + (b.y - a.y) * gapA)}L${round1(b.x - (b.x - a.x) * gapB)} ${round1(b.y - (b.y - a.y) * gapB)}`}
                 stroke={palette.line}
                 strokeWidth="1"
                 strokeLinecap="round"
                 fill="none"
                 initial={reducedMotion ? false : { pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: 0.6 }}
+                animate={{ pathLength: 1, opacity: 0.5 }}
                 transition={drawn}
               />
-            ))
+            )
           })}
-          {[archLeft, archRight].flatMap((side, sideIndex) => side.slice(1, Math.min(constellation, 3) + 1).map((star, index) => (
-            <motion.circle
-              key={`${sideIndex}-${index}`}
-              cx={star.x}
-              cy={star.y}
-              r={2.2 + index * 0.35}
-              fill="#fff4e2"
+          {signStars.slice(0, revealed).map((star, index) => (
+            <motion.g
+              key={index}
               initial={reducedMotion ? false : { opacity: 0, scale: 0.2 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: reducedMotion ? 0 : 0.6, ease: 'easeOut' }}
               style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-            />
-          )))}
+            >
+              <circle cx={star.x} cy={star.y} r={round1(star.r * 2.6)} fill={star.color} opacity=".12" />
+              <circle className={reducedMotion || index === hero ? undefined : 'star-sparkle'} cx={star.x} cy={star.y} r={star.r} fill={star.color} />
+            </motion.g>
+          ))}
           {constellation === 4 && (
             <>
-              {/* The light is the hero: a soft glow, a thin four-point sparkle and the brightest star in the sky. */}
+              {/* Its brightest star is the hero: a soft glow in its own colour and a thin four-point sparkle. */}
               <motion.circle
-                cx={light.x}
-                cy={light.y}
-                r="72"
+                cx={signStars[hero].x}
+                cy={signStars[hero].y}
+                r="70"
                 fill="url(#upper-flare)"
                 initial={reducedMotion ? false : { opacity: 0, scale: 0.3 }}
                 animate={{ opacity: [0, 1, 0.6], scale: [0.3, 1.25, 1] }}
@@ -1774,8 +1788,8 @@ const UpperSky = memo(function UpperSky({
                 style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
               />
               <motion.path
-                d={`M${light.x - 16} ${light.y}H${light.x + 16}M${light.x} ${light.y - 16}V${light.y + 16}`}
-                stroke="#fff3d4"
+                d={`M${signStars[hero].x - 18} ${signStars[hero].y}H${signStars[hero].x + 18}M${signStars[hero].x} ${signStars[hero].y - 18}V${signStars[hero].y + 18}`}
+                stroke={signStars[hero].color}
                 strokeWidth="1"
                 strokeLinecap="round"
                 initial={reducedMotion ? false : { opacity: 0, scale: 0.2 }}
@@ -1783,7 +1797,9 @@ const UpperSky = memo(function UpperSky({
                 transition={{ duration: reducedMotion ? 0 : 0.9, delay: reducedMotion ? 0 : 0.15, ease: 'easeOut' }}
                 style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
               />
-              <circle cx={light.x} cy={light.y} r="5.2" fill="#fffaf0" />
+              {/* In its own colour (Antares stays red, Spica blue-white), with a small white-hot core. */}
+              <circle cx={signStars[hero].x} cy={signStars[hero].y} r={round1(signStars[hero].r * 1.35)} fill={signStars[hero].color} />
+              <circle cx={signStars[hero].x} cy={signStars[hero].y} r={round1(signStars[hero].r * 0.55)} fill="#fffaf2" />
             </>
           )}
         </g>
@@ -2068,7 +2084,7 @@ function GameScene({
       <SeaBackdrop edition={edition} height={height} horizon={horizon} dawnProgress={dawnProgress} reducedMotion={reducedMotion} />
       <HighSky horizon={horizon} presence={highSky} reducedMotion={reducedMotion} />
       {towerHeight >= UPPER_EDGE_FROM - 2 && (
-        <UpperSky horizon={horizon} edge={upperEdge} links={links} constellation={constellation} beam={beam} portrait={compact} palette={edition.night} reducedMotion={reducedMotion} />
+        <UpperSky horizon={horizon} edge={upperEdge} links={links} constellation={constellation} beam={beam} portrait={compact} palette={edition.night} sign={zodiacForDate(game.challenge.date)} reducedMotion={reducedMotion} />
       )}
       {towerHeight >= LANTERNS_FROM && !reducedMotion && <SkyLanterns horizon={horizon} towerHeight={towerHeight} portrait={compact} />}
       {towerHeight >= SHOOTING_STARS_FROM && !reducedMotion && <ShootingStars horizon={horizon} towerHeight={towerHeight} portrait={compact} />}

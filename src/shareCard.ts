@@ -1,4 +1,5 @@
 import type { Block } from './game'
+import { brightestStar, type Zodiac } from './zodiac'
 
 export type ShareCardInput = {
   courseName: string
@@ -17,6 +18,8 @@ export type ShareCardInput = {
   stone: { top: string; front: string; side: string }
   /** The course's night above the clouds, used for runs of 40+ stones. */
   night: { sky: readonly [string, string, string]; cloudLit: string; cloudShade: string; rim: string; line: string }
+  /** The season's zodiac constellation, shown on 100+ runs as it was reached in the game. */
+  sign: Zodiac
 }
 
 const WIDTH = 1080
@@ -27,7 +30,7 @@ const GOLD = { top: '#ffe3bc', front: '#f2c58f', side: '#c9935f' }
 const HIGH_FROM = 40
 const LANTERNS_FROM = 42
 const SHOOTING_STAR_FROM = 62
-const ARCH_AT = 100
+const CONSTELLATION_AT = 100
 // The cloud sea's curved top: highest in the middle, falling away at the edges like the world below.
 const cloudTopY = (x: number) => 1000 + ((x - WIDTH / 2) / (WIDTH / 2)) ** 2 * 45
 
@@ -241,7 +244,7 @@ function drawNightBackdrop(ctx: CanvasRenderingContext2D, input: ShareCardInput)
   ctx.globalAlpha = 1
 }
 
-/** 40+ stones, drawn over the tower: cloud tufts around its base, then lanterns, a shooting star or the arch. */
+/** 40+ stones, drawn over the tower: cloud tufts around its base, then lanterns, a shooting star or the constellation. */
 function drawHighDetails(ctx: CanvasRenderingContext2D, input: ShareCardInput, light: { x: number; y: number }) {
   const { night } = input
   ctx.fillStyle = night.cloudLit
@@ -273,7 +276,7 @@ function drawHighDetails(ctx: CanvasRenderingContext2D, input: ShareCardInput, l
     }
   }
 
-  if (input.height >= SHOOTING_STAR_FROM && input.height < ARCH_AT) {
+  if (input.height >= SHOOTING_STAR_FROM && input.height < CONSTELLATION_AT) {
     const streak = ctx.createLinearGradient(700, 150, 960, 240)
     streak.addColorStop(0, 'rgba(255, 246, 224, 0)')
     streak.addColorStop(1, 'rgba(255, 246, 224, .95)')
@@ -286,39 +289,50 @@ function drawHighDetails(ctx: CanvasRenderingContext2D, input: ShareCardInput, l
     ctx.stroke()
   }
 
-  if (input.height >= ARCH_AT) {
-    // The closing arch: two lines of stars rising from the cloud sea and meeting at the tower's beacon.
-    const side = (baseX: number) => [0, 0.32, 0.58, 0.8].map((t) => ({
-      x: baseX + (light.x - baseX) * t,
-      y: 900 + (light.y - 900) * (1 - (1 - t) ** 2),
-    }))
-    for (const stars of [side(150), side(2 * light.x - 150)]) {
-      ctx.strokeStyle = night.line
-      ctx.globalAlpha = 0.6
-      ctx.lineWidth = 2
+  if (input.height >= CONSTELLATION_AT) {
+    // The season's constellation, top right and clear of the score, with its brightest star lit.
+    const { sign } = input
+    const place = (x: number, y: number) => ({ x: 720 + x * 3, y: 60 + y * 3 })
+    const stars = sign.stars.map(([x, y, magnitude, color]) => ({ ...place(x, y), r: Math.max(2.4, 3 + (5 - magnitude) * 2.1), color }))
+    ctx.strokeStyle = night.line
+    ctx.globalAlpha = 0.5
+    ctx.lineWidth = 2
+    for (const [from, to] of sign.lines) {
+      const a = stars[from]
+      const b = stars[to]
+      const length = Math.hypot(b.x - a.x, b.y - a.y)
+      const gapA = (a.r + 8) / length
+      const gapB = (b.r + 8) / length
+      if (gapA + gapB >= 1) continue
       ctx.beginPath()
-      ;[...stars, light].forEach((star, index) => (index ? ctx.lineTo(star.x, star.y) : ctx.moveTo(star.x, star.y)))
+      ctx.moveTo(a.x + (b.x - a.x) * gapA, a.y + (b.y - a.y) * gapA)
+      ctx.lineTo(b.x - (b.x - a.x) * gapB, b.y - (b.y - a.y) * gapB)
       ctx.stroke()
-      ctx.globalAlpha = 1
-      stars.forEach((star, index) => {
-        ctx.fillStyle = '#fff4e2'
-        ctx.beginPath()
-        ctx.arc(star.x, star.y, 4 + index * 0.8, 0, Math.PI * 2)
-        ctx.fill()
-      })
     }
-    const flare = ctx.createRadialGradient(light.x, light.y, 0, light.x, light.y, 150)
-    flare.addColorStop(0, 'rgba(255, 243, 212, .6)')
-    flare.addColorStop(1, 'rgba(242, 197, 143, 0)')
+    ctx.globalAlpha = 1
+    const hero = stars[brightestStar(sign)]
+    const flare = ctx.createRadialGradient(hero.x, hero.y, 0, hero.x, hero.y, 120)
+    flare.addColorStop(0, 'rgba(255, 250, 242, .55)')
+    flare.addColorStop(1, 'rgba(255, 250, 242, 0)')
     ctx.fillStyle = flare
-    ctx.fillRect(light.x - 150, light.y - 150, 300, 300)
-    ctx.strokeStyle = 'rgba(255, 243, 212, .85)'
+    ctx.fillRect(hero.x - 120, hero.y - 120, 240, 240)
+    for (const star of stars) {
+      ctx.fillStyle = star.color
+      ctx.beginPath()
+      ctx.arc(star.x, star.y, star === hero ? star.r * 1.35 : star.r, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.fillStyle = '#fffaf2'
+    ctx.beginPath()
+    ctx.arc(hero.x, hero.y, hero.r * 0.55, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = hero.color
     ctx.lineWidth = 2
     ctx.beginPath()
-    ctx.moveTo(light.x - 34, light.y)
-    ctx.lineTo(light.x + 34, light.y)
-    ctx.moveTo(light.x, light.y - 34)
-    ctx.lineTo(light.x, light.y + 34)
+    ctx.moveTo(hero.x - 30, hero.y)
+    ctx.lineTo(hero.x + 30, hero.y)
+    ctx.moveTo(hero.x, hero.y - 30)
+    ctx.lineTo(hero.x, hero.y + 30)
     ctx.stroke()
   }
 }

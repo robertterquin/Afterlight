@@ -61,7 +61,7 @@ All of these are visual and sound only. None of them affect the score or the phy
   | 42–60 | every third stone, a warm sky lantern rises out of the cloud sea and fades among the stars |
   | from 62 | every fourth stone, a shooting star streaks across the sky |
   | 62–78 | every second stone, the beacon links one more star into a gold chain |
-  | 94–100 | the closing arch: from the chain's two ends, a pair of stars climbs toward the middle every two stones, and at 100 the arch meets at the beacon star above the tower, with a chime |
+  | 94–100 | the season's zodiac constellation (Scorpio from Oct 23, Sagittarius from Nov 22, and so on through the year) appears a third at a time; at 100 its brightest star lights up in its real colour, with a chime |
 
 - **Haptics (Android):** a short tick when a stone lands, a double tick on a perfect drop, a stronger rising pattern when the stone grows, a longer buzz on a miss, and a celebratory pattern at 100. iPhones don't let websites vibrate. The sound button turns vibration off too.
 - There are no lives, paid boosts, random rewards, streak penalties or reminder notifications.
@@ -74,7 +74,7 @@ All of these are visual and sound only. None of them affect the score or the phy
   - The first finished run of the day shows "Day N · streak kept" when it continues a streak of two days or more.
   - Nothing shows on a player's first day.
 - **Yesterday's podium:** after a top-3 finish, the next day's ready screen shows "Yesterday you finished #2" with the board's gold, silver or bronze badge. Fourth place or lower shows nothing.
-- **Share card:** each run is drawn as a 1080×1350 picture of the actual tower on that day's course, with perfect drops in gold. Runs of 40+ stones are drawn above the clouds in the course's night: with sky lanterns (42–61), a shooting star (62–99), or the closing arch meeting at the tower's beacon (100+).
+- **Share card:** each run is drawn as a 1080×1350 picture of the actual tower on that day's course, with perfect drops in gold. Runs of 40+ stones are drawn above the clouds in the course's night: with sky lanterns (42–61), a shooting star (62–99), or the season's zodiac constellation with its brightest star lit (100+).
   - Phones share the picture with just the game link through the phone's share sheet.
   - Computers copy a one-line text version, and also get a **Save image** link.
 
