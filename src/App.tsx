@@ -1858,6 +1858,8 @@ function App() {
   // can't hit its invisible "Climb again" button and skip the result.
   const [overCardReady, setOverCardReady] = useState(false)
   const [streakRecord, setStreakRecord] = useState(readStreak)
+  // The player's rank on yesterday's board, shown on the ready screen only after a top-3 finish.
+  const [yesterdayRank, setYesterdayRank] = useState<number | null>(null)
   // The day number shown on the run-over screen, only for the day's first finished climb of a streak.
   const [streakKeptDay, setStreakKeptDay] = useState(0)
   const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'saved' | 'not-best' | 'failed' | 'offline'>('idle')
@@ -1943,6 +1945,22 @@ function App() {
     const timer = window.setTimeout(() => void refreshLeaderboard(challengeDate), 0)
     return () => window.clearTimeout(timer)
   }, [authInitialized, game.challenge.date, playerId, refreshLeaderboard])
+
+  useEffect(() => {
+    if (!authInitialized || !playerId) return
+    let cancelled = false
+    const yesterday = new Date(Date.parse(game.challenge.date) - 86_400_000).toISOString().slice(0, 10)
+    void (async () => {
+      try {
+        const { getDailyLeaderboard } = await import('./leaderboard')
+        const you = (await getDailyLeaderboard(yesterday)).find((entry) => entry.is_you)
+        if (!cancelled) setYesterdayRank(you && you.rank <= 3 ? you.rank : null)
+      } catch {
+        // A missing line is fine; the ready screen just shows nothing extra.
+      }
+    })()
+    return () => { cancelled = true }
+  }, [authInitialized, game.challenge.date, playerId])
 
   // Keep the board current while the page is open: every 30 seconds, and on coming back to the tab.
   // Skipped mid-run so play stays smooth; the run's own submit refreshes it at the end.
@@ -2408,6 +2426,7 @@ function App() {
                   dateLabel={formatDailyDate(game.challenge.date)}
                   entries={leaderboardEntries}
                   streak={summarize(streakRecord, game.challenge.date)}
+                  yesterdayRank={yesterdayRank}
                   onStart={start}
                 />
               </motion.div>

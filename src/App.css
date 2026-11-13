@@ -1477,8 +1477,36 @@
   margin-top: 14px;
   color: var(--text-soft);
   font-size: 13px;
-  text-shadow: 0 1px 10px rgba(5, 20, 31, .85);
+  text-shadow: 0 1px 3px rgba(5, 20, 31, .95), 0 0 16px rgba(5, 20, 31, .9);
 }
+
+/* "Yesterday you finished #2": only after a top-3 finish, with the board's own rank badge. */
+.ready-yesterday {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: -2px 0 0;
+  color: #eef2f2;
+  font-size: 13px;
+  text-shadow: 0 1px 3px rgba(5, 20, 31, .95), 0 0 16px rgba(5, 20, 31, .9);
+}
+
+.yesterday-medal {
+  width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 7px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+  text-shadow: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 -2px 0 rgba(0, 0, 0, .15), 0 2px 8px rgba(5, 20, 31, .6);
+}
+
+.yesterday-medal.rank-1 { background: linear-gradient(160deg, #fde2b6, #e9b276); }
+.yesterday-medal.rank-2 { background: linear-gradient(160deg, #eef3f4, #aebcc0); }
+.yesterday-medal.rank-3 { background: linear-gradient(160deg, #ecb594, #bd7e5a); }
 
 .streak-week {
   display: flex;

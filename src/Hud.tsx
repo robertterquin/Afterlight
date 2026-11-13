@@ -29,12 +29,14 @@ export function ReadyOverlay({
   dateLabel,
   entries,
   streak,
+  yesterdayRank,
   onStart,
 }: {
   editionName: string
   dateLabel: string
   entries: LeaderboardEntry[]
   streak: Streak
+  yesterdayRank: number | null
   onStart: () => void
 }) {
   const countdown = useCountdown()
@@ -58,6 +60,12 @@ export function ReadyOverlay({
             </span>
             <span>{streakText}</span>
           </div>
+        )}
+        {yesterdayRank !== null && (
+          <p className="ready-yesterday">
+            <b className={`yesterday-medal rank-${yesterdayRank}`}>{yesterdayRank}</b>
+            Yesterday you finished #{yesterdayRank}
+          </p>
         )}
       </div>
 
