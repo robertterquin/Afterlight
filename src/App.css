@@ -1821,6 +1821,12 @@
   margin-top: 6px;
 }
 
+.over-links {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
 .share-link {
   margin: 0;
   padding: 10px 14px;

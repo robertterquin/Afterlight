@@ -229,6 +229,20 @@ const DAILY_EDITIONS: readonly DailyEdition[] = [
   },
 ]
 
+/**
+ * Computers (mouse or trackpad) get a Save image link: their share sheets, where they exist, can't save
+ * to disk. Phones don't need it; their share sheet already offers Save Image.
+ */
+const offerSaveImage = (() => {
+  try {
+    const canSharePictures = typeof navigator.canShare === 'function'
+      && navigator.canShare({ files: [new File([''], 'afterlight.png', { type: 'image/png' })] })
+    return !canSharePictures || window.matchMedia('(hover: hover) and (pointer: fine)').matches
+  } catch {
+    return true
+  }
+})()
+
 /** Everything the share card and its text need from a finished run. */
 function shareInputFor(finished: GameState, rank: number | null): ShareCardInput {
   const edition = dailyEditionForDate(finished.challenge.date)
@@ -2050,6 +2064,23 @@ function App() {
     return () => { cancelled = true }
   }, [game, runRank])
 
+  // On computers the card can also be saved as a file, to upload anywhere.
+  const saveImage = useCallback(async () => {
+    let file = shareFileRef.current
+    if (!file) {
+      const finished = gameRef.current
+      const blob = await drawShareCard(shareInputFor(finished, runRank))
+      if (!blob) return
+      file = new File([blob], `afterlight-${finished.challenge.date}.png`, { type: 'image/png' })
+    }
+    const url = URL.createObjectURL(file)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = file.name
+    link.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 10_000)
+  }, [runRank])
+
   const shareRun = useCallback(async () => {
     const finished = gameRef.current
     const text = shareText(shareInputFor(finished, runRank))
@@ -2428,9 +2459,16 @@ function App() {
                 >
                   Climb again
                 </motion.button>
-                <button className="text-button share-link" type="button" onClick={() => void shareRun()}>
-                  <span aria-live="polite">{shareNote || 'Share'}</span>
-                </button>
+                <div className="over-links">
+                  <button className="text-button share-link" type="button" onClick={() => void shareRun()}>
+                    <span aria-live="polite">{shareNote || 'Share'}</span>
+                  </button>
+                  {offerSaveImage && (
+                    <button className="text-button share-link" type="button" onClick={() => void saveImage()}>
+                      Save image
+                    </button>
+                  )}
+                </div>
                 {/* Only problems are worth a line here; a clean save needs no message. */}
                 {(submissionStatus === 'failed' || submissionStatus === 'offline') && (
                   <p className="result-submission is-failed" role="status">
