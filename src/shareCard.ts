@@ -29,20 +29,11 @@ export const perfectStones = (stack: Block[]) =>
     return Math.abs(block.x + block.width / 2 - (below.x + below.width / 2)) < 0.01
   })
 
-/** The text that travels with the card: one square per stone, ten to a row like floors. */
-export function shareText(input: Pick<ShareCardInput, 'courseName' | 'dateLabel' | 'height' | 'perfects' | 'rank' | 'url' | 'stack'>) {
-  const squares = perfectStones(input.stack).map((perfect) => (perfect ? '🟨' : '⬜'))
-  const shown = squares.slice(0, 50)
-  const rows: string[] = []
-  for (let index = 0; index < shown.length; index += 10) rows.push(shown.slice(index, index + 10).join(''))
-  if (squares.length > shown.length) rows[rows.length - 1] += ` +${squares.length - shown.length}`
+/** The text for when the picture can't be shared (desktop copy, older browsers): one line and the link. */
+export function shareText(input: Pick<ShareCardInput, 'courseName' | 'dateLabel' | 'height' | 'perfects' | 'rank' | 'url'>) {
   const rank = input.rank ? ` · #${input.rank} today` : ''
-  return [
-    `Afterlight · ${input.courseName} · ${input.dateLabel}`,
-    ...rows,
-    `${input.height} ${input.height === 1 ? 'stone' : 'stones'} · ${input.perfects} perfect${rank}`,
-    input.url,
-  ].join('\n')
+  const stones = `${input.height} ${input.height === 1 ? 'stone' : 'stones'}`
+  return `Afterlight · ${input.courseName} · ${input.dateLabel}: ${stones} · ${input.perfects} perfect${rank}\n${input.url}`
 }
 
 /** Draws the run as a 1080×1350 picture: the actual tower on today's course, with the score on top. */

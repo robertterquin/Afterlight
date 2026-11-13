@@ -2055,8 +2055,9 @@ function App() {
     const text = shareText(shareInputFor(finished, runRank))
     const file = shareFileRef.current
     try {
+      // The picture already carries the score, so it travels with just the link.
       if (file && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], text })
+        await navigator.share({ files: [file], text: window.location.origin })
         return
       }
       if (navigator.share) {
