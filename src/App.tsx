@@ -1,5 +1,5 @@
 import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { AnimatePresence, motion, MotionConfig } from 'motion/react'
+import { AnimatePresence, motion, MotionConfig, useAnimate } from 'motion/react'
 import afterlightMark from './assets/afterlight-mark.svg'
 import { Leaderboard } from './DailyLeaderboard'
 import { createSoundBoard, type Cue } from './sound'
@@ -381,6 +381,14 @@ const BlockShape = memo(function BlockShape({
         : { duration: 0 }}
       style={{ transformBox: 'fill-box', transformOrigin: 'center bottom' }}
     >
+        {active && (
+          // A soft shadow from layered shapes: a blur filter here would be recomputed every frame as the stone slides.
+          <g fill="#071824" pointerEvents="none">
+            <rect x={block.x - 6} y={y + bevel + 2} width={block.width + 12} height={faceHeight + 14} rx="12" opacity=".07" />
+            <rect x={block.x - 3} y={y + bevel + 4} width={block.width + 6} height={faceHeight + 8} rx="8" opacity=".1" />
+            <rect x={block.x} y={y + bevel + 6} width={block.width} height={faceHeight + 2} rx="4" opacity=".14" />
+          </g>
+        )}
         <polygon
           points={`${block.x},${y + bevel} ${block.x + bevel},${y} ${block.x + block.width + bevel},${y} ${block.x + block.width},${y + bevel}`}
           fill={top}
@@ -1567,6 +1575,12 @@ function GameScene({
     : game.stack.length
   const landingFeedback = getLandingFeedback(game)
   const perfectCameraSettle = landingFeedback === 'perfect' && !reducedMotion
+  const [towerScope, animateTower] = useAnimate<SVGGElement>()
+  useEffect(() => {
+    if (perfectCameraSettle && towerScope.current) {
+      animateTower(towerScope.current, { y: [-4, 0] }, { type: 'spring', stiffness: 390, damping: 24, mass: 0.48 })
+    }
+  }, [placement, perfectCameraSettle, animateTower, towerScope])
   const windStrength = Math.abs(game.windPercent)
   const windDirection = game.windPercent < 0 ? -1 : 1
   const sceneryIntensity = compact ? 0.7 : 1
@@ -1658,13 +1672,8 @@ function GameScene({
         )}
 
         <CloudBelt groundY={groundY} layer="back" reducedMotion={reducedMotion} />
-        {/* Only the stones are rebuilt for the settle bounce; anything else in here would replay its entrance on every drop. */}
-        <motion.g
-          key={`tower-settle-${game.placementTicks.length}`}
-          initial={perfectCameraSettle ? { y: -4 } : false}
-          animate={{ y: 0 }}
-          transition={{ type: 'spring', stiffness: 390, damping: 24, mass: 0.48 }}
-        >
+        {/* The tower stays mounted between drops (rebuilding every stone caused a hitch on phones); a perfect drop bounces it from the effect above. */}
+        <g ref={towerScope}>
         {game.stack.map((block, index) => {
           const support = game.stack[index - 1]
           const historicalPerfect = support
@@ -1714,7 +1723,7 @@ function GameScene({
             reducedMotion={reducedMotion}
           />
         )}
-        </motion.g>
+        </g>
         {fallingPieces.map((piece) => (
           <motion.g
             key={`${piece.id}-${piece.x}`}
@@ -1877,7 +1886,15 @@ function App() {
     if (soundEnabledRef.current) sounds.play(cue, delay)
   }, [sounds])
 
-  // Browsers only allow audio after a user gesture, so the sound board wakes on the first one.
+  // Browsers only allow audio after a user gesture, so the sound board is built while the page is idle
+  // (that part is slow) and only switched on by the first tap or key.
+  useEffect(() => {
+    const idle = window.requestIdleCallback
+      ? window.requestIdleCallback(() => sounds.prepare(), { timeout: 2000 })
+      : window.setTimeout(() => sounds.prepare(), 600)
+    return () => (window.cancelIdleCallback ? window.cancelIdleCallback(idle) : window.clearTimeout(idle))
+  }, [sounds])
+
   useEffect(() => {
     const wake = () => sounds.unlock()
     window.addEventListener('pointerdown', wake)

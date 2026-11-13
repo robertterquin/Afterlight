@@ -20,15 +20,19 @@ export type Cue =
   | { kind: 'best' }
 
 /**
- * Plays the game's cues. The audio context is only created on a user gesture (browsers block it
- * otherwise), so call unlock() from input handlers before the first cue.
+ * Plays the game's cues. Call prepare() when the page is idle and unlock() from input handlers before
+ * the first cue.
  */
 export function createSoundBoard() {
   let context: AudioContext | null = null
   let master: GainNode | null = null
   const stones: AudioBuffer[] = []
 
-  function unlock() {
+  /**
+   * Builds the audio engine ahead of time. Creating it is slow (up to a few hundred ms), so the page
+   * does this while idle; the engine starts suspended and unlock() only has to resume it.
+   */
+  function prepare() {
     if (typeof window === 'undefined' || !window.AudioContext) return
     if (!context) {
       const audio = new window.AudioContext()
@@ -44,7 +48,12 @@ export function createSoundBoard() {
           .catch(() => undefined)
       }
     }
-    if (context.state === 'suspended') void context.resume().catch(() => undefined)
+  }
+
+  /** Call from input handlers: browsers only let audio play after a user gesture. */
+  function unlock() {
+    prepare()
+    if (context?.state === 'suspended') void context.resume().catch(() => undefined)
   }
 
   // ---------- building blocks ----------
@@ -229,7 +238,7 @@ export function createSoundBoard() {
     }
   }
 
-  return { unlock, play }
+  return { prepare, unlock, play }
 }
 
 export type SoundBoard = ReturnType<typeof createSoundBoard>

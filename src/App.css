@@ -98,10 +98,6 @@
   isolation: isolate;
 }
 
-.moving-block {
-  filter: drop-shadow(0 7px 10px rgba(7, 24, 36, .34));
-}
-
 .signal-stone {
   filter: drop-shadow(0 0 5px rgba(255, 210, 137, .34));
 }
@@ -2050,4 +2046,22 @@
 @keyframes backdrop-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* Phones and tablets redraw the whole scene for every looping animation inside it, so the subtle
+   decorative loops hold still there. Wind streaks keep moving: they show the wind's direction. */
+@media (max-width: 700px), (pointer: coarse) {
+  .star-field,
+  .star-sparkle,
+  .light-path,
+  .cloud-pass,
+  .pennant,
+  .shooting-star {
+    animation: none;
+  }
+
+  .aurora {
+    animation: none;
+    opacity: .8;
+  }
 }
