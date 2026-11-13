@@ -15,12 +15,21 @@ export type ShareCardInput = {
   mountains: readonly [string, string]
   island: { deep: string; top: string }
   stone: { top: string; front: string; side: string }
+  /** The course's night above the clouds, used for runs of 40+ stones. */
+  night: { sky: readonly [string, string, string]; cloudLit: string; cloudShade: string; rim: string; line: string }
 }
 
 const WIDTH = 1080
 const HEIGHT = 1350
 const HORIZON = 1000
 const GOLD = { top: '#ffe3bc', front: '#f2c58f', side: '#c9935f' }
+// Runs this high are shown above the clouds, as the game shows them.
+const HIGH_FROM = 40
+const LANTERNS_FROM = 42
+const SHOOTING_STAR_FROM = 62
+const ARCH_AT = 100
+// The cloud sea's curved top: highest in the middle, falling away at the edges like the world below.
+const cloudTopY = (x: number) => 1000 + ((x - WIDTH / 2) / (WIDTH / 2)) ** 2 * 45
 
 /** A stone counts as perfect when its centre sits exactly on the one below, as the game snaps it. */
 export const perfectStones = (stack: Block[]) =>
@@ -48,62 +57,66 @@ export async function drawShareCard(input: ShareCardInput): Promise<Blob | null>
     document.fonts.load('600 40px "Manrope Variable"'),
   ]).catch(() => undefined)
 
-  // Sky, sea and moon from today's course.
-  const sky = ctx.createLinearGradient(0, 0, 0, HORIZON)
-  input.sky.forEach((color, index) => sky.addColorStop([0, 0.45, 0.85, 1][index], color))
-  ctx.fillStyle = sky
-  ctx.fillRect(0, 0, WIDTH, HORIZON)
-  const sea = ctx.createLinearGradient(0, HORIZON, 0, HEIGHT)
-  sea.addColorStop(0, input.sea[0])
-  sea.addColorStop(1, input.sea[1])
-  ctx.fillStyle = sea
-  ctx.fillRect(0, HORIZON, WIDTH, HEIGHT - HORIZON)
+  const high = input.height >= HIGH_FROM
+  if (high) drawNightBackdrop(ctx, input)
+  else {
+    // Sky, sea and moon from today's course.
+    const sky = ctx.createLinearGradient(0, 0, 0, HORIZON)
+    input.sky.forEach((color, index) => sky.addColorStop([0, 0.45, 0.85, 1][index], color))
+    ctx.fillStyle = sky
+    ctx.fillRect(0, 0, WIDTH, HORIZON)
+    const sea = ctx.createLinearGradient(0, HORIZON, 0, HEIGHT)
+    sea.addColorStop(0, input.sea[0])
+    sea.addColorStop(1, input.sea[1])
+    ctx.fillStyle = sea
+    ctx.fillRect(0, HORIZON, WIDTH, HEIGHT - HORIZON)
 
-  ctx.fillStyle = 'rgba(255, 255, 255, .55)'
-  for (const [x, y] of [[90, 330], [210, 460], [400, 70], [620, 150], [760, 420], [980, 520], [150, 640], [880, 90], [540, 560]]) {
+    ctx.fillStyle = 'rgba(255, 255, 255, .55)'
+    for (const [x, y] of [[90, 330], [210, 460], [400, 70], [620, 150], [760, 420], [980, 520], [150, 640], [880, 90], [540, 560]]) {
+      ctx.beginPath()
+      ctx.arc(x, y, 2, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    // Always top right, clear of the score.
+    const moonX = 880
+    const moonR = input.moon.radius * 1.5
+    const glow = ctx.createRadialGradient(moonX, 300, 0, moonX, 300, moonR * 4)
+    glow.addColorStop(0, `${input.moon.light}55`)
+    glow.addColorStop(1, `${input.moon.light}00`)
+    ctx.fillStyle = glow
+    ctx.fillRect(moonX - moonR * 4, 300 - moonR * 4, moonR * 8, moonR * 8)
+    ctx.fillStyle = input.moon.body
     ctx.beginPath()
-    ctx.arc(x, y, 2, 0, Math.PI * 2)
+    ctx.arc(moonX, 300, moonR, 0, Math.PI * 2)
     ctx.fill()
-  }
-  // Always top right, clear of the score.
-  const moonX = 880
-  const moonR = input.moon.radius * 1.5
-  const glow = ctx.createRadialGradient(moonX, 300, 0, moonX, 300, moonR * 4)
-  glow.addColorStop(0, `${input.moon.light}55`)
-  glow.addColorStop(1, `${input.moon.light}00`)
-  ctx.fillStyle = glow
-  ctx.fillRect(moonX - moonR * 4, 300 - moonR * 4, moonR * 8, moonR * 8)
-  ctx.fillStyle = input.moon.body
-  ctx.beginPath()
-  ctx.arc(moonX, 300, moonR, 0, Math.PI * 2)
-  ctx.fill()
 
-  // Far hills on the horizon, then the home island.
-  ctx.fillStyle = input.mountains[1]
-  ctx.beginPath()
-  ctx.moveTo(0, HORIZON)
-  ;[[0, 978], [160, 960], [330, 984], [520, 956], [720, 980], [900, 962], [1080, 982], [1080, HORIZON]].forEach(([x, y]) => ctx.lineTo(x, y))
-  ctx.fill()
-  // The home island: a rock base under a rounded, lit top, as in the game.
-  ctx.fillStyle = input.island.deep
-  ctx.beginPath()
-  ctx.moveTo(262, 1052)
-  ctx.lineTo(292, 1086)
-  ctx.lineTo(788, 1086)
-  ctx.lineTo(818, 1052)
-  ctx.fill()
-  ctx.fillStyle = input.island.top
-  ctx.beginPath()
-  ctx.moveTo(250, 1054)
-  ctx.quadraticCurveTo(262, 1010, 330, 1012)
-  ctx.quadraticCurveTo(400, 990, 470, 1010)
-  ctx.lineTo(610, 1010)
-  ctx.quadraticCurveTo(690, 990, 750, 1012)
-  ctx.quadraticCurveTo(820, 1010, 830, 1054)
-  ctx.closePath()
-  ctx.fill()
-  ctx.fillStyle = 'rgba(0, 0, 0, .12)'
-  ctx.fillRect(250, 1046, 580, 8)
+    // Far hills on the horizon, then the home island.
+    ctx.fillStyle = input.mountains[1]
+    ctx.beginPath()
+    ctx.moveTo(0, HORIZON)
+    ;[[0, 978], [160, 960], [330, 984], [520, 956], [720, 980], [900, 962], [1080, 982], [1080, HORIZON]].forEach(([x, y]) => ctx.lineTo(x, y))
+    ctx.fill()
+    // The home island: a rock base under a rounded, lit top, as in the game.
+    ctx.fillStyle = input.island.deep
+    ctx.beginPath()
+    ctx.moveTo(262, 1052)
+    ctx.lineTo(292, 1086)
+    ctx.lineTo(788, 1086)
+    ctx.lineTo(818, 1052)
+    ctx.fill()
+    ctx.fillStyle = input.island.top
+    ctx.beginPath()
+    ctx.moveTo(250, 1054)
+    ctx.quadraticCurveTo(262, 1010, 330, 1012)
+    ctx.quadraticCurveTo(400, 990, 470, 1010)
+    ctx.lineTo(610, 1010)
+    ctx.quadraticCurveTo(690, 990, 750, 1012)
+    ctx.quadraticCurveTo(820, 1010, 830, 1054)
+    ctx.closePath()
+    ctx.fill()
+    ctx.fillStyle = 'rgba(0, 0, 0, .12)'
+    ctx.fillRect(250, 1046, 580, 8)
+  }
 
   // The tower: squeezed to fit, gold where the drop was perfect.
   const perfect = perfectStones(input.stack)
@@ -133,6 +146,7 @@ export async function drawShareCard(input: ShareCardInput): Promise<Blob | null>
   ctx.beginPath()
   ctx.arc(lightX, lightY, 12, 0, Math.PI * 2)
   ctx.fill()
+  if (high) drawHighDetails(ctx, input, { x: lightX, y: lightY })
 
   // Score, top left, over a soft shade so it reads on any sky.
   const shade = ctx.createRadialGradient(240, 200, 0, 240, 200, 420)
@@ -181,4 +195,130 @@ export async function drawShareCard(input: ShareCardInput): Promise<Blob | null>
   ctx.fillText(input.url.replace(/^https?:\/\//, ''), WIDTH - 64, HEIGHT - 50)
 
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
+}
+
+/** 40+ stones: the course's night sky, its stars, and the curved cloud sea with a dawn rim. */
+function drawNightBackdrop(ctx: CanvasRenderingContext2D, input: ShareCardInput) {
+  const { night } = input
+  const sky = ctx.createLinearGradient(0, 0, 0, 1060)
+  sky.addColorStop(0, night.sky[0])
+  sky.addColorStop(0.55, night.sky[1])
+  sky.addColorStop(0.9, night.sky[2])
+  sky.addColorStop(1, night.rim)
+  ctx.fillStyle = sky
+  ctx.fillRect(0, 0, WIDTH, HEIGHT)
+
+  let seed = 97
+  const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647
+  for (let index = 0; index < 90; index += 1) {
+    const x = random() * WIDTH
+    const y = Math.pow(random(), 1.2) * 940
+    const bright = random() > 0.88
+    ctx.fillStyle = bright ? 'rgba(255, 246, 230, .95)' : 'rgba(255, 246, 230, .55)'
+    ctx.beginPath()
+    ctx.arc(x, y, bright ? 2.6 : 1.5, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  // The cloud sea, darkened to the course's night, its edge lit by the dawn below.
+  const clouds = ctx.createLinearGradient(0, 960, 0, HEIGHT)
+  clouds.addColorStop(0, night.cloudLit)
+  clouds.addColorStop(0.35, night.cloudShade)
+  clouds.addColorStop(1, night.cloudShade)
+  ctx.fillStyle = clouds
+  ctx.beginPath()
+  ctx.moveTo(-10, cloudTopY(-10))
+  for (let x = 0; x <= WIDTH + 10; x += 20) ctx.lineTo(x, cloudTopY(x))
+  ctx.lineTo(WIDTH + 10, HEIGHT)
+  ctx.lineTo(-10, HEIGHT)
+  ctx.fill()
+  ctx.strokeStyle = night.rim
+  ctx.lineWidth = 3
+  ctx.globalAlpha = 0.85
+  ctx.beginPath()
+  for (let x = -10; x <= WIDTH + 10; x += 20) (x === -10 ? ctx.moveTo : ctx.lineTo).call(ctx, x, cloudTopY(x))
+  ctx.stroke()
+  ctx.globalAlpha = 1
+}
+
+/** 40+ stones, drawn over the tower: cloud tufts around its base, then lanterns, a shooting star or the arch. */
+function drawHighDetails(ctx: CanvasRenderingContext2D, input: ShareCardInput, light: { x: number; y: number }) {
+  const { night } = input
+  ctx.fillStyle = night.cloudLit
+  for (const [dx, dy, rx, ry] of [[-150, 26, 120, 34], [-30, 34, 130, 30], [120, 24, 140, 36], [250, 40, 110, 28]]) {
+    ctx.globalAlpha = 0.92
+    ctx.beginPath()
+    ctx.ellipse(light.x + dx, cloudTopY(light.x + dx) + dy, rx, ry, 0, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.globalAlpha = 1
+
+  if (input.height >= LANTERNS_FROM && input.height < SHOOTING_STAR_FROM) {
+    // Sky lanterns drifting up out of the clouds, clear of the score and the tower.
+    for (const [x, y, size] of [[180, 700, 1.25], [880, 600, 1.05], [790, 820, 0.85]]) {
+      const glow = ctx.createRadialGradient(x, y, 0, x, y, 46 * size)
+      glow.addColorStop(0, 'rgba(255, 213, 154, .75)')
+      glow.addColorStop(1, 'rgba(255, 180, 106, 0)')
+      ctx.fillStyle = glow
+      ctx.fillRect(x - 46 * size, y - 46 * size, 92 * size, 92 * size)
+      ctx.fillStyle = '#ffcf8a'
+      ctx.beginPath()
+      ctx.moveTo(x - 12 * size, y - 16 * size)
+      ctx.lineTo(x + 12 * size, y - 16 * size)
+      ctx.lineTo(x + 15 * size, y + 14 * size)
+      ctx.lineTo(x - 15 * size, y + 14 * size)
+      ctx.fill()
+      ctx.fillStyle = '#e89a55'
+      ctx.fillRect(x - 14 * size, y + 10 * size, 28 * size, 5 * size)
+    }
+  }
+
+  if (input.height >= SHOOTING_STAR_FROM && input.height < ARCH_AT) {
+    const streak = ctx.createLinearGradient(700, 150, 960, 240)
+    streak.addColorStop(0, 'rgba(255, 246, 224, 0)')
+    streak.addColorStop(1, 'rgba(255, 246, 224, .95)')
+    ctx.strokeStyle = streak
+    ctx.lineWidth = 3.5
+    ctx.lineCap = 'round'
+    ctx.beginPath()
+    ctx.moveTo(700, 150)
+    ctx.lineTo(960, 240)
+    ctx.stroke()
+  }
+
+  if (input.height >= ARCH_AT) {
+    // The closing arch: two lines of stars rising from the cloud sea and meeting at the tower's beacon.
+    const side = (baseX: number) => [0, 0.32, 0.58, 0.8].map((t) => ({
+      x: baseX + (light.x - baseX) * t,
+      y: 900 + (light.y - 900) * (1 - (1 - t) ** 2),
+    }))
+    for (const stars of [side(150), side(2 * light.x - 150)]) {
+      ctx.strokeStyle = night.line
+      ctx.globalAlpha = 0.6
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ;[...stars, light].forEach((star, index) => (index ? ctx.lineTo(star.x, star.y) : ctx.moveTo(star.x, star.y)))
+      ctx.stroke()
+      ctx.globalAlpha = 1
+      stars.forEach((star, index) => {
+        ctx.fillStyle = '#fff4e2'
+        ctx.beginPath()
+        ctx.arc(star.x, star.y, 4 + index * 0.8, 0, Math.PI * 2)
+        ctx.fill()
+      })
+    }
+    const flare = ctx.createRadialGradient(light.x, light.y, 0, light.x, light.y, 150)
+    flare.addColorStop(0, 'rgba(255, 243, 212, .6)')
+    flare.addColorStop(1, 'rgba(242, 197, 143, 0)')
+    ctx.fillStyle = flare
+    ctx.fillRect(light.x - 150, light.y - 150, 300, 300)
+    ctx.strokeStyle = 'rgba(255, 243, 212, .85)'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(light.x - 34, light.y)
+    ctx.lineTo(light.x + 34, light.y)
+    ctx.moveTo(light.x, light.y - 34)
+    ctx.lineTo(light.x, light.y + 34)
+    ctx.stroke()
+  }
 }

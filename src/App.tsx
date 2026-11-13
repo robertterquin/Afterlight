@@ -294,6 +294,7 @@ function shareInputFor(finished: GameState, rank: number | null): ShareCardInput
     mountains: edition.mountains,
     island: { deep: edition.tower.deep, top: edition.tower.top },
     stone: { top: edition.stone.top, front: edition.stone.front, side: edition.stone.side },
+    night: edition.night,
   }
 }
 

@@ -74,7 +74,7 @@ All of these are visual and sound only. None of them affect the score or the phy
   - The first finished run of the day shows "Day N · streak kept" when it continues a streak of two days or more.
   - Nothing shows on a player's first day.
 - **Yesterday's podium:** after a top-3 finish, the next day's ready screen shows "Yesterday you finished #2" with the board's gold, silver or bronze badge. Fourth place or lower shows nothing.
-- **Share card:** each run is drawn as a 1080×1350 picture of the actual tower on that day's course, with perfect drops in gold.
+- **Share card:** each run is drawn as a 1080×1350 picture of the actual tower on that day's course, with perfect drops in gold. Runs of 40+ stones are drawn above the clouds in the course's night: with sky lanterns (42–61), a shooting star (62–99), or the closing arch meeting at the tower's beacon (100+).
   - Phones share the picture with just the game link through the phone's share sheet.
   - Computers copy a one-line text version, and also get a **Save image** link.
 
