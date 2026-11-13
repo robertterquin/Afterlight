@@ -2051,11 +2051,3 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
-
-@media (min-width: 901px) {
-  /* Wide screens: keep the game area at most 1.3x as wide as it is tall, so the scene isn't cropped into a zoomed strip. */
-  .topbar,
-  .play-layout {
-    width: min(100%, calc(min(80svh, 800px) * 1.3 + 384px));
-  }
-}
