@@ -1557,7 +1557,7 @@ const HighSky = memo(function HighSky({ horizon, presence, reducedMotion }: { ho
  * The sky above the clouds, for climbs past 36 stones. Three stages, each tied to height:
  * 40–55  the edge of the sky: night returns overhead, stars come out, the cloud sea curves like the world below.
  * 62–80  among the stars: every second stone, the beacon links one more star into a gold chain.
- * 94–100 the beacon: a constellation in the shape of the Afterlight mark, completed at 100.
+ * 94–100 the closing arch: from the chain's ends, stars climb toward the middle and meet at the beacon star at 100.
  * Everything here is static paths and gradients that only change when a stone lands, so phones stay smooth.
  */
 const UPPER_EDGE_FROM = 40
@@ -1566,33 +1566,20 @@ const STAR_CHAIN_FROM = 62
 const STAR_CHAIN_STEP = 2
 const BEACON_CONSTELLATION_FROM = 94
 
-// Chain stars as [x in world units, y as a share of the horizon height], arcing around the constellation.
-const STAR_CHAIN = [[200, 0.7], [255, 0.48], [310, 0.62], [370, 0.3], [440, 0.12], [560, 0.08], [700, 0.22], [720, 0.6], [770, 0.42], [815, 0.66]] as const
+// Chain stars as [x in world units, y as a share of the horizon height]. Its two ends are where the arch starts.
+const STAR_CHAIN = [[200, 0.7], [255, 0.48], [310, 0.62], [370, 0.3], [440, 0.12], [560, 0.08], [700, 0.22], [720, 0.6], [770, 0.42], [800, 0.7]] as const
 
-// The beacon constellation: seven stars tracing the Afterlight mark's stepped outline, in the mark's
-// 96-unit box. Slightly uneven on purpose, so it reads as stars rather than a drawing.
-const BEACON_STARS = {
-  baseLeft: [16, 70], baseRight: [78, 68], middleLeft: [22, 51], middleRight: [69, 52],
-  topLeft: [34, 33], topRight: [67, 32], light: [51, 15],
-} as const
-type BeaconStar = keyof typeof BEACON_STARS
-// The lines each stage adds: the base at 94, the sides at 96 and 98, and the light at 100.
-const BEACON_LINES: ReadonlyArray<ReadonlyArray<readonly [BeaconStar, BeaconStar]>> = [
-  [['baseLeft', 'baseRight']],
-  [['baseLeft', 'middleLeft'], ['middleRight', 'baseRight']],
-  [['middleLeft', 'topLeft'], ['topRight', 'middleRight']],
-  [['topLeft', 'light'], ['light', 'topRight']],
-]
-const BEACON_STAGE_STARS: ReadonlyArray<ReadonlyArray<BeaconStar>> = [
-  ['baseLeft', 'baseRight'], ['middleLeft', 'middleRight'], ['topLeft', 'topRight'], ['light'],
-]
-const MARK_SCALE = 2.2
+// The closing arch: from the chain's two ends, three pairs of stars climb toward the middle and meet at the
+// beacon star, straight above the tower. Mirrored about the centre; the left side rises steeply enough to
+// clear the height counter and the perfect-streak pill on desktop.
+const ARCH_PAIRS = [[295, 0.6], [345, 0.45], [415, 0.31]] as const
+const ARCH_APEX = [500, 0.22] as const
 
 /** How many links of the star chain are drawn at this height. */
 const starLinks = (height: number) =>
   Math.max(0, Math.min(STAR_CHAIN.length - 1, Math.floor((height - STAR_CHAIN_FROM) / STAR_CHAIN_STEP) + 1))
 
-/** 0 before 94, then one more stone of the beacon constellation every two stones; at 100 (4) its light comes on. */
+/** 0 before 94, then one more pair of arch stars every two stones; at 100 (4) the arch meets at the beacon star. */
 const beaconConstellationStage = (height: number) =>
   height < BEACON_CONSTELLATION_FROM ? 0 : Math.min(4, Math.floor((height - BEACON_CONSTELLATION_FROM) / 2) + 1)
 
@@ -1630,11 +1617,10 @@ const UpperSky = memo(function UpperSky({
     return { faint, bright }
   }, [horizon])
   const chain = STAR_CHAIN.map(([x, share]) => ({ x, y: round1(horizon * (portrait ? 0.27 + share * 0.6 : share)) }))
-  // Desktop sits it right of centre, clear of the perfect-streak pill under the height counter.
-  const markX = (value: number) => round1((portrait ? WORLD_WIDTH / 2 : 615) + (value - 47) * MARK_SCALE)
-  const markY = (value: number) => round1(horizon * (portrait ? 0.55 : 0.42) + (value - 50) * MARK_SCALE)
-  const beaconStar = (name: BeaconStar) => ({ x: markX(BEACON_STARS[name][0]), y: markY(BEACON_STARS[name][1]) })
-  const light = beaconStar('light')
+  const skyY = (share: number) => round1(horizon * (portrait ? 0.27 + share * 0.6 : share))
+  const archLeft = [chain[0], ...ARCH_PAIRS.map(([x, share]) => ({ x, y: skyY(share) }))]
+  const archRight = [chain[chain.length - 1], ...ARCH_PAIRS.map(([x, share]) => ({ x: WORLD_WIDTH - x, y: skyY(share) }))]
+  const light = { x: ARCH_APEX[0], y: skyY(ARCH_APEX[1]) }
   const drawn = { duration: reducedMotion ? 0 : 1.1, ease: [0.22, 1, 0.36, 1] as const }
   const newest = chain[links]
 
@@ -1672,9 +1658,9 @@ const UpperSky = memo(function UpperSky({
               strokeWidth="0.9"
               strokeLinecap="round"
               fill="none"
-              opacity={constellation === 4 ? 0.16 : 0.24}
-              initial={reducedMotion ? false : { pathLength: 0 }}
-              animate={{ pathLength: 1 }}
+              initial={reducedMotion ? false : { pathLength: 0, opacity: 0.24 }}
+              // Once the arch starts forming, the chain's lines fade and only its stars stay.
+              animate={{ pathLength: 1, opacity: constellation > 0 ? 0 : 0.24 }}
               transition={drawn}
             />
           ))}
@@ -1697,16 +1683,16 @@ const UpperSky = memo(function UpperSky({
         />
       )}
 
-      {/* The beacon constellation: two stars and their lines every two stones from 94; at 100 the top star lights. */}
+      {/* The closing arch: a pair of stars and their lines every two stones from 94; at 100 the arch meets at the beacon star. */}
       {constellation > 0 && (
         <g>
-          {BEACON_LINES.slice(0, constellation).flat().map(([from, to]) => {
-            const a = beaconStar(from)
-            const b = beaconStar(to)
-            return (
+          {[archLeft, archRight].map((side, sideIndex) => {
+            const reached = Math.min(constellation, 3)
+            const points = constellation === 4 ? [...side, light] : side.slice(0, reached + 1)
+            return points.slice(1).map((star, index) => (
               <motion.path
-                key={`${from}-${to}`}
-                d={`M${a.x} ${a.y}L${b.x} ${b.y}`}
+                key={`${sideIndex}-${index}`}
+                d={`M${points[index].x} ${points[index].y}L${star.x} ${star.y}`}
                 stroke="#e9cfa2"
                 strokeWidth="1"
                 strokeLinecap="round"
@@ -1715,24 +1701,21 @@ const UpperSky = memo(function UpperSky({
                 animate={{ pathLength: 1, opacity: 0.6 }}
                 transition={drawn}
               />
-            )
+            ))
           })}
-          {BEACON_STAGE_STARS.slice(0, Math.min(constellation, 3)).flat().map((name, index) => {
-            const star = beaconStar(name)
-            return (
-              <motion.circle
-                key={name}
-                cx={star.x}
-                cy={star.y}
-                r={index % 2 ? 2.3 : 2.9}
-                fill="#fff4e2"
-                initial={reducedMotion ? false : { opacity: 0, scale: 0.2 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: reducedMotion ? 0 : 0.6, ease: 'easeOut' }}
-                style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-              />
-            )
-          })}
+          {[archLeft, archRight].flatMap((side, sideIndex) => side.slice(1, Math.min(constellation, 3) + 1).map((star, index) => (
+            <motion.circle
+              key={`${sideIndex}-${index}`}
+              cx={star.x}
+              cy={star.y}
+              r={2.2 + index * 0.35}
+              fill="#fff4e2"
+              initial={reducedMotion ? false : { opacity: 0, scale: 0.2 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: reducedMotion ? 0 : 0.6, ease: 'easeOut' }}
+              style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+            />
+          )))}
           {constellation === 4 && (
             <>
               {/* The light is the hero: a soft glow, a thin four-point sparkle and the brightest star in the sky. */}
@@ -2676,7 +2659,7 @@ function App() {
               <AnimatePresence>
                 {game.perfectStreak > 0 && (
                   <motion.div key="streak" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.25 }}>
-                    <StreakPill streak={game.perfectStreak} />
+                    <StreakPill streak={game.perfectStreak} hint={height < 90} />
                   </motion.div>
                 )}
               </AnimatePresence>

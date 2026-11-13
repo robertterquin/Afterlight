@@ -97,7 +97,8 @@ export function ReadyOverlay({
   )
 }
 
-export function StreakPill({ streak }: { streak: number }) {
+/** `hint` adds the "… grows the stone" reminder; it is dropped high up, where players know it and the sky needs the room. */
+export function StreakPill({ streak, hint = true }: { streak: number; hint?: boolean }) {
   const filled = Math.min(streak, PERFECTS_TO_GROW)
   const remaining = PERFECTS_TO_GROW - filled
   return (
@@ -109,7 +110,7 @@ export function StreakPill({ streak }: { streak: number }) {
       </span>
       <span>
         Perfect streak <b className="num">{streak}</b>
-        <span className="streak-hint"> · {remaining > 0 ? `${remaining} more grows the stone` : 'each perfect grows the stone'}</span>
+        {hint && <span className="streak-hint"> · {remaining > 0 ? `${remaining} more grows the stone` : 'each perfect grows the stone'}</span>}
       </span>
     </div>
   )
