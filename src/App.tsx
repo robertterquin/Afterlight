@@ -1721,6 +1721,10 @@ function GameScene({
         {/* The tower stays mounted between drops (rebuilding every stone caused a hitch on phones); a perfect drop bounces it from the effect above. */}
         <g ref={towerScope}>
         {game.stack.map((block, index) => {
+          // Only stones near the screen are drawn; a tall tower would otherwise draw every stone below the
+          // bottom edge. The wider margin below covers the camera still easing up after a drop.
+          const screenY = groundY - (index + 1) * BLOCK_HEIGHT + cameraShift
+          if (screenY < -BLOCK_HEIGHT * 2 || screenY > height + BLOCK_HEIGHT * 3) return null
           const support = game.stack[index - 1]
           const historicalPerfect = support
             ? Math.abs((block.x + block.width / 2) - (support.x + support.width / 2)) < 0.01
