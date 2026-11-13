@@ -80,6 +80,8 @@ export async function savePlayerName(userId: string, displayName: string) {
     .eq('user_id', userId)
     .select('display_name')
     .single()
+  // The database rejects offensive names with a message meant for the player.
+  if (error?.code === '23514') throw new Error(error.message)
   if (error) throw error
   return data.display_name
 }
