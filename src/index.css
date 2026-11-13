@@ -42,3 +42,28 @@ button:disabled {
   color: #213847;
   background: #ecc392;
 }
+
+/* Gold thread: a thin warm-gold scrollbar on a clear track, everywhere in the game. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(242, 197, 143, .55) transparent;
+}
+
+/* Safari and older Chrome read these instead. */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+  background: rgba(242, 197, 143, .55);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(242, 197, 143, .8);
+}
