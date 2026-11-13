@@ -108,6 +108,7 @@ There is no separate tutorial; the drop hint explains the only control.
 - **App:** React 19, TypeScript and Vite, with Motion for animation. The scene is a single SVG, and no game engine is used.
 - **Hosting and data:** Vercel hosts the site. Supabase provides anonymous sign-in, the Postgres database, and the `submit-score` Edge Function.
 - **Scores:** the browser never writes a ranked score directly. The score endpoint replays and validates every run first.
+- **Empty players:** every visit signs in an anonymous player. A daily job (04:17 UTC) removes anonymous players who never saved a score, kept their generated name, and haven't been back for 7 days. If one returns, the game simply starts a new player.
 - **Saved on the device:** the sound setting, the daily streak, and any runs not yet sent to the server. Ranked scores need a connection.
 - **Tests:** `npm test` runs the streak rules tests.
 - **Showreel:** a 15-second promo video lives in `showreel/` as a separate Remotion project.
