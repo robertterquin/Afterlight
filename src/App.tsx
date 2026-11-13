@@ -685,7 +685,7 @@ function Waystone({
   sequence?: number
 }) {
   return (
-    <g className={lit ? 'lantern is-lit' : 'lantern'} transform={`translate(${x} ${y}) scale(${size})`}>
+    <g className={lit ? 'waystone is-lit' : 'waystone'} transform={`translate(${x} ${y}) scale(${size})`}>
       {/* A tapered standing stone in the tower's own colours. */}
       <path d="M-5 0L-3.6 -18Q0 -23 3.6 -18L5 0Z" fill={stone.front} />
       <path d="M0 -21.6Q2.4 -20.6 3.6 -18L5 0H0Z" fill={stone.side} />

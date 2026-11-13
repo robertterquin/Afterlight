@@ -67,10 +67,9 @@
   outline: none;
 }
 
-.lantern.is-lit {
-  animation: lantern-light .58s ease-out both;
+.waystone.is-lit {
+  animation: waystone-light .58s ease-out both;
 }
-
 
 .star-field {
   animation: star-shimmer 7s ease-in-out infinite;
@@ -102,7 +101,7 @@
   filter: drop-shadow(0 0 5px rgba(255, 210, 137, .34));
 }
 
-@keyframes lantern-light {
+@keyframes waystone-light {
   from { opacity: .22; }
   48% { opacity: 1; }
   to { opacity: 1; }
@@ -112,7 +111,6 @@
   0%, 100% { opacity: .48; }
   50% { opacity: .9; }
 }
-
 
 @keyframes wind-glyph {
   0%, 100% { opacity: .58; }
@@ -420,16 +418,6 @@
   border-top: 1px solid rgba(211, 222, 211, .13);
 }
 
-.personal-rank-label {
-  display: block;
-  padding: 0 0 5px;
-  color: #d5b58f;
-  font-size: 9px;
-  font-weight: 650;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-}
-
 .leaderboard-message {
   margin: 15px 5px;
   color: #9db0ad;
@@ -717,24 +705,6 @@
   pointer-events: none;
 }
 
-.tap-dot {
-  width: 23px;
-  height: 23px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: #eabd8a;
-}
-
-.tap-dot i {
-  width: 6px;
-  height: 9px;
-  border-radius: 4px 4px 3px 3px;
-  background: #284353;
-  box-shadow: 4px 4px 0 -1px #284353;
-  transform: rotate(-16deg);
-}
-
 .play-prompt kbd {
   margin-left: 3px;
   padding: 4px 7px;
@@ -787,11 +757,6 @@
   text-shadow: 0 3px 18px rgba(11, 27, 40, .36);
 }
 
-.ready-actions {
-  margin-top: auto;
-  pointer-events: auto;
-}
-
 .state-card h1 {
   margin: 0 0 14px;
   color: #f3eee1;
@@ -841,39 +806,6 @@
   cursor: pointer;
 }
 
-.result-line {
-  margin: 12px 0 0;
-  color: #d7e0d7;
-  font-size: 14px;
-  line-height: 1.35;
-}
-
-.state-card.over-card .result-line {
-  margin: 0;
-  color: rgba(225, 235, 224, .9);
-  font-size: 12px;
-}
-
-.result-line strong {
-  color: #f2ce9e;
-  font-size: 22px;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.result-detail {
-  margin: 7px 0 20px;
-  color: #aabbb4;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.state-card.over-card .result-detail {
-  margin: 5px 0 0;
-  color: rgba(192, 210, 201, .88);
-  font-size: 11px;
-}
-
 .result-submission {
   max-width: 250px;
   margin: 14px auto 0;
@@ -886,10 +818,6 @@
   margin: 10px auto 0;
 }
 
-.result-submission.is-saved {
-  color: #d9e8be;
-}
-
 .result-submission.is-failed {
   color: #efb6a6;
   overflow-wrap: anywhere;
@@ -898,19 +826,6 @@
 .retry-submit {
   margin: 4px auto 0;
   color: #efc58f;
-}
-
-.result-line + .primary-button {
-  margin-top: 22px;
-}
-
-.state-card.over-card .result-line + .primary-button,
-.state-card.over-card .result-detail + .primary-button {
-  margin-top: 16px;
-}
-
-.result-detail + .primary-button {
-  margin-top: 2px;
 }
 
 .result-submission ~ .primary-button {

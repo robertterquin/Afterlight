@@ -240,5 +240,3 @@ export function createSoundBoard() {
 
   return { prepare, unlock, play }
 }
-
-export type SoundBoard = ReturnType<typeof createSoundBoard>
