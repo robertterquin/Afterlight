@@ -1804,6 +1804,9 @@ function App() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null)
   const [nameSaving, setNameSaving] = useState(false)
+  // The run-over card ignores taps until it has faded in, so a player still tapping when the run ends
+  // can't hit its invisible "Climb again" button and skip the result.
+  const [overCardReady, setOverCardReady] = useState(false)
   const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'saved' | 'not-best' | 'failed' | 'offline'>('idle')
   const [submissionError, setSubmissionError] = useState('')
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
@@ -1928,6 +1931,7 @@ function App() {
 
   const beginRun = useCallback(() => {
     runIdRef.current += 1
+    setOverCardReady(false)
     setSubmissionStatus('idle')
     setSubmissionError('')
     if (startWakeTimerRef.current !== null) window.clearTimeout(startWakeTimerRef.current)
@@ -2343,6 +2347,11 @@ function App() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, transition: { duration: 0.15 } }}
                 transition={{ duration: reducedMotion ? 0.2 : 0.36, delay: reducedMotion ? 0 : 1.18, ease: 'easeOut' }}
+                style={overCardReady ? undefined : { pointerEvents: 'none' }}
+                onAnimationComplete={(definition) => {
+                  // Only the fade-in arms it; the fade-out on retry must not.
+                  if ((definition as { opacity?: number }).opacity === 1) setOverCardReady(true)
+                }}
               >
                 {/* A miss records a placement that never joined the stack; ending from pause does not. */}
                 <h1 id="over-title" className="eyebrow over-eyebrow">{game.placementTicks.length > height ? 'The tide keeps it' : 'The beacon rests'}</h1>
