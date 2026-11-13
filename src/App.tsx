@@ -1792,17 +1792,21 @@ const UpperSky = memo(function UpperSky({
 })
 
 /*
- * Sky lanterns: above 42 stones, one warm paper lantern is released every third stone. It rises from behind the
- * cloud sea, sways and fades among the stars over about ten seconds, as if people below are sending light up
- * to the beacon. Each lantern animates once while it flies (no loops), and at most three are in the sky.
+ * Sky lanterns: from 42 to 60 stones, one warm paper lantern is released every third stone. It rises from behind
+ * the cloud sea, sways and fades among the stars over about ten seconds, as if people below are sending light up
+ * to the beacon. Past 60 the climber has risen above them, and shooting stars take over (see ShootingStars).
+ * Each lantern animates once while it flies (no loops), and only the last few are kept.
  */
 const LANTERNS_FROM = 42
+const LANTERNS_UNTIL = 60
 const LANTERN_EVERY = 3
 
 function SkyLanterns({ horizon, towerHeight, portrait }: { horizon: number; towerHeight: number; portrait: boolean }) {
   const newest = Math.floor(towerHeight / LANTERN_EVERY)
   const first = Math.ceil(LANTERNS_FROM / LANTERN_EVERY)
-  const ids = [newest - 2, newest - 1, newest].filter((id) => id >= first)
+  const last = Math.floor(LANTERNS_UNTIL / LANTERN_EVERY)
+  // The last four releases, so a lantern let go just before 60 still finishes its flight.
+  const ids = [newest - 3, newest - 2, newest - 1, newest].filter((id) => id >= first && id <= last)
   const startY = horizon + 8
   const endY = round1(horizon * (portrait ? 0.3 : 0.12))
   return (
@@ -1839,6 +1843,44 @@ function SkyLanterns({ horizon, towerHeight, portrait }: { horizon: number; towe
               <circle cy="8.6" r="1.2" fill="#fff3d0" />
             </g>
           </motion.g>
+        )
+      })}
+    </g>
+  )
+}
+
+/*
+ * Shooting stars: above 62 stones, every fourth stone sends one short, bright streak across the night sky. Each is
+ * a single one-second animation started by a landing (nothing loops), so phones only draw it while it flies.
+ */
+const SHOOTING_STARS_FROM = 62
+const SHOOTING_STAR_EVERY = 4
+
+function ShootingStars({ horizon, towerHeight, portrait }: { horizon: number; towerHeight: number; portrait: boolean }) {
+  const newest = Math.floor(towerHeight / SHOOTING_STAR_EVERY)
+  const first = Math.ceil(SHOOTING_STARS_FROM / SHOOTING_STAR_EVERY)
+  const ids = [newest - 1, newest].filter((id) => id >= first)
+  return (
+    <g pointerEvents="none">
+      {ids.map((id) => {
+        const random = seededRandom(id * 104729 + 7)
+        // Desktop keeps them right of the height counter and above the streak pill, falling left to right.
+        const x = round1(portrait ? 180 + random() * 640 : 400 + random() * 220)
+        const y = round1(horizon * (portrait ? 0.38 + random() * 0.2 : 0.06 + random() * 0.18))
+        const direction = portrait && random() < 0.5 ? -1 : 1
+        const length = round1(130 + random() * 70)
+        return (
+          <motion.path
+            key={id}
+            d={`M${x} ${y}l${direction * length} ${round1(length * 0.36)}`}
+            stroke="#fff6e0"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            fill="none"
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{ pathLength: [0, 1, 1], opacity: [0, 1, 0] }}
+            transition={{ duration: 1.1, delay: 0.35, times: [0, 0.55, 1], ease: 'easeOut' }}
+          />
         )
       })}
     </g>
@@ -2028,6 +2070,7 @@ function GameScene({
         <UpperSky horizon={horizon} edge={upperEdge} links={links} constellation={constellation} beam={beam} portrait={compact} palette={edition.night} reducedMotion={reducedMotion} />
       )}
       {towerHeight >= LANTERNS_FROM && !reducedMotion && <SkyLanterns horizon={horizon} towerHeight={towerHeight} portrait={compact} />}
+      {towerHeight >= SHOOTING_STARS_FROM && !reducedMotion && <ShootingStars horizon={horizon} towerHeight={towerHeight} portrait={compact} />}
       <SideIslets
         edition={edition}
         height={height}
