@@ -58,6 +58,8 @@ type DailyEdition = {
     light: string
     body: string
     shade: string
+    /** Crescent courses: how far the dark side is pushed across the moon, as a share of its radius. */
+    phase?: number
   }
   mountains: readonly [string, string]
   islands: {
@@ -80,6 +82,7 @@ type DailyEdition = {
   stone: StonePalette
 }
 
+// Seven courses, one per day of a weekly loop, alternating warm and cool skies.
 const DAILY_EDITIONS: readonly DailyEdition[] = [
   {
     name: 'Ember tide',
@@ -99,6 +102,26 @@ const DAILY_EDITIONS: readonly DailyEdition[] = [
       top: '#ead5b7', front: '#a68970', side: '#765e5b', joint: '#806b61',
       roughCut: '#5d4c49', roughCutHighlight: '#b8987b',
       activeTop: '#ffe3bc', activeFront: '#cd9870', activeSide: '#99665d', activeJoint: '#b77b60',
+    },
+  },
+  {
+    name: 'Frost tide',
+    sky: ['#1a2a44', '#3f5f86', '#9fb9d0', '#6f93ae'],
+    dawnSky: ['#a9bfd4', '#cdd4e0', '#f0d6c4', '#fbe7d6'],
+    sea: ['#5f87a3', '#1b3550'],
+    dawnSea: ['#c9cfd8', '#628aa5'],
+    moon: { x: 780, y: 0.22, radius: 40, light: '#f4fbff', body: '#eef6fb', shade: '#a9c0d2' },
+    mountains: ['#4f6d8f', '#34506f'],
+    islands: {
+      deep: '#2c4762', leftTop: '#e3eaf0', rightTop: '#e8eef3',
+      leftOffsetX: -40, leftOffsetY: 6, rightOffsetX: 44, rightOffsetY: -8,
+    },
+    tower: { shadow: '#1d3550', deep: '#2c4762', top: '#e8eef3', shore: '#9fb5c6', trees: '#2a4660' },
+    reflection: ['#cfe0ec', '#fbe2cc'],
+    stone: {
+      top: '#f2f6f8', front: '#a9c0cf', side: '#6d8aa1', joint: '#87a0b2',
+      roughCut: '#4f6b82', roughCutHighlight: '#b9cbd7',
+      activeTop: '#fff6e0', activeFront: '#d8b088', activeSide: '#a07e6a', activeJoint: '#c09878',
     },
   },
   {
@@ -123,6 +146,26 @@ const DAILY_EDITIONS: readonly DailyEdition[] = [
     },
   },
   {
+    name: 'Violet hour',
+    sky: ['#231d3d', '#4e3d6b', '#9a7aa6', '#5b6b8a'],
+    dawnSky: ['#8a7fa6', '#c48fae', '#eab0a0', '#f6d3b0'],
+    sea: ['#5a6688', '#1f2440'],
+    dawnSea: ['#c79aac', '#5d6a8c'],
+    moon: { x: 740, y: 0.25, radius: 32, light: '#f3e6ff', body: '#ece0f4', shade: '#ad97c2', phase: 0.55 },
+    mountains: ['#4d3e64', '#353357'],
+    islands: {
+      deep: '#332c4c', leftTop: '#83739a', rightTop: '#8b7ba2',
+      leftOffsetX: 36, leftOffsetY: 10, rightOffsetX: -48, rightOffsetY: 4,
+    },
+    tower: { shadow: '#241f3a', deep: '#332c4c', top: '#83739a', shore: '#685c80', trees: '#2f2846' },
+    reflection: ['#c9b6d6', '#f4c9b0'],
+    stone: {
+      top: '#e6dcef', front: '#9f88b4', side: '#6b5a84', joint: '#7f6c96',
+      roughCut: '#4b3f62', roughCutHighlight: '#b19fc2',
+      activeTop: '#fff0d6', activeFront: '#d9a07a', activeSide: '#a26e66', activeJoint: '#bf8a6c',
+    },
+  },
+  {
     name: 'Salt moon',
     sky: ['#17263a', '#4b526d', '#bb8c8c', '#365f6c'],
     dawnSky: ['#a9909a', '#d18e83', '#e9a678', '#f0c18f'],
@@ -142,10 +185,52 @@ const DAILY_EDITIONS: readonly DailyEdition[] = [
       activeTop: '#fff0c9', activeFront: '#d79d6f', activeSide: '#a86858', activeJoint: '#bb7d5e',
     },
   },
+  {
+    name: 'Basalt night',
+    sky: ['#0b0f1a', '#1b2233', '#3a3f55', '#22303d'],
+    dawnSky: ['#4a4d63', '#8a6f78', '#d29a78', '#f1c58e'],
+    sea: ['#2a3a48', '#070c14'],
+    dawnSea: ['#a07d78', '#2f4250'],
+    moon: { x: 170, y: 0.2, radius: 46, light: '#fffbe8', body: '#fbf4dc', shade: '#cfc6ac' },
+    mountains: ['#232838', '#171c29'],
+    islands: {
+      deep: '#151a24', leftTop: '#434b55', rightTop: '#4a525c',
+      leftOffsetX: 0, leftOffsetY: 10, rightOffsetX: 0, rightOffsetY: -6,
+    },
+    tower: { shadow: '#0c1018', deep: '#1b212c', top: '#434b55', shore: '#363e48', trees: '#1a202a' },
+    reflection: ['#c9c3b0', '#f1c58e'],
+    stone: {
+      top: '#8a919a', front: '#4a515b', side: '#2c313a', joint: '#3a404a',
+      roughCut: '#22262e', roughCutHighlight: '#6f7680',
+      activeTop: '#ffe2a4', activeFront: '#e3a35c', activeSide: '#a8683e', activeJoint: '#c7844a',
+    },
+  },
+  {
+    name: 'Storm glass',
+    sky: ['#1c2328', '#3d4a52', '#7f8b8c', '#4b5c60'],
+    dawnSky: ['#8c9796', '#b0aa98', '#dcc28e', '#efd9a8'],
+    sea: ['#4a5c62', '#151f25'],
+    dawnSea: ['#a8a58e', '#4c5f63'],
+    moon: { x: 290, y: 0.3, radius: 26, light: '#e8eef0', body: '#dfe5e6', shade: '#8d999c' },
+    mountains: ['#3a454c', '#2a353b'],
+    islands: {
+      deep: '#26313a', leftTop: '#8f9a93', rightTop: '#98a29a',
+      leftOffsetX: -20, leftOffsetY: 14, rightOffsetX: 30, rightOffsetY: 0,
+    },
+    tower: { shadow: '#1a2229', deep: '#28333b', top: '#959f97', shore: '#6f7b78', trees: '#25313a' },
+    reflection: ['#b9c2c2', '#efd9a8'],
+    stone: {
+      top: '#d3d8d4', front: '#86918e', side: '#566164', joint: '#6b7674',
+      roughCut: '#3c464b', roughCutHighlight: '#a2aba6',
+      activeTop: '#fff1cf', activeFront: '#c8a26e', activeSide: '#8d7258', activeJoint: '#a98a62',
+    },
+  },
 ]
 
-function dailyEditionForSeed(seed: number) {
-  return DAILY_EDITIONS[seed % DAILY_EDITIONS.length]!
+/** Picks the course by UTC day number, so the courses run in order and none repeats within a week. */
+function dailyEditionForDate(utcDate: string) {
+  const day = Math.floor(Date.parse(utcDate) / 86_400_000)
+  return DAILY_EDITIONS[day % DAILY_EDITIONS.length]!
 }
 
 type LensGeometry = {
@@ -1005,6 +1090,12 @@ const SeaBackdrop = memo(function SeaBackdrop({
           <stop offset=".3" stopColor={edition.moon.light} stopOpacity=".16" />
           <stop offset="1" stopColor={edition.moon.light} stopOpacity="0" />
         </radialGradient>
+        {edition.moon.phase !== undefined && (
+          <mask id="moon-phase">
+            <circle cx={moonX} cy={moonY} r={edition.moon.radius + 2} fill="#fff" />
+            <circle cx={moonX + edition.moon.radius * edition.moon.phase * 2} cy={moonY - edition.moon.radius * 0.15} r={edition.moon.radius} fill="#000" />
+          </mask>
+        )}
         <radialGradient id="moon-body" cx=".38" cy=".35" r=".75">
           <stop stopColor="#fff4df" />
           <stop offset=".7" stopColor={edition.moon.body} />
@@ -1041,6 +1132,7 @@ const SeaBackdrop = memo(function SeaBackdrop({
 
       <motion.g initial={false} animate={{ opacity: 1 - dawnProgress }} transition={dawnTransition}>
         <circle cx={moonX} cy={moonY} r={edition.moon.radius * 5} fill="url(#moonlight)" />
+        <g mask={edition.moon.phase !== undefined ? 'url(#moon-phase)' : undefined}>
         <circle cx={moonX} cy={moonY} r={edition.moon.radius} fill="url(#moon-body)" />
         <g fill={edition.moon.shade} opacity=".32">
           <circle cx={moonX + edition.moon.radius * 0.25} cy={moonY - edition.moon.radius * 0.2} r={edition.moon.radius * 0.18} />
@@ -1048,6 +1140,7 @@ const SeaBackdrop = memo(function SeaBackdrop({
           <circle cx={moonX + edition.moon.radius * 0.35} cy={moonY + edition.moon.radius * 0.4} r={edition.moon.radius * 0.09} />
         </g>
         <circle cx={moonX} cy={moonY} r={edition.moon.radius} fill="none" stroke="#fff6e6" strokeOpacity=".45" />
+        </g>
       </motion.g>
       <motion.g initial={false} animate={{ opacity: dawnProgress }} transition={dawnTransition}>
         <circle cx={sunX} cy={horizon} r="150" fill="url(#sea-sun)" opacity=".6" />
@@ -1454,7 +1547,7 @@ function GameScene({
     setDebris({ placement, pieces: [...carried, ...game.fallingPieces.map((piece) => ({ ...piece, born: placement }))] })
   }
   const fallingPieces = debris.placement === placement ? debris.pieces : game.fallingPieces
-  const edition = dailyEditionForSeed(game.challenge.seed)
+  const edition = dailyEditionForDate(game.challenge.date)
   const groundY = height - 105
   const activeY = groundY - (game.stack.length + 1) * BLOCK_HEIGHT
   const tallMobileViewport = compact && height > viewWidth * 1.15
@@ -1889,7 +1982,7 @@ function App() {
 
   const shareRun = useCallback(async () => {
     const finished = gameRef.current
-    const text = `Afterlight · ${dailyEditionForSeed(finished.challenge.seed).name} · ${formatDailyDate(finished.challenge.date)}: ${heightOf(finished)} stones, ${finished.perfects} perfect.`
+    const text = `Afterlight · ${dailyEditionForDate(finished.challenge.date).name} · ${formatDailyDate(finished.challenge.date)}: ${heightOf(finished)} stones, ${finished.perfects} perfect.`
     const url = window.location.origin
     try {
       if (navigator.share) {
@@ -2050,7 +2143,7 @@ function App() {
   }, [closeLeaderboard, commitGame, handlePlace, leaderboardOpen, playSound, start])
 
   const height = heightOf(game)
-  const dailyEdition = dailyEditionForSeed(game.challenge.seed)
+  const dailyEdition = dailyEditionForDate(game.challenge.date)
   const isFocusedRun = height > 0 && game.phase !== 'over'
   const inRun = game.phase === 'playing' || game.phase === 'paused'
 
