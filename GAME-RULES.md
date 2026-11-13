@@ -59,7 +59,7 @@ All of these are visual and sound only. None of them affect the score or the phy
   | 26–36 | the high sky darkens, with aurora and a shooting star; dawn is complete by 36 |
   | 40–55 | the edge of the sky: night returns, the stars come out, and the cloud sea curves with a dawn rim |
   | 62–78 | every second stone, the beacon links one more star into a gold chain |
-  | 94–100 | seven stars tracing the Afterlight mark appear two at a time; at 100 the top star lights with a chime, and "the beacon" fades in and out |
+  | 94–100 | seven stars tracing the Afterlight mark appear two at a time; at 100 the top star lights with a chime |
 
 - **Haptics (Android):** a short tick when a stone lands, a double tick on a perfect drop, a stronger rising pattern when the stone grows, a longer buzz on a miss, and a celebratory pattern at 100. iPhones don't let websites vibrate. The sound button turns vibration off too.
 - There are no lives, paid boosts, random rewards, streak penalties or reminder notifications.

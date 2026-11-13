@@ -1757,24 +1757,6 @@ const UpperSky = memo(function UpperSky({
                 style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
               />
               <circle cx={light.x} cy={light.y} r="5.2" fill="#fffaf0" />
-              {/* A quiet name that passes: in at 100, gone a few seconds later. The stars stay. */}
-              {!reducedMotion && (
-                <motion.text
-                  x={markX(47)}
-                  y={round1(markY(70) + 34)}
-                  textAnchor="middle"
-                  fill="#e9d8bd"
-                  fontSize="16"
-                  letterSpacing="3"
-                  fontFamily="var(--font-display)"
-                  fontStyle="italic"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0, 0.85, 0.85, 0] }}
-                  transition={{ duration: 5, times: [0, 0.15, 0.7, 1], delay: 0.5, ease: 'easeInOut' }}
-                >
-                  the beacon
-                </motion.text>
-              )}
             </>
           )}
         </g>
