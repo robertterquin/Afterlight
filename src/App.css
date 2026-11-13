@@ -1458,6 +1458,58 @@
   font-weight: 600;
 }
 
+/* Daily streak: seven small beacons and one line under the countdown. */
+.ready-streak {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--text-soft);
+  font-size: 13px;
+  text-shadow: 0 1px 10px rgba(5, 20, 31, .85);
+}
+
+.streak-week {
+  display: flex;
+  gap: 12px;
+}
+
+.streak-week i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(190, 206, 216, .45);
+}
+
+.streak-week i.is-lit {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 10px 2px rgba(242, 197, 143, .35);
+}
+
+.streak-week i.is-today {
+  border-color: var(--accent);
+  animation: streak-today 2.2s ease-in-out infinite;
+}
+
+@keyframes streak-today {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(242, 197, 143, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(242, 197, 143, .22); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streak-week i.is-today {
+    animation: none;
+  }
+}
+
+.over-streak {
+  margin: -4px 0 0;
+  color: var(--accent);
+  font-size: 13px;
+}
+
 .ready-start {
   display: flex;
   flex-direction: column;

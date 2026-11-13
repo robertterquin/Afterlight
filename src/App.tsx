@@ -3,6 +3,8 @@ import { AnimatePresence, motion, MotionConfig, useAnimate } from 'motion/react'
 import afterlightMark from './assets/afterlight-mark.svg'
 import { Leaderboard } from './DailyLeaderboard'
 import { createSoundBoard, type Cue } from './sound'
+import { readStreak, saveClimb, summarize } from './streak'
+import { drawShareCard, shareText, type ShareCardInput } from './shareCard'
 import { HeightLadder, ReadyOverlay, StreakPill } from './Hud'
 import type { LeaderboardEntry } from './leaderboard'
 import './App.css'
@@ -226,6 +228,26 @@ const DAILY_EDITIONS: readonly DailyEdition[] = [
     },
   },
 ]
+
+/** Everything the share card and its text need from a finished run. */
+function shareInputFor(finished: GameState, rank: number | null): ShareCardInput {
+  const edition = dailyEditionForDate(finished.challenge.date)
+  return {
+    courseName: edition.name,
+    dateLabel: formatDailyDate(finished.challenge.date),
+    height: heightOf(finished),
+    perfects: finished.perfects,
+    rank,
+    url: window.location.origin,
+    stack: finished.stack,
+    sky: edition.sky,
+    sea: edition.sea,
+    moon: edition.moon,
+    mountains: edition.mountains,
+    island: { deep: edition.tower.deep, top: edition.tower.top },
+    stone: { top: edition.stone.top, front: edition.stone.front, side: edition.stone.side },
+  }
+}
 
 /** Picks the course by UTC day number, so the courses run in order and none repeats within a week. */
 function dailyEditionForDate(utcDate: string) {
@@ -1807,6 +1829,9 @@ function App() {
   // The run-over card ignores taps until it has faded in, so a player still tapping when the run ends
   // can't hit its invisible "Climb again" button and skip the result.
   const [overCardReady, setOverCardReady] = useState(false)
+  const [streakRecord, setStreakRecord] = useState(readStreak)
+  // The day number shown on the run-over screen, only for the day's first finished climb of a streak.
+  const [streakKeptDay, setStreakKeptDay] = useState(0)
   const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'saved' | 'not-best' | 'failed' | 'offline'>('idle')
   const [submissionError, setSubmissionError] = useState('')
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
@@ -1828,6 +1853,12 @@ function App() {
 
   const commitGame = useCallback((next: GameState) => {
     if (gameRef.current.challenge.date !== next.challenge.date) setLeaderboardEntries([])
+    // A run that ends with at least one stone counts toward today's streak.
+    if (next.phase === 'over' && gameRef.current.phase !== 'over' && heightOf(next) >= 1) {
+      const { record, firstToday } = saveClimb(next.challenge.date)
+      setStreakRecord(record)
+      if (firstToday && record.run >= 2) setStreakKeptDay(record.run)
+    }
     gameRef.current = next
     setGame(next)
   }, [])
@@ -1932,6 +1963,7 @@ function App() {
   const beginRun = useCallback(() => {
     runIdRef.current += 1
     setOverCardReady(false)
+    setStreakKeptDay(0)
     setSubmissionStatus('idle')
     setSubmissionError('')
     if (startWakeTimerRef.current !== null) window.clearTimeout(startWakeTimerRef.current)
@@ -2001,22 +2033,43 @@ function App() {
     void submitRun(game)
   }, [authInitialized, game, submitRun])
 
+  // This run's rank, once the board shows it (only when this run is the player's best today).
+  const you = leaderboardEntries.find((entry) => entry.is_you)
+  const runRank = game.phase === 'over' && you && you.height === heightOf(game) ? you.rank : null
+
+  // The card is drawn as soon as the run ends, so Share can open the share sheet straight from the tap
+  // (Safari refuses a share that follows slow work).
+  const shareFileRef = useRef<File | null>(null)
+  useEffect(() => {
+    shareFileRef.current = null
+    if (game.phase !== 'over' || heightOf(game) < 1) return
+    let cancelled = false
+    void drawShareCard(shareInputFor(game, runRank)).then((blob) => {
+      if (!cancelled && blob) shareFileRef.current = new File([blob], `afterlight-${game.challenge.date}.png`, { type: 'image/png' })
+    })
+    return () => { cancelled = true }
+  }, [game, runRank])
+
   const shareRun = useCallback(async () => {
     const finished = gameRef.current
-    const text = `Afterlight · ${dailyEditionForDate(finished.challenge.date).name} · ${formatDailyDate(finished.challenge.date)}: ${heightOf(finished)} stones, ${finished.perfects} perfect.`
-    const url = window.location.origin
+    const text = shareText(shareInputFor(finished, runRank))
+    const file = shareFileRef.current
     try {
-      if (navigator.share) {
-        await navigator.share({ text, url })
+      if (file && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], text })
         return
       }
-      await navigator.clipboard.writeText(`${text} ${url}`)
+      if (navigator.share) {
+        await navigator.share({ text })
+        return
+      }
+      await navigator.clipboard.writeText(text)
       setShareNote('Copied')
       window.setTimeout(() => setShareNote(''), 2000)
     } catch {
       // Closing the share sheet rejects; nothing to report.
     }
-  }, [])
+  }, [runRank])
 
   // A new personal best gets a bright two-note chime once the server confirms it.
   useEffect(() => {
@@ -2292,6 +2345,7 @@ function App() {
                   editionName={dailyEdition.name}
                   dateLabel={formatDailyDate(game.challenge.date)}
                   entries={leaderboardEntries}
+                  streak={summarize(streakRecord, game.challenge.date)}
                   onStart={start}
                 />
               </motion.div>
@@ -2328,7 +2382,7 @@ function App() {
                   type="button"
                   onClick={() => {
                     playSound({ kind: 'end' })
-                    setGame((current) => endGame(current))
+                    commitGame(endGame(gameRef.current))
                   }}
                   whileTap={{ scale: 0.97 }}
                 >
@@ -2362,6 +2416,7 @@ function App() {
                     {submissionStatus === 'saved' && <> · <b>new best today</b></>}
                   </span>
                 </p>
+                {streakKeptDay > 0 && <p className="over-streak">Day {streakKeptDay} · streak kept</p>}
                 <motion.button
                   className="primary-button"
                   type="button"

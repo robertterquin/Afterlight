@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import type { LeaderboardEntry } from './leaderboard'
+import { streakLine, type Streak } from './streak'
 
 // Mirrors PERFECTS_TO_AWAKEN in the game engine: the fifth perfect in a row grows the stone.
 const PERFECTS_TO_GROW = 5
@@ -27,14 +28,17 @@ export function ReadyOverlay({
   editionName,
   dateLabel,
   entries,
+  streak,
   onStart,
 }: {
   editionName: string
   dateLabel: string
   entries: LeaderboardEntry[]
+  streak: Streak
   onStart: () => void
 }) {
   const countdown = useCountdown()
+  const streakText = streakLine(streak)
   const you = entries.find((entry) => entry.is_you)
   const third = entries.find((entry) => entry.rank === 3)
 
@@ -44,6 +48,17 @@ export function ReadyOverlay({
         <span className="eyebrow">Today · {dateLabel}</span>
         <h1 className="ready-course-title">{editionName}</h1>
         <span className="ready-countdown">New course in <b className="num">{countdown}</b></span>
+        {streakText && (
+          <div className="ready-streak">
+            {/* The last seven days as beacons: lit when climbed; today waits, pulsing, until you play. */}
+            <span className="streak-week" aria-hidden="true">
+              {streak.week.map((climbed, index) => (
+                <i key={index} className={climbed ? 'is-lit' : index === 6 ? 'is-today' : undefined} />
+              ))}
+            </span>
+            <span>{streakText}</span>
+          </div>
+        )}
       </div>
 
       <div className="ready-start">
