@@ -2243,6 +2243,11 @@ function App() {
     if (soundEnabledRef.current) sounds.play(cue, delay)
   }, [sounds])
 
+  // Short vibrations on Android phones (iPhones don't let websites vibrate). The sound button switches them off too.
+  const buzz = useCallback((pattern: number | number[]) => {
+    if (soundEnabledRef.current && typeof navigator.vibrate === 'function') navigator.vibrate(pattern)
+  }, [])
+
   // Browsers only allow audio after a user gesture, so the sound board is built while the page is idle
   // (that part is slow) and only switched on by the first tap or key.
   useEffect(() => {
@@ -2270,20 +2275,30 @@ function App() {
 
     if (next.phase === 'over') {
       playSound({ kind: 'miss', intoCloud, volume: Math.max(0.3, 0.75 - climbed / 30) }, 0.78)
+      buzz(70)
       return
     }
     if (next.stack.length <= current.stack.length) return
 
     playSound({ kind: 'stone' })
     // Reaching 100 lights the beacon constellation in the sky; it gets the full chime.
-    if (heightOf(next) === 100) playSound({ kind: 'celebration' }, 0.7)
+    if (heightOf(next) === 100) {
+      playSound({ kind: 'celebration' }, 0.7)
+      buzz([18, 60, 18, 60, 18, 60, 45])
+    } else if (next.lastDropWasPerfect && next.perfectStreak % 5 === 0) {
+      buzz([12, 40, 18, 40, 30])
+    } else if (next.lastDropWasPerfect) {
+      buzz([10, 40, 10])
+    } else {
+      buzz(12)
+    }
     if (next.lastDropWasPerfect) {
       playSound({ kind: 'perfect', streak: next.perfectStreak }, 0.03)
       if (next.perfectStreak % 5 === 0) playSound({ kind: 'celebration' }, 0.24)
     } else if (next.fallingPieces.length > 0) {
       playSound(intoCloud ? { kind: 'cloud' } : { kind: 'plunk', volume: Math.max(0.12, 0.5 - climbed * 0.03) }, 0.64)
     }
-  }, [playSound])
+  }, [buzz, playSound])
 
   const beginRun = useCallback(() => {
     runIdRef.current += 1

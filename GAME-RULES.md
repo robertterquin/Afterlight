@@ -61,6 +61,7 @@ All of these are visual and sound only. None of them affect the score or the phy
   | 62–78 | every second stone, the beacon links one more star into a gold chain |
   | 94–100 | a constellation in the shape of the Afterlight mark builds and lights at 100, with a chime |
 
+- **Haptics (Android):** a short tick when a stone lands, a double tick on a perfect drop, a stronger rising pattern when the stone grows, a longer buzz on a miss, and a celebratory pattern at 100. iPhones don't let websites vibrate. The sound button turns vibration off too.
 - There are no lives, paid boosts, random rewards, streak penalties or reminder notifications.
 
 ## Coming back each day
