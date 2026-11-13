@@ -814,12 +814,12 @@ function IslandCliff({
 }
 
 
-function BirdFlock({ active, reducedMotion }: { active: boolean; reducedMotion: boolean }) {
+function BirdFlock({ presence, reducedMotion }: { presence: number; reducedMotion: boolean }) {
   return (
     <motion.g
       initial={false}
-      animate={{ opacity: active ? .56 : 0 }}
-      transition={{ duration: reducedMotion ? 0 : 0.8, ease: 'easeOut' }}
+      animate={{ opacity: presence * 0.56 }}
+      transition={{ duration: reducedMotion ? 0 : 1.6, ease: 'easeOut' }}
       fill="none"
       stroke="#f6e0bd"
       strokeWidth="1.6"
@@ -828,8 +828,8 @@ function BirdFlock({ active, reducedMotion }: { active: boolean; reducedMotion: 
     >
       <motion.g
         initial={false}
-        animate={active && !reducedMotion ? { x: [0, 24, -8, 0], y: [0, -3, 1, 0] } : { x: 0, y: 0 }}
-        transition={active && !reducedMotion
+        animate={presence > 0 && !reducedMotion ? { x: [0, 24, -8, 0], y: [0, -3, 1, 0] } : { x: 0, y: 0 }}
+        transition={presence > 0 && !reducedMotion
           ? { duration: 12, repeat: Infinity, ease: 'easeInOut' }
           : { duration: 0 }}
       >
@@ -1748,6 +1748,60 @@ const UpperSky = memo(function UpperSky({
   )
 })
 
+/*
+ * Sky lanterns: above 42 stones, one warm paper lantern is released every third stone. It rises from behind the
+ * cloud sea, sways and fades among the stars over about ten seconds, as if people below are sending light up
+ * to the beacon. Each lantern animates once while it flies (no loops), and at most three are in the sky.
+ */
+const LANTERNS_FROM = 42
+const LANTERN_EVERY = 3
+
+function SkyLanterns({ horizon, towerHeight, portrait }: { horizon: number; towerHeight: number; portrait: boolean }) {
+  const newest = Math.floor(towerHeight / LANTERN_EVERY)
+  const first = Math.ceil(LANTERNS_FROM / LANTERN_EVERY)
+  const ids = [newest - 2, newest - 1, newest].filter((id) => id >= first)
+  const startY = horizon + 8
+  const endY = round1(horizon * (portrait ? 0.3 : 0.12))
+  return (
+    <g pointerEvents="none">
+      <defs>
+        <radialGradient id="lantern-glow">
+          <stop stopColor="#ffd59a" stopOpacity=".75" />
+          <stop offset="1" stopColor="#ffb46a" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      {ids.map((id) => {
+        const random = seededRandom(id * 7919 + 13)
+        // Left or right of the tower, never straight up its middle.
+        const x = round1(random() < 0.5 ? 130 + random() * 270 : 600 + random() * 270)
+        const scale = round1((1.1 + random() * 0.5) * (portrait ? 1.35 : 1))
+        const sway = round1(6 + random() * 8)
+        const duration = 8.5 + random() * 2.5
+        return (
+          <motion.g
+            key={id}
+            initial={{ y: 0, x: 0, opacity: 0 }}
+            animate={{ y: endY - startY, x: [0, sway, -sway * 0.6, sway * 0.3], opacity: [0, 0.95, 0.9, 0] }}
+            transition={{
+              y: { duration, ease: [0.25, 0.1, 0.4, 1] },
+              x: { duration, ease: 'easeInOut' },
+              opacity: { duration, times: [0, 0.12, 0.72, 1], ease: 'easeInOut' },
+            }}
+          >
+            <g transform={`translate(${x} ${startY}) scale(${scale})`}>
+              <circle r="20" fill="url(#lantern-glow)" />
+              <path d="M-5 -7H5L6.5 6H-6.5Z" fill="#ffcf8a" />
+              <path d="M-5 -7H5L5.6 -2H-5.6Z" fill="#ffe2b4" opacity=".7" />
+              <rect x="-6" y="4.6" width="12" height="2.2" rx="1" fill="#e89a55" />
+              <circle cy="8.6" r="1.2" fill="#fff3d0" />
+            </g>
+          </motion.g>
+        )
+      })}
+    </g>
+  )
+}
+
 /** In front of the cloud sea: it darkens to night and its far edge curves like the world, lit by a thin dawn rim. */
 const WorldEdge = memo(function WorldEdge({ height, horizon, edge, reducedMotion }: { height: number; horizon: number; edge: number; reducedMotion: boolean }) {
   const top = horizon - 12
@@ -1930,6 +1984,7 @@ function GameScene({
       {towerHeight >= UPPER_EDGE_FROM - 2 && (
         <UpperSky horizon={horizon} edge={upperEdge} links={links} constellation={constellation} beam={beam} portrait={compact} reducedMotion={reducedMotion} />
       )}
+      {towerHeight >= LANTERNS_FROM && !reducedMotion && <SkyLanterns horizon={horizon} towerHeight={towerHeight} portrait={compact} />}
       <SideIslets
         edition={edition}
         height={height}
@@ -1943,7 +1998,8 @@ function GameScene({
       />
       <CloudBank height={height} horizon={horizon} rise={cloudRise} night={upperEdge} reducedMotion={reducedMotion} />
       {towerHeight >= UPPER_EDGE_FROM - 2 && <WorldEdge height={height} horizon={horizon} edge={upperEdge} reducedMotion={reducedMotion} />}
-      <BirdFlock active={towerHeight >= 8} reducedMotion={reducedMotion} />
+      {/* Birds belong to the low sky: they arrive at 8 stones and stay below as you climb past the dawn (36–42). */}
+      <BirdFlock presence={towerHeight >= 8 ? 1 - smoothstep(36, 42, towerHeight) : 0} reducedMotion={reducedMotion} />
       <WindStreaks height={height} direction={windDirection} visible={windStrength >= 6} reducedMotion={reducedMotion} />
 
       {/* The beacon island and tower follow the camera as the stack climbs. */}

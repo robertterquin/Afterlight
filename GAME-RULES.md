@@ -54,10 +54,11 @@ All of these are visual and sound only. None of them affect the score or the phy
   | Stones | What happens |
   |---|---|
   | 7–15 | clouds drift past |
-  | from 8 | birds fly by |
+  | 8–36 | birds fly by, then stay below as you climb past the dawn |
   | 14–22 | the cloud sea rises below |
   | 26–36 | the high sky darkens, with aurora and a shooting star; dawn is complete by 36 |
   | 40–55 | the edge of the sky: night returns, the stars come out, and the cloud sea curves with a dawn rim |
+  | from 42 | every third stone, a warm sky lantern rises out of the cloud sea and fades among the stars |
   | 62–78 | every second stone, the beacon links one more star into a gold chain |
   | 94–100 | the closing arch: from the chain's two ends, a pair of stars climbs toward the middle every two stones, and at 100 the arch meets at the beacon star above the tower, with a chime |
 
