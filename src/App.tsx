@@ -1452,7 +1452,8 @@ function GameScene({
   const groundY = height - 105
   const activeY = groundY - (game.stack.length + 1) * BLOCK_HEIGHT
   const tallMobileViewport = compact && height > WORLD_WIDTH * 1.15
-  const targetY = height * (tallMobileViewport ? 0.64 : compact ? 0.48 : 0.43)
+  // On tall phones the full-height stage needs the tower higher, clear of the Start button and play hint.
+  const targetY = height * (tallMobileViewport ? 0.52 : compact ? 0.48 : 0.43)
   const cameraShift = targetY - activeY
   const climbProgress = game.stack.length * BLOCK_HEIGHT
   const horizon = Math.round(height * 0.42)

@@ -134,7 +134,7 @@
 
 .stage {
   position: relative;
-  height: min(76svh, 790px);
+  height: min(80svh, 800px);
   min-height: 480px;
   overflow: hidden;
   isolation: isolate;
@@ -1195,7 +1195,7 @@
 }
 
 .stage {
-  height: min(80svh, 800px);
+  /* Height lives in the base rule so the phone breakpoints above can still fill the screen. */
   border: 0;
   border-radius: 28px;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, .07), 0 40px 80px -40px rgba(0, 0, 0, .8);
