@@ -906,11 +906,14 @@ function WaterImpact({
   surfaceY,
   surface,
   forceful = false,
+  night = 0,
 }: {
   piece: FallingPiece
   surfaceY: number
   surface: ImpactSurface
   forceful?: boolean
+  /** 0 to 1 as the upper sky darkens (40–55 stones): the puff takes on the night clouds' colour. */
+  night?: number
 }) {
   // Slivers sink quietly; a splash for every tiny trim reads as noise.
   if (surface === 'none' || (surface === 'water' && piece.width < 20 && !forceful)) return null
@@ -921,7 +924,7 @@ function WaterImpact({
   if (surface === 'cloud') {
     return (
       <motion.g pointerEvents="none" initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 0] }} transition={{ duration: 1.2, delay: impactDelay - 0.08, ease: 'easeOut' }}>
-        <ellipse cx={center} cy={surfaceY + 12 * size} rx={60 * size} ry={10 * size} fill="#9d88a3" opacity=".35" />
+        <ellipse cx={center} cy={surfaceY + 12 * size} rx={60 * size} ry={10 * size} fill={blendColor('#9d88a3', '#1d1f44', night)} opacity={0.35 + night * 0.15} />
         {[[-0.5, 0], [0, -0.2], [0.5, 0.05]].map(([dx, dy], index) => (
           <motion.ellipse
             key={index}
@@ -929,13 +932,42 @@ function WaterImpact({
             cy={surfaceY + dy * 20}
             rx={30 * size}
             ry={13 * size}
-            fill="#ffffff"
+            fill={blendColor('#ffffff', '#8f88b8', night)}
             initial={{ scale: 0.3 }}
             animate={{ scale: [0.3, 1.25, 1.6] }}
             transition={{ duration: 1.1, delay: impactDelay - 0.08 + index * 0.05, ease: 'easeOut' }}
             style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
           />
         ))}
+        {night > 0.2 && (
+          <>
+            {/* Moonlight catching the top of the stirred-up cloud. */}
+            <motion.path
+              d={`M${center - 46 * size} ${surfaceY - 2 * size}q${22 * size} ${-14 * size} ${45 * size} ${-12 * size}M${center - 18 * size} ${surfaceY - 9 * size}q${18 * size} ${-8 * size} ${36 * size} ${-2 * size}`}
+              fill="none"
+              stroke="#d9d2f2"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              opacity={0.7 * night}
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.5, delay: impactDelay - 0.02, ease: 'easeOut' }}
+            />
+            {/* A little of the beacon's light carried down, rising and fading. */}
+            {[[-0.3, 0.9, 1.8], [0.15, 0.7, 1.4], [0.45, 0.55, 1.2]].map(([dx, peak, radius], index) => (
+              <motion.circle
+                key={`spark-${index}`}
+                cx={center + dx * 60 * size}
+                cy={surfaceY - 14 * size}
+                r={radius}
+                fill="#fff0c9"
+                initial={{ opacity: 0, y: 0 }}
+                animate={{ opacity: [0, peak * night, 0], y: -26 - index * 9 }}
+                transition={{ duration: 1, delay: impactDelay + index * 0.08, ease: 'easeOut' }}
+              />
+            ))}
+          </>
+        )}
       </motion.g>
     )
   }
@@ -2064,6 +2096,7 @@ function GameScene({
           surfaceY={impactY}
           surface={impactSurface}
           forceful={game.phase === 'over'}
+          night={upperEdge}
         />
       ))}
     </svg>
