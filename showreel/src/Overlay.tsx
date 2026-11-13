@@ -223,7 +223,7 @@ function TitleLockup({ frame, layout }: { frame: number; layout: Layout }) {
       </div>
       <div style={{ display: 'inline-block', marginTop: portrait ? 56 : 42 }}>
         <div style={{ ...label(portrait ? 30 : 26), letterSpacing: '0.16em', textTransform: 'none' }}>
-          <Word frame={frame} at={830} exit={9999}>afterlight-eta.vercel.app</Word>
+          <Word frame={frame} at={830} exit={9999}>playafterlight.vercel.app</Word>
         </div>
         <div style={{ height: 2, marginTop: 12, background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`, scale: `${rule} 1` }} />
       </div>
