@@ -488,7 +488,7 @@ const BlockShape = memo(function BlockShape({
           height={lens.height + 8}
           rx={(lens.width + 8) / 2}
           fill={lensColor}
-          filter="url(#soft-bloom)"
+          className="bloom" filter="url(#soft-bloom)"
           opacity={signalActive ? '.4' : cleanStone ? '.38' : '.2'}
         />
         <rect x={lens.x} y={lens.y} width={lens.width} height={lens.height} rx={lens.width / 2} fill={lensColor} />
@@ -526,7 +526,7 @@ function StartWake({
         height={lens.height + 18}
         rx={(lens.width + 18) / 2}
         fill="#fff0c4"
-        filter="url(#soft-bloom)"
+        className="bloom" filter="url(#soft-bloom)"
         initial={{ opacity: 0, scale: 0.24 }}
         animate={{ opacity: [0, .92, .28], scale: [.24, 1.2, 1.55] }}
         transition={{ duration: START_WAKE_DURATION / 1000, ease: 'easeOut' }}
@@ -538,7 +538,7 @@ function StartWake({
         stroke="#fff1cd"
         strokeWidth="2"
         strokeLinecap="round"
-        filter="url(#soft-bloom)"
+        className="bloom-stroke" filter="url(#soft-bloom)"
         initial={{ opacity: 0, pathLength: 0, y: 5 }}
         animate={{ opacity: [0, .78, 0], pathLength: [0, 1, 1], y: [5, 0, -3] }}
         transition={{ duration: START_WAKE_DURATION / 1000, ease: 'easeOut' }}
@@ -592,7 +592,7 @@ function BeaconSignal({
               stroke="#f6c87e"
               strokeWidth={signalWidth + 3.8}
               strokeLinecap="round"
-              filter="url(#soft-bloom)"
+              className="bloom-stroke" filter="url(#soft-bloom)"
               initial={reducedMotion ? false : { opacity: 0, pathLength: 0 }}
               animate={{ opacity: intensity * 0.44, pathLength: 1 }}
               transition={{ duration: reducedMotion ? 0 : 0.36, delay: offset * 0.055, ease: 'easeOut' }}
@@ -650,7 +650,7 @@ function LandingFeedback({
             stroke="#ebb86f"
             strokeWidth="6"
             strokeLinecap="round"
-            filter="url(#soft-bloom)"
+            className="bloom-stroke" filter="url(#soft-bloom)"
             initial={{ opacity: 0, pathLength: 0 }}
             animate={{ opacity: [0, 0.38, 0], pathLength: [0, 1, 1] }}
             transition={{ duration: 0.58, ease: 'easeOut' }}
@@ -726,7 +726,7 @@ function Waystone({
       <path d="M-5 0L-3.6 -18Q0 -23 3.6 -18L5 0Z" fill={stone.front} />
       <path d="M0 -21.6Q2.4 -20.6 3.6 -18L5 0H0Z" fill={stone.side} />
       <path d="M-3.6 -18Q0 -23 3.6 -18" stroke={stone.top} strokeWidth="1.4" fill="none" />
-      {lit && <rect x="-5" y="-17" width="10" height="14" rx="5" fill="#ffe0a2" opacity=".6" filter="url(#soft-bloom)" />}
+      {lit && <rect x="-5" y="-17" width="10" height="14" rx="5" fill="#ffe0a2" opacity=".6" className="bloom" filter="url(#soft-bloom)" />}
       <rect x="-1.3" y="-14" width="2.6" height="7" rx="1.3" fill={lit ? '#fff0c4' : '#3f555c'} />
       {celebration > 0 && (
         <motion.circle
@@ -735,7 +735,7 @@ function Waystone({
           cy="-11"
           r="3.5"
           fill="#fff1c7"
-          filter="url(#soft-bloom)"
+          className="bloom" filter="url(#soft-bloom)"
           initial={{ opacity: 0, scale: 0.3 }}
           animate={{ opacity: [0, 1, 0], scale: [0.3, 1.5, 2.4] }}
           transition={{ duration: 0.72, delay: sequence * 0.08, ease: 'easeOut' }}
@@ -857,7 +857,7 @@ function HarborBuoy({
     >
       <path d={`M172 ${waterY + 7}V${waterY - 24}`} stroke="#264758" strokeWidth="3" strokeLinecap="round" />
       <path d={`M164 ${waterY - 5}h16l-3 9h-10z`} fill="#496e73" />
-      <circle cx="172" cy={waterY - 27} r="8" fill="#ffd996" opacity=".28" filter="url(#soft-bloom)" />
+      <circle cx="172" cy={waterY - 27} r="8" fill="#ffd996" opacity=".28" className="bloom" filter="url(#soft-bloom)" />
       <circle cx="172" cy={waterY - 27} r="3.1" fill="#ffeac0" />
       <motion.path
         d={`M158 ${waterY + 17}h28m-20 10h15`}
@@ -972,7 +972,7 @@ function BeaconPulse({ block, topY, fromY }: { block: Block; topY: number; fromY
         height="54"
         rx="8"
         fill="#fff2c9"
-        filter="url(#soft-bloom)"
+        className="bloom" filter="url(#soft-bloom)"
         initial={{ opacity: 0, y: fromY - topY }}
         animate={{ opacity: [0, 1, 1, 0], y: [fromY - topY, 0] }}
         transition={{ duration: 0.6, ease: 'easeIn' }}
@@ -1009,7 +1009,7 @@ function BeaconPulse({ block, topY, fromY }: { block: Block; topY: number; fromY
         cy={topY + BLOCK_HEIGHT / 2}
         r="30"
         fill="#ffe4ae"
-        filter="url(#soft-bloom)"
+        className="bloom" filter="url(#soft-bloom)"
         initial={{ opacity: 0, scale: 0.35 }}
         animate={{ opacity: [0, 0.72, 0], scale: [0.35, 1.2, 2.4] }}
         transition={{ duration: 1, delay: 0.45, ease: 'easeOut' }}
@@ -1191,7 +1191,7 @@ const SeaBackdrop = memo(function SeaBackdrop({
         <circle cx={sunX} cy={horizon + 6} r="34" fill="#fff1d2" />
       </motion.g>
 
-      <g filter="url(#sea-mist)">
+      <g className="sea-mist" filter="url(#sea-mist)">
         <ellipse cx="520" cy={round1(horizon * 0.5)} rx="300" ry="9" fill="#c9a3ae" opacity=".3" />
         <ellipse cx="170" cy={round1(horizon * 0.66)} rx="220" ry="7" fill="#c9a3ae" opacity=".24" />
         <ellipse cx="780" cy={round1(horizon * 0.8)} rx="260" ry="10" fill="#f2b79e" opacity=".32" />
@@ -1318,7 +1318,7 @@ const SideIslets = memo(function SideIslets({
         <rect x={lx - 3} y={ly - 27} width="6" height="13" rx="3" fill="#6f4c40" />
         <rect x={lx - 9} y={ly - 110} width="18" height="13" rx="2" fill="#ffe7b0" />
         <path d={`M${lx - 11} ${ly - 110}l11-10 11 10z`} fill="#33445a" />
-        <circle cx={lx} cy={ly - 103} r="22" fill="#ffe4a8" opacity=".7" filter="url(#soft-bloom)" />
+        <circle cx={lx} cy={ly - 103} r="22" fill="#ffe4a8" opacity=".7" className="bloom" filter="url(#soft-bloom)" />
         {/* Dawn dims the beam on the wrapper, so the pulse inside never restarts. */}
         <motion.g initial={false} animate={{ opacity: 1 - dawnProgress * 0.55 }} transition={reducedMotion ? { duration: 0 } : { duration: 1.6, ease: 'easeInOut' as const }}>
           <motion.path
@@ -1336,7 +1336,7 @@ const SideIslets = memo(function SideIslets({
             animate={{ opacity: [0, 1, 0] }}
             transition={{ duration: 1.3, delay: 0.55, ease: 'easeOut' }}
           >
-            <circle cx={lx} cy={ly - 103} r="46" fill="#fff0c9" opacity=".8" filter="url(#soft-bloom)" />
+            <circle cx={lx} cy={ly - 103} r="46" fill="#fff0c9" opacity=".8" className="bloom" filter="url(#soft-bloom)" />
             <path d={`M${lx - 6} ${ly - 104}L${lx - 420} ${ly - 150}L${lx - 420} ${ly - 70}Z`} fill="#fff0c9" opacity=".45" />
           </motion.g>
         )}
@@ -1351,7 +1351,7 @@ const SideIslets = memo(function SideIslets({
           <motion.g initial={false} animate={{ opacity: windows }} transition={reducedMotion ? { duration: 0 } : { duration: 1.6, ease: 'easeInOut' as const }}>
             <rect x="121" y="14" width="6" height="7" rx="1" fill="#ffd98f" />
             <rect x="139" y="14" width="6" height="7" rx="1" fill="#ffd98f" />
-            <circle cx="133" cy="18" r="16" fill="#ffd27f" opacity=".55" filter="url(#soft-bloom)" />
+            <circle cx="133" cy="18" r="16" fill="#ffd27f" opacity=".55" className="bloom" filter="url(#soft-bloom)" />
           </motion.g>
           <path d="M60 37q92 7 176 0" stroke="#eef4ee" strokeOpacity=".4" strokeWidth="1.5" fill="none" />
           <Waystone stone={edition.stone} size={0.6} x={88} y={16} lit={lit >= 1} celebration={celebration} sequence={5} />
@@ -1650,6 +1650,16 @@ function GameScene({
         <filter id="soft-bloom" x="-100%" y="-100%" width="300%" height="300%">
           <feGaussianBlur stdDeviation="5" />
         </filter>
+        {/* Phones swap the blur filters for these gradients (see App.css): Safari redraws blurs too slowly. */}
+        <radialGradient id="lite-glow">
+          <stop stopColor="#fff0c9" />
+          <stop offset=".45" stopColor="#ffe2a8" stopOpacity=".75" />
+          <stop offset="1" stopColor="#ffd98f" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="lite-mist">
+          <stop stopColor="#e8b4a6" />
+          <stop offset="1" stopColor="#e8b4a6" stopOpacity="0" />
+        </radialGradient>
       </defs>
 
       <SeaBackdrop edition={edition} height={height} horizon={horizon} dawnProgress={dawnProgress} reducedMotion={reducedMotion} />

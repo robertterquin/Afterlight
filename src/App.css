@@ -2048,3 +2048,54 @@
     opacity: .8;
   }
 }
+
+/* Phones and tablets: Safari redraws blur effects too slowly on older iPhones, so the scene trades
+   them for cheap look-alikes. Desktop keeps the full versions. */
+@media (max-width: 700px), (pointer: coarse) {
+  /* Glows: a soft radial gradient instead of a blur filter. */
+  .game-scene .bloom {
+    filter: none;
+    fill: url(#lite-glow);
+  }
+
+  .game-scene .bloom-stroke {
+    filter: none;
+    stroke-opacity: .45;
+  }
+
+  .game-scene .sea-mist {
+    filter: none;
+  }
+
+  .game-scene .sea-mist ellipse {
+    fill: url(#lite-mist);
+  }
+
+  .signal-stone {
+    filter: none;
+  }
+
+  /* Panels: solid, slightly see-through backgrounds instead of frosted glass. */
+  * {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .glass {
+    background: rgba(12, 24, 36, .9);
+  }
+
+  .chip {
+    background: rgba(10, 20, 31, .8);
+  }
+
+  /* End of a run: fade the scene instead of re-colouring every pixel with a filter. */
+  .game-scene {
+    transition: opacity .72s ease .78s;
+  }
+
+  .stage.is-over .game-scene {
+    filter: none;
+    opacity: .7;
+  }
+}
