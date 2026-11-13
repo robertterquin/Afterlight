@@ -29,7 +29,7 @@ Players stack moving stones to raise a beacon tower on an island in an open sea.
 
 - **Daily course:** a seed derived from the UTC date sets the day's course. It changes at 00:00 UTC, which is 08:00 in the Philippines.
 - **Wind:** the first five floors are calm. After that, every five floors the wind changes to a seeded value from −8% to +8% of the current speed, and every player gets the same sequence. The 2.2× speed cap applies after the wind.
-- **Course look:** seven courses rotate in a fixed weekly loop by UTC day number, so none repeats within a week: Ember tide, Frost tide, First light, Violet hour, Salt moon, Basalt night, Storm glass. The look is cosmetic only and doesn't change the rules.
+- **Course look:** seven courses rotate in a fixed weekly loop by UTC day number, so none repeats within a week: Ember tide, Frost tide, First light, Violet hour, Salt moon, Basalt night, Storm glass. Each has its own palette for the sea, islands and stones, and its own night above the clouds. The look is cosmetic only and doesn't change the rules.
 - **Ranking:** by height, then total perfect drops, then the earliest time the server accepted the score.
 - **Score checking:** the game records the tick of each drop. The server replays those drops against the day's seed before accepting a score, and keeps only each player's best. This is basic score checking, not cheat-proof security.
 - **Late scores:** the server accepts runs for today and yesterday. A run that finishes just before the reset, or was saved offline, still counts.

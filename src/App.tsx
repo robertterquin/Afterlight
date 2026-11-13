@@ -47,6 +47,8 @@ type StonePalette = {
   activeJoint: string
 }
 
+type NightPalette = DailyEdition['night']
+
 type DailyEdition = {
   name: string
   sky: readonly [string, string, string, string]
@@ -82,12 +84,21 @@ type DailyEdition = {
   }
   reflection: readonly [string, string]
   stone: StonePalette
+  /** Above the clouds (40+ stones): the night overhead, the cloud sea, its horizon rim and the star lines. */
+  night: {
+    sky: readonly [string, string, string]
+    cloudLit: string
+    cloudShade: string
+    rim: string
+    line: string
+  }
 }
 
 // Seven courses, one per day of a weekly loop, alternating warm and cool skies.
 const DAILY_EDITIONS: readonly DailyEdition[] = [
   {
     name: 'Ember tide',
+    night: { sky: ['#0d0814', '#2a1530', '#55304c'], cloudLit: '#7f5c78', cloudShade: '#3a2238', rim: '#ffb48a', line: '#f2c58f' },
     sky: ['#252b43', '#60516b', '#b77876', '#4f7477'],
     dawnSky: ['#9b7d8c', '#c77b74', '#eea16e', '#f4c794'],
     sea: ['#5b7379', '#243a4a'],
@@ -108,6 +119,7 @@ const DAILY_EDITIONS: readonly DailyEdition[] = [
   },
   {
     name: 'Frost tide',
+    night: { sky: ['#030a16', '#10243c', '#2a4c72'], cloudLit: '#7290b4', cloudShade: '#1f3552', rim: '#d6ecff', line: '#e4eef7' },
     sky: ['#1a2a44', '#3f5f86', '#9fb9d0', '#6f93ae'],
     dawnSky: ['#a9bfd4', '#cdd4e0', '#f0d6c4', '#fbe7d6'],
     sea: ['#5f87a3', '#1b3550'],
@@ -128,6 +140,7 @@ const DAILY_EDITIONS: readonly DailyEdition[] = [
   },
   {
     name: 'First light',
+    night: { sky: ['#04100f', '#12302d', '#2c544e'], cloudLit: '#6d9086', cloudShade: '#1e3b37', rim: '#ffd2a2', line: '#f2d9b0' },
     sky: ['#26394c', '#5b7180', '#a6a9a5', '#5d8581'],
     dawnSky: ['#91a3aa', '#c4a797', '#e8ae86', '#f3ca9d'],
     sea: ['#527d80', '#1f4651'],
@@ -149,6 +162,7 @@ const DAILY_EDITIONS: readonly DailyEdition[] = [
   },
   {
     name: 'Violet hour',
+    night: { sky: ['#0a0718', '#22173f', '#433070'], cloudLit: '#7d6caa', cloudShade: '#2a2250', rim: '#f8b9cb', line: '#f2c58f' },
     sky: ['#231d3d', '#4e3d6b', '#9a7aa6', '#5b6b8a'],
     dawnSky: ['#8a7fa6', '#c48fae', '#eab0a0', '#f6d3b0'],
     sea: ['#5a6688', '#1f2440'],
@@ -169,6 +183,7 @@ const DAILY_EDITIONS: readonly DailyEdition[] = [
   },
   {
     name: 'Salt moon',
+    night: { sky: ['#03060f', '#0b1030', '#1b1f48'], cloudLit: '#6a6596', cloudShade: '#2a2a52', rim: '#ffcf9e', line: '#e9cfa2' },
     sky: ['#17263a', '#4b526d', '#bb8c8c', '#365f6c'],
     dawnSky: ['#a9909a', '#d18e83', '#e9a678', '#f0c18f'],
     sea: ['#4b7780', '#142e42'],
@@ -189,6 +204,7 @@ const DAILY_EDITIONS: readonly DailyEdition[] = [
   },
   {
     name: 'Basalt night',
+    night: { sky: ['#020306', '#0b0e16', '#1d2230'], cloudLit: '#4c525e', cloudShade: '#151a22', rim: '#f1c58e', line: '#f2c58f' },
     sky: ['#0b0f1a', '#1b2233', '#3a3f55', '#22303d'],
     dawnSky: ['#4a4d63', '#8a6f78', '#d29a78', '#f1c58e'],
     sea: ['#2a3a48', '#070c14'],
@@ -209,6 +225,7 @@ const DAILY_EDITIONS: readonly DailyEdition[] = [
   },
   {
     name: 'Storm glass',
+    night: { sky: ['#04080b', '#131e24', '#2c3d44'], cloudLit: '#6c7d82', cloudShade: '#1c2b31', rim: '#e8eef0', line: '#dfe6e6' },
     sky: ['#1c2328', '#3d4a52', '#7f8b8c', '#4b5c60'],
     dawnSky: ['#8c9796', '#b0aa98', '#dcc28e', '#efd9a8'],
     sea: ['#4a5c62', '#151f25'],
@@ -907,6 +924,7 @@ function WaterImpact({
   surface,
   forceful = false,
   night = 0,
+  palette,
 }: {
   piece: FallingPiece
   surfaceY: number
@@ -914,6 +932,8 @@ function WaterImpact({
   forceful?: boolean
   /** 0 to 1 as the upper sky darkens (40–55 stones): the puff takes on the night clouds' colour. */
   night?: number
+  /** The course's night colours, which the puff takes on above the clouds. */
+  palette: NightPalette
 }) {
   // Slivers sink quietly; a splash for every tiny trim reads as noise.
   if (surface === 'none' || (surface === 'water' && piece.width < 20 && !forceful)) return null
@@ -924,7 +944,7 @@ function WaterImpact({
   if (surface === 'cloud') {
     return (
       <motion.g pointerEvents="none" initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 0] }} transition={{ duration: 1.2, delay: impactDelay - 0.08, ease: 'easeOut' }}>
-        <ellipse cx={center} cy={surfaceY + 12 * size} rx={60 * size} ry={10 * size} fill={blendColor('#9d88a3', '#1d1f44', night)} opacity={0.35 + night * 0.15} />
+        <ellipse cx={center} cy={surfaceY + 12 * size} rx={60 * size} ry={10 * size} fill={blendColor('#9d88a3', palette.cloudShade, night)} opacity={0.35 + night * 0.15} />
         {[[-0.5, 0], [0, -0.2], [0.5, 0.05]].map(([dx, dy], index) => (
           <motion.ellipse
             key={index}
@@ -932,7 +952,7 @@ function WaterImpact({
             cy={surfaceY + dy * 20}
             rx={30 * size}
             ry={13 * size}
-            fill={blendColor('#ffffff', '#8f88b8', night)}
+            fill={blendColor('#ffffff', blendColor(palette.cloudLit, '#ffffff', 0.18), night)}
             initial={{ scale: 0.3 }}
             animate={{ scale: [0.3, 1.25, 1.6] }}
             transition={{ duration: 1.1, delay: impactDelay - 0.08 + index * 0.05, ease: 'easeOut' }}
@@ -1471,7 +1491,7 @@ const CloudBelt = memo(function CloudBelt({ groundY, layer, reducedMotion }: { g
  * from above, it appears at the horizon first and spreads toward the viewer, row by row, so it moves
  * the same way as the rest of the world instead of rising against it.
  */
-const CloudBank = memo(function CloudBank({ height, horizon, rise, night, reducedMotion }: { height: number; horizon: number; rise: number; night: number; reducedMotion: boolean }) {
+const CloudBank = memo(function CloudBank({ height, horizon, rise, night, palette, reducedMotion }: { height: number; horizon: number; rise: number; night: number; palette: NightPalette; reducedMotion: boolean }) {
   const rows = useMemo(() => {
     const random = seededRandom(31)
     const tones = [['#f3e2df', '#d9c3c9'], ['#e9d3d3', '#c9b0bd'], ['#dcc3c8', '#b49cb0'], ['#cbb0bb', '#9a86a0'], ['#b9a0b1', '#83748f']]
@@ -1502,9 +1522,9 @@ const CloudBank = memo(function CloudBank({ height, horizon, rise, night, reduce
           transition={reducedMotion ? { duration: 0 } : { duration: 1.2, ease: 'easeInOut' }}
         >
           {/* Above the clouds at night (40+ stones) the cloud sea takes on the dark lavender of the upper sky. */}
-          <rect y={band.y} width={WORLD_WIDTH} height={band.bandHeight} fill={night > 0 ? blendColor(band.shade, '#2a2a52', night * 0.7) : band.shade} />
-          <path d={band.undersides} fill={night > 0 ? blendColor(band.shade, '#2a2a52', night * 0.7) : band.shade} />
-          <path d={band.tops} fill={night > 0 ? blendColor(band.lit, '#6a6596', night * 0.62) : band.lit} />
+          <rect y={band.y} width={WORLD_WIDTH} height={band.bandHeight} fill={night > 0 ? blendColor(band.shade, palette.cloudShade, night * 0.7) : band.shade} />
+          <path d={band.undersides} fill={night > 0 ? blendColor(band.shade, palette.cloudShade, night * 0.7) : band.shade} />
+          <path d={band.tops} fill={night > 0 ? blendColor(band.lit, palette.cloudLit, night * 0.62) : band.lit} />
         </motion.g>
       ))}
     </g>
@@ -1590,6 +1610,7 @@ const UpperSky = memo(function UpperSky({
   constellation,
   beam,
   portrait,
+  palette,
   reducedMotion,
 }: {
   horizon: number
@@ -1600,6 +1621,7 @@ const UpperSky = memo(function UpperSky({
   beam: { x: number; y: number }
   /** Tall phone screens: the chain and constellation sit lower, clear of the height counter. */
   portrait: boolean
+  palette: NightPalette
   reducedMotion: boolean
 }) {
   const stars = useMemo(() => {
@@ -1628,9 +1650,9 @@ const UpperSky = memo(function UpperSky({
     <g pointerEvents="none">
       <defs>
         <linearGradient id="upper-night" x2="0" y2="1">
-          <stop stopColor="#03060f" stopOpacity=".92" />
-          <stop offset=".6" stopColor="#0b1030" stopOpacity=".74" />
-          <stop offset="1" stopColor="#1b1f48" stopOpacity=".42" />
+          <stop stopColor={palette.sky[0]} stopOpacity=".92" />
+          <stop offset=".6" stopColor={palette.sky[1]} stopOpacity=".74" />
+          <stop offset="1" stopColor={palette.sky[2]} stopOpacity=".42" />
         </linearGradient>
         <radialGradient id="upper-flare">
           <stop stopColor="#fff3d4" stopOpacity=".95" />
@@ -1654,7 +1676,7 @@ const UpperSky = memo(function UpperSky({
             <motion.path
               key={index}
               d={`M${chain[index].x} ${chain[index].y}L${star.x} ${star.y}`}
-              stroke="#e8d3b0"
+              stroke={palette.line}
               strokeWidth="0.9"
               strokeLinecap="round"
               fill="none"
@@ -1693,7 +1715,7 @@ const UpperSky = memo(function UpperSky({
               <motion.path
                 key={`${sideIndex}-${index}`}
                 d={`M${points[index].x} ${points[index].y}L${star.x} ${star.y}`}
-                stroke="#e9cfa2"
+                stroke={palette.line}
                 strokeWidth="1"
                 strokeLinecap="round"
                 fill="none"
@@ -1803,7 +1825,7 @@ function SkyLanterns({ horizon, towerHeight, portrait }: { horizon: number; towe
 }
 
 /** In front of the cloud sea: it darkens to night and its far edge curves like the world, lit by a thin dawn rim. */
-const WorldEdge = memo(function WorldEdge({ height, horizon, edge, reducedMotion }: { height: number; horizon: number; edge: number; reducedMotion: boolean }) {
+const WorldEdge = memo(function WorldEdge({ height, horizon, edge, palette, reducedMotion }: { height: number; horizon: number; edge: number; palette: NightPalette; reducedMotion: boolean }) {
   const top = horizon - 12
   const bulge = round1(Math.min(46, horizon * 0.12))
   const left = -40
@@ -1813,19 +1835,19 @@ const WorldEdge = memo(function WorldEdge({ height, horizon, edge, reducedMotion
     <motion.g pointerEvents="none" initial={false} animate={{ opacity: edge }} transition={{ duration: reducedMotion ? 0 : 1.6, ease: 'easeInOut' }}>
       <defs>
         <linearGradient id="world-shadow" x2="0" y2="1">
-          <stop stopColor="#33335f" stopOpacity=".9" />
-          <stop offset=".35" stopColor="#1d1f44" stopOpacity=".86" />
-          <stop offset="1" stopColor="#0d1028" stopOpacity=".9" />
+          <stop stopColor={blendColor(palette.cloudShade, palette.cloudLit, 0.25)} stopOpacity=".9" />
+          <stop offset=".35" stopColor={palette.cloudShade} stopOpacity=".86" />
+          <stop offset="1" stopColor={blendColor(palette.cloudShade, '#04060c', 0.5)} stopOpacity=".9" />
         </linearGradient>
         <linearGradient id="world-rim" x2="1">
-          <stop stopColor="#9fb8ff" stopOpacity="0" />
-          <stop offset=".3" stopColor="#ffcf9e" stopOpacity=".9" />
-          <stop offset=".7" stopColor="#ffcf9e" stopOpacity=".9" />
-          <stop offset="1" stopColor="#9fb8ff" stopOpacity="0" />
+          <stop stopColor={palette.rim} stopOpacity="0" />
+          <stop offset=".3" stopColor={palette.rim} stopOpacity=".9" />
+          <stop offset=".7" stopColor={palette.rim} stopOpacity=".9" />
+          <stop offset="1" stopColor={palette.rim} stopOpacity="0" />
         </linearGradient>
       </defs>
       <path d={`${curve}V${height + 40}H${left}Z`} fill="url(#world-shadow)" />
-      <path d={curve} transform="translate(0 -3)" stroke="#9fb8ff" strokeOpacity=".35" strokeWidth="7" fill="none" />
+      <path d={curve} transform="translate(0 -3)" stroke={blendColor(palette.rim, palette.cloudLit, 0.5)} strokeOpacity=".3" strokeWidth="7" fill="none" />
       <path d={curve} stroke="url(#world-rim)" strokeWidth="2" fill="none" />
     </motion.g>
   )
@@ -1982,7 +2004,7 @@ function GameScene({
       <SeaBackdrop edition={edition} height={height} horizon={horizon} dawnProgress={dawnProgress} reducedMotion={reducedMotion} />
       <HighSky horizon={horizon} presence={highSky} reducedMotion={reducedMotion} />
       {towerHeight >= UPPER_EDGE_FROM - 2 && (
-        <UpperSky horizon={horizon} edge={upperEdge} links={links} constellation={constellation} beam={beam} portrait={compact} reducedMotion={reducedMotion} />
+        <UpperSky horizon={horizon} edge={upperEdge} links={links} constellation={constellation} beam={beam} portrait={compact} palette={edition.night} reducedMotion={reducedMotion} />
       )}
       {towerHeight >= LANTERNS_FROM && !reducedMotion && <SkyLanterns horizon={horizon} towerHeight={towerHeight} portrait={compact} />}
       <SideIslets
@@ -1996,8 +2018,8 @@ function GameScene({
         compact={compact}
         climb={climbProgress * sceneryIntensity}
       />
-      <CloudBank height={height} horizon={horizon} rise={cloudRise} night={upperEdge} reducedMotion={reducedMotion} />
-      {towerHeight >= UPPER_EDGE_FROM - 2 && <WorldEdge height={height} horizon={horizon} edge={upperEdge} reducedMotion={reducedMotion} />}
+      <CloudBank height={height} horizon={horizon} rise={cloudRise} night={upperEdge} palette={edition.night} reducedMotion={reducedMotion} />
+      {towerHeight >= UPPER_EDGE_FROM - 2 && <WorldEdge height={height} horizon={horizon} edge={upperEdge} palette={edition.night} reducedMotion={reducedMotion} />}
       {/* Birds belong to the low sky: they arrive at 8 stones and stay below as you climb past the dawn (36–42). */}
       <BirdFlock presence={towerHeight >= 8 ? 1 - smoothstep(36, 42, towerHeight) : 0} reducedMotion={reducedMotion} />
       <WindStreaks height={height} direction={windDirection} visible={windStrength >= 6} reducedMotion={reducedMotion} />
@@ -2160,6 +2182,7 @@ function GameScene({
           surface={impactSurface}
           forceful={game.phase === 'over'}
           night={upperEdge}
+          palette={edition.night}
         />
       ))}
     </svg>
