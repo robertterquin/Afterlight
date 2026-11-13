@@ -1567,11 +1567,25 @@ const STAR_CHAIN_STEP = 2
 const BEACON_CONSTELLATION_FROM = 94
 
 // Chain stars as [x in world units, y as a share of the horizon height], arcing around the constellation.
-const STAR_CHAIN = [[200, 0.7], [255, 0.48], [310, 0.62], [370, 0.3], [440, 0.12], [560, 0.1], [630, 0.3], [690, 0.58], [750, 0.44], [805, 0.66]] as const
+const STAR_CHAIN = [[200, 0.7], [255, 0.48], [310, 0.62], [370, 0.3], [440, 0.12], [560, 0.08], [700, 0.22], [720, 0.6], [770, 0.42], [815, 0.66]] as const
 
-// The mark's three stones (x, y, width in its 96-unit box, 15 tall) and the light above them, drawn in stars.
-const MARK_STONES = [[18, 68, 58], [24, 50, 44], [35, 32, 32]] as const
-const MARK_LIGHT = [51, 18] as const
+// The beacon constellation: seven stars tracing the Afterlight mark's stepped outline, in the mark's
+// 96-unit box. Slightly uneven on purpose, so it reads as stars rather than a drawing.
+const BEACON_STARS = {
+  baseLeft: [16, 70], baseRight: [78, 68], middleLeft: [22, 51], middleRight: [69, 52],
+  topLeft: [34, 33], topRight: [67, 32], light: [51, 15],
+} as const
+type BeaconStar = keyof typeof BEACON_STARS
+// The lines each stage adds: the base at 94, the sides at 96 and 98, and the light at 100.
+const BEACON_LINES: ReadonlyArray<ReadonlyArray<readonly [BeaconStar, BeaconStar]>> = [
+  [['baseLeft', 'baseRight']],
+  [['baseLeft', 'middleLeft'], ['middleRight', 'baseRight']],
+  [['middleLeft', 'topLeft'], ['topRight', 'middleRight']],
+  [['topLeft', 'light'], ['light', 'topRight']],
+]
+const BEACON_STAGE_STARS: ReadonlyArray<ReadonlyArray<BeaconStar>> = [
+  ['baseLeft', 'baseRight'], ['middleLeft', 'middleRight'], ['topLeft', 'topRight'], ['light'],
+]
 const MARK_SCALE = 2.2
 
 /** How many links of the star chain are drawn at this height. */
@@ -1616,16 +1630,11 @@ const UpperSky = memo(function UpperSky({
     return { faint, bright }
   }, [horizon])
   const chain = STAR_CHAIN.map(([x, share]) => ({ x, y: round1(horizon * (portrait ? 0.27 + share * 0.6 : share)) }))
-  const markX = (value: number) => round1(WORLD_WIDTH / 2 + (value - 47) * MARK_SCALE)
+  // Desktop sits it right of centre, clear of the perfect-streak pill under the height counter.
+  const markX = (value: number) => round1((portrait ? WORLD_WIDTH / 2 : 615) + (value - 47) * MARK_SCALE)
   const markY = (value: number) => round1(horizon * (portrait ? 0.55 : 0.42) + (value - 50) * MARK_SCALE)
-  const markStones = MARK_STONES.map(([x, y, width]) => {
-    const left = markX(x)
-    const right = markX(x + width)
-    const top = markY(y)
-    const bottom = markY(y + 15)
-    return { corners: [[left, top], [right, top], [right, bottom], [left, bottom]] as const, d: `M${left} ${top}H${right}V${bottom}H${left}Z` }
-  })
-  const light = { x: markX(MARK_LIGHT[0]), y: markY(MARK_LIGHT[1]) }
+  const beaconStar = (name: BeaconStar) => ({ x: markX(BEACON_STARS[name][0]), y: markY(BEACON_STARS[name][1]) })
+  const light = beaconStar('light')
   const drawn = { duration: reducedMotion ? 0 : 1.1, ease: [0.22, 1, 0.36, 1] as const }
   const newest = chain[links]
 
@@ -1651,25 +1660,26 @@ const UpperSky = memo(function UpperSky({
         <path className={reducedMotion ? undefined : 'star-sparkle'} d={stars.bright} fill="#fff6e6" />
       </motion.g>
 
-      {/* The star chain: each link draws itself as the beacon reaches the next star. */}
+      {/* The star chain: each link draws itself as the beacon reaches the next star. Kept faint, so the
+          beacon constellation is the only bright figure at the end. */}
       {links > 0 && (
-        <g opacity={constellation === 4 ? 0.45 : 1}>
+        <g>
           {chain.slice(1, links + 1).map((star, index) => (
             <motion.path
               key={index}
               d={`M${chain[index].x} ${chain[index].y}L${star.x} ${star.y}`}
-              stroke="#f2c58f"
-              strokeWidth="1.4"
+              stroke="#e8d3b0"
+              strokeWidth="0.9"
               strokeLinecap="round"
               fill="none"
-              opacity=".6"
+              opacity={constellation === 4 ? 0.16 : 0.24}
               initial={reducedMotion ? false : { pathLength: 0 }}
               animate={{ pathLength: 1 }}
               transition={drawn}
             />
           ))}
           {chain.slice(0, links + 1).map((star, index) => (
-            <circle key={index} cx={star.x} cy={star.y} r="2.6" fill="#fff0c9" />
+            <circle key={index} cx={star.x} cy={star.y} r="1.9" fill="#fff0c9" opacity=".75" />
           ))}
         </g>
       )}
@@ -1682,57 +1692,89 @@ const UpperSky = memo(function UpperSky({
           strokeDasharray="3 6"
           fill="none"
           initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 0.55, 0] }}
+          animate={{ opacity: [0, 0.5, 0] }}
           transition={{ duration: 1.4, ease: 'easeOut' }}
         />
       )}
 
-      {/* The beacon constellation: bottom stone, middle stone, top stone, then the light at 100. */}
+      {/* The beacon constellation: two stars and their lines every two stones from 94; at 100 the top star lights. */}
       {constellation > 0 && (
         <g>
-          {markStones.slice(0, Math.min(constellation, 3)).map((stone, index) => (
-            <g key={index}>
+          {BEACON_LINES.slice(0, constellation).flat().map(([from, to]) => {
+            const a = beaconStar(from)
+            const b = beaconStar(to)
+            return (
               <motion.path
-                d={stone.d}
-                stroke="#f2c58f"
-                strokeWidth="1.6"
-                strokeLinejoin="round"
+                key={`${from}-${to}`}
+                d={`M${a.x} ${a.y}L${b.x} ${b.y}`}
+                stroke="#e9cfa2"
+                strokeWidth="1"
+                strokeLinecap="round"
                 fill="none"
                 initial={reducedMotion ? false : { pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: 0.85 }}
+                animate={{ pathLength: 1, opacity: 0.6 }}
                 transition={drawn}
               />
-              {stone.corners.map(([x, y], corner) => <circle key={corner} cx={x} cy={y} r="2.8" fill="#fff6e0" />)}
-            </g>
-          ))}
+            )
+          })}
+          {BEACON_STAGE_STARS.slice(0, Math.min(constellation, 3)).flat().map((name, index) => {
+            const star = beaconStar(name)
+            return (
+              <motion.circle
+                key={name}
+                cx={star.x}
+                cy={star.y}
+                r={index % 2 ? 2.3 : 2.9}
+                fill="#fff4e2"
+                initial={reducedMotion ? false : { opacity: 0, scale: 0.2 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: reducedMotion ? 0 : 0.6, ease: 'easeOut' }}
+                style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+              />
+            )
+          })}
           {constellation === 4 && (
             <>
+              {/* The light is the hero: a soft glow, a thin four-point sparkle and the brightest star in the sky. */}
               <motion.circle
                 cx={light.x}
                 cy={light.y}
-                r="70"
+                r="72"
                 fill="url(#upper-flare)"
                 initial={reducedMotion ? false : { opacity: 0, scale: 0.3 }}
-                animate={{ opacity: [0, 1, 0.55], scale: [0.3, 1.35, 1] }}
-                transition={{ duration: reducedMotion ? 0 : 1.6, ease: 'easeOut' }}
+                animate={{ opacity: [0, 1, 0.6], scale: [0.3, 1.25, 1] }}
+                transition={{ duration: reducedMotion ? 0 : 1.8, ease: 'easeOut' }}
                 style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
               />
-              <circle cx={light.x} cy={light.y} r="6" fill="#fff6e0" />
-              <motion.text
-                x={WORLD_WIDTH / 2}
-                y={round1(markY(83) + 34)}
-                textAnchor="middle"
-                fill="#f2c58f"
-                fontSize="15"
-                letterSpacing="4.5"
-                fontFamily="var(--font-ui)"
-                fontWeight="700"
-                initial={reducedMotion ? false : { opacity: 0, y: 8 }}
-                animate={{ opacity: 0.95, y: 0 }}
-                transition={{ duration: reducedMotion ? 0 : 0.9, delay: reducedMotion ? 0 : 0.6, ease: 'easeOut' }}
-              >
-                THE BEACON · 100
-              </motion.text>
+              <motion.path
+                d={`M${light.x - 16} ${light.y}H${light.x + 16}M${light.x} ${light.y - 16}V${light.y + 16}`}
+                stroke="#fff3d4"
+                strokeWidth="1"
+                strokeLinecap="round"
+                initial={reducedMotion ? false : { opacity: 0, scale: 0.2 }}
+                animate={{ opacity: 0.8, scale: 1 }}
+                transition={{ duration: reducedMotion ? 0 : 0.9, delay: reducedMotion ? 0 : 0.15, ease: 'easeOut' }}
+                style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+              />
+              <circle cx={light.x} cy={light.y} r="5.2" fill="#fffaf0" />
+              {/* A quiet name that passes: in at 100, gone a few seconds later. The stars stay. */}
+              {!reducedMotion && (
+                <motion.text
+                  x={markX(47)}
+                  y={round1(markY(70) + 34)}
+                  textAnchor="middle"
+                  fill="#e9d8bd"
+                  fontSize="16"
+                  letterSpacing="3"
+                  fontFamily="var(--font-display)"
+                  fontStyle="italic"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 0.85, 0.85, 0] }}
+                  transition={{ duration: 5, times: [0, 0.15, 0.7, 1], delay: 0.5, ease: 'easeInOut' }}
+                >
+                  the beacon
+                </motion.text>
+              )}
             </>
           )}
         </g>
