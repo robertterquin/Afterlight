@@ -1439,7 +1439,7 @@ const CloudBelt = memo(function CloudBelt({ groundY, layer, reducedMotion }: { g
  * from above, it appears at the horizon first and spreads toward the viewer, row by row, so it moves
  * the same way as the rest of the world instead of rising against it.
  */
-const CloudBank = memo(function CloudBank({ height, horizon, rise, reducedMotion }: { height: number; horizon: number; rise: number; reducedMotion: boolean }) {
+const CloudBank = memo(function CloudBank({ height, horizon, rise, night, reducedMotion }: { height: number; horizon: number; rise: number; night: number; reducedMotion: boolean }) {
   const rows = useMemo(() => {
     const random = seededRandom(31)
     const tones = [['#f3e2df', '#d9c3c9'], ['#e9d3d3', '#c9b0bd'], ['#dcc3c8', '#b49cb0'], ['#cbb0bb', '#9a86a0'], ['#b9a0b1', '#83748f']]
@@ -1469,9 +1469,10 @@ const CloudBank = memo(function CloudBank({ height, horizon, rise, reducedMotion
           animate={{ opacity: smoothstep(index / rows.length, (index + 1.4) / rows.length, rise) }}
           transition={reducedMotion ? { duration: 0 } : { duration: 1.2, ease: 'easeInOut' }}
         >
-          <rect y={band.y} width={WORLD_WIDTH} height={band.bandHeight} fill={band.shade} />
-          <path d={band.undersides} fill={band.shade} />
-          <path d={band.tops} fill={band.lit} />
+          {/* Above the clouds at night (40+ stones) the cloud sea takes on the dark lavender of the upper sky. */}
+          <rect y={band.y} width={WORLD_WIDTH} height={band.bandHeight} fill={night > 0 ? blendColor(band.shade, '#2a2a52', night * 0.7) : band.shade} />
+          <path d={band.undersides} fill={night > 0 ? blendColor(band.shade, '#2a2a52', night * 0.7) : band.shade} />
+          <path d={band.tops} fill={night > 0 ? blendColor(band.lit, '#6a6596', night * 0.62) : band.lit} />
         </motion.g>
       ))}
     </g>
@@ -1516,6 +1517,223 @@ const HighSky = memo(function HighSky({ horizon, presence, reducedMotion }: { ho
       {!reducedMotion && presence > 0 && (
         <path className="shooting-star" d={`M760 ${round1(horizon * 0.12)}l-120 40`} stroke="#fff6e0" strokeWidth="2" strokeLinecap="round" />
       )}
+    </motion.g>
+  )
+})
+
+/*
+ * The sky above the clouds, for climbs past 36 stones. Three stages, each tied to height:
+ * 40–55  the edge of the sky: night returns overhead, stars come out, the cloud sea curves like the world below.
+ * 62–80  among the stars: every second stone, the beacon links one more star into a gold chain.
+ * 94–100 the beacon: a constellation in the shape of the Afterlight mark, completed at 100.
+ * Everything here is static paths and gradients that only change when a stone lands, so phones stay smooth.
+ */
+const UPPER_EDGE_FROM = 40
+const UPPER_EDGE_TO = 55
+const STAR_CHAIN_FROM = 62
+const STAR_CHAIN_STEP = 2
+const BEACON_CONSTELLATION_FROM = 94
+
+// Chain stars as [x in world units, y as a share of the horizon height], arcing around the constellation.
+const STAR_CHAIN = [[200, 0.7], [255, 0.48], [310, 0.62], [370, 0.3], [440, 0.12], [560, 0.1], [630, 0.3], [690, 0.58], [750, 0.44], [805, 0.66]] as const
+
+// The mark's three stones (x, y, width in its 96-unit box, 15 tall) and the light above them, drawn in stars.
+const MARK_STONES = [[18, 68, 58], [24, 50, 44], [35, 32, 32]] as const
+const MARK_LIGHT = [51, 18] as const
+const MARK_SCALE = 2.2
+
+/** How many links of the star chain are drawn at this height. */
+const starLinks = (height: number) =>
+  Math.max(0, Math.min(STAR_CHAIN.length - 1, Math.floor((height - STAR_CHAIN_FROM) / STAR_CHAIN_STEP) + 1))
+
+/** 0 before 94, then one more stone of the beacon constellation every two stones; at 100 (4) its light comes on. */
+const beaconConstellationStage = (height: number) =>
+  height < BEACON_CONSTELLATION_FROM ? 0 : Math.min(4, Math.floor((height - BEACON_CONSTELLATION_FROM) / 2) + 1)
+
+const UpperSky = memo(function UpperSky({
+  horizon,
+  edge,
+  links,
+  constellation,
+  beam,
+  portrait,
+  reducedMotion,
+}: {
+  horizon: number
+  edge: number
+  links: number
+  constellation: number
+  /** Where the beacon sits on screen, for the flash that reaches out to each newly linked star. */
+  beam: { x: number; y: number }
+  /** Tall phone screens: the chain and constellation sit lower, clear of the height counter. */
+  portrait: boolean
+  reducedMotion: boolean
+}) {
+  const stars = useMemo(() => {
+    const random = seededRandom(97)
+    let faint = ''
+    let bright = ''
+    for (let index = 0; index < 150; index += 1) {
+      const x = round1(random() * WORLD_WIDTH)
+      const y = round1(Math.pow(random(), 1.15) * horizon * 0.92)
+      const radius = random() > 0.9 ? 1.6 : 0.85
+      const dot = `M${x - radius} ${y}a${radius} ${radius} 0 1 0 ${radius * 2} 0a${radius} ${radius} 0 1 0 ${-radius * 2} 0`
+      if (radius > 1) bright += dot
+      else faint += dot
+    }
+    return { faint, bright }
+  }, [horizon])
+  const chain = STAR_CHAIN.map(([x, share]) => ({ x, y: round1(horizon * (portrait ? 0.27 + share * 0.6 : share)) }))
+  const markX = (value: number) => round1(WORLD_WIDTH / 2 + (value - 47) * MARK_SCALE)
+  const markY = (value: number) => round1(horizon * (portrait ? 0.55 : 0.42) + (value - 50) * MARK_SCALE)
+  const markStones = MARK_STONES.map(([x, y, width]) => {
+    const left = markX(x)
+    const right = markX(x + width)
+    const top = markY(y)
+    const bottom = markY(y + 15)
+    return { corners: [[left, top], [right, top], [right, bottom], [left, bottom]] as const, d: `M${left} ${top}H${right}V${bottom}H${left}Z` }
+  })
+  const light = { x: markX(MARK_LIGHT[0]), y: markY(MARK_LIGHT[1]) }
+  const drawn = { duration: reducedMotion ? 0 : 1.1, ease: [0.22, 1, 0.36, 1] as const }
+  const newest = chain[links]
+
+  return (
+    <g pointerEvents="none">
+      <defs>
+        <linearGradient id="upper-night" x2="0" y2="1">
+          <stop stopColor="#03060f" stopOpacity=".92" />
+          <stop offset=".6" stopColor="#0b1030" stopOpacity=".74" />
+          <stop offset="1" stopColor="#1b1f48" stopOpacity=".42" />
+        </linearGradient>
+        <radialGradient id="upper-flare">
+          <stop stopColor="#fff3d4" stopOpacity=".95" />
+          <stop offset=".35" stopColor="#f2c58f" stopOpacity=".35" />
+          <stop offset="1" stopColor="#f2c58f" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+
+      {/* Night returns overhead and the stars come out. */}
+      <motion.g initial={false} animate={{ opacity: edge }} transition={{ duration: reducedMotion ? 0 : 1.6, ease: 'easeInOut' }}>
+        <rect width={WORLD_WIDTH} height={horizon} fill="url(#upper-night)" />
+        <path d={stars.faint} fill="#f4ecdc" opacity=".75" />
+        <path className={reducedMotion ? undefined : 'star-sparkle'} d={stars.bright} fill="#fff6e6" />
+      </motion.g>
+
+      {/* The star chain: each link draws itself as the beacon reaches the next star. */}
+      {links > 0 && (
+        <g opacity={constellation === 4 ? 0.45 : 1}>
+          {chain.slice(1, links + 1).map((star, index) => (
+            <motion.path
+              key={index}
+              d={`M${chain[index].x} ${chain[index].y}L${star.x} ${star.y}`}
+              stroke="#f2c58f"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              fill="none"
+              opacity=".6"
+              initial={reducedMotion ? false : { pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={drawn}
+            />
+          ))}
+          {chain.slice(0, links + 1).map((star, index) => (
+            <circle key={index} cx={star.x} cy={star.y} r="2.6" fill="#fff0c9" />
+          ))}
+        </g>
+      )}
+      {links > 0 && constellation === 0 && newest && !reducedMotion && (
+        <motion.path
+          key={`beam-${links}`}
+          d={`M${round1(beam.x)} ${round1(beam.y)}L${newest.x} ${newest.y}`}
+          stroke="#ffe8bd"
+          strokeWidth="1.2"
+          strokeDasharray="3 6"
+          fill="none"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 0.55, 0] }}
+          transition={{ duration: 1.4, ease: 'easeOut' }}
+        />
+      )}
+
+      {/* The beacon constellation: bottom stone, middle stone, top stone, then the light at 100. */}
+      {constellation > 0 && (
+        <g>
+          {markStones.slice(0, Math.min(constellation, 3)).map((stone, index) => (
+            <g key={index}>
+              <motion.path
+                d={stone.d}
+                stroke="#f2c58f"
+                strokeWidth="1.6"
+                strokeLinejoin="round"
+                fill="none"
+                initial={reducedMotion ? false : { pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 0.85 }}
+                transition={drawn}
+              />
+              {stone.corners.map(([x, y], corner) => <circle key={corner} cx={x} cy={y} r="2.8" fill="#fff6e0" />)}
+            </g>
+          ))}
+          {constellation === 4 && (
+            <>
+              <motion.circle
+                cx={light.x}
+                cy={light.y}
+                r="70"
+                fill="url(#upper-flare)"
+                initial={reducedMotion ? false : { opacity: 0, scale: 0.3 }}
+                animate={{ opacity: [0, 1, 0.55], scale: [0.3, 1.35, 1] }}
+                transition={{ duration: reducedMotion ? 0 : 1.6, ease: 'easeOut' }}
+                style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+              />
+              <circle cx={light.x} cy={light.y} r="6" fill="#fff6e0" />
+              <motion.text
+                x={WORLD_WIDTH / 2}
+                y={round1(markY(83) + 34)}
+                textAnchor="middle"
+                fill="#f2c58f"
+                fontSize="15"
+                letterSpacing="4.5"
+                fontFamily="var(--font-ui)"
+                fontWeight="700"
+                initial={reducedMotion ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 0.95, y: 0 }}
+                transition={{ duration: reducedMotion ? 0 : 0.9, delay: reducedMotion ? 0 : 0.6, ease: 'easeOut' }}
+              >
+                THE BEACON · 100
+              </motion.text>
+            </>
+          )}
+        </g>
+      )}
+    </g>
+  )
+})
+
+/** In front of the cloud sea: it darkens to night and its far edge curves like the world, lit by a thin dawn rim. */
+const WorldEdge = memo(function WorldEdge({ height, horizon, edge, reducedMotion }: { height: number; horizon: number; edge: number; reducedMotion: boolean }) {
+  const top = horizon - 12
+  const bulge = round1(Math.min(46, horizon * 0.12))
+  const left = -40
+  const right = WORLD_WIDTH + 40
+  const curve = `M${left} ${top + bulge}Q${WORLD_WIDTH / 2} ${top - bulge} ${right} ${top + bulge}`
+  return (
+    <motion.g pointerEvents="none" initial={false} animate={{ opacity: edge }} transition={{ duration: reducedMotion ? 0 : 1.6, ease: 'easeInOut' }}>
+      <defs>
+        <linearGradient id="world-shadow" x2="0" y2="1">
+          <stop stopColor="#33335f" stopOpacity=".9" />
+          <stop offset=".35" stopColor="#1d1f44" stopOpacity=".86" />
+          <stop offset="1" stopColor="#0d1028" stopOpacity=".9" />
+        </linearGradient>
+        <linearGradient id="world-rim" x2="1">
+          <stop stopColor="#9fb8ff" stopOpacity="0" />
+          <stop offset=".3" stopColor="#ffcf9e" stopOpacity=".9" />
+          <stop offset=".7" stopColor="#ffcf9e" stopOpacity=".9" />
+          <stop offset="1" stopColor="#9fb8ff" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={`${curve}V${height + 40}H${left}Z`} fill="url(#world-shadow)" />
+      <path d={curve} transform="translate(0 -3)" stroke="#9fb8ff" strokeOpacity=".35" strokeWidth="7" fill="none" />
+      <path d={curve} stroke="url(#world-rim)" strokeWidth="2" fill="none" />
     </motion.g>
   )
 })
@@ -1626,6 +1844,12 @@ function GameScene({
   // Starts once the top stone has climbed out of the passing clouds (floors 7 to 15).
   const cloudRise = smoothstep(14, 22, towerHeight)
   const highSky = smoothstep(26, 36, towerHeight)
+  const upperEdge = smoothstep(UPPER_EDGE_FROM, UPPER_EDGE_TO, towerHeight)
+  const links = starLinks(towerHeight)
+  const constellation = beaconConstellationStage(towerHeight)
+  const topStone = game.stack.at(-1)!
+  // The beacon light sits just above the top stone; the camera keeps that stone at targetY + one stone.
+  const beam = { x: topStone.x + topStone.width / 2, y: targetY + BLOCK_HEIGHT - 26 }
   // How far below the horizon the cloud sea currently reaches.
   const cloudCover = horizon - 12 + cloudRise * (height - horizon + 52)
   // Trimmed stones fall in front of the island: they splash in open water, sink into cloud where it already
@@ -1664,6 +1888,9 @@ function GameScene({
 
       <SeaBackdrop edition={edition} height={height} horizon={horizon} dawnProgress={dawnProgress} reducedMotion={reducedMotion} />
       <HighSky horizon={horizon} presence={highSky} reducedMotion={reducedMotion} />
+      {towerHeight >= UPPER_EDGE_FROM - 2 && (
+        <UpperSky horizon={horizon} edge={upperEdge} links={links} constellation={constellation} beam={beam} portrait={compact} reducedMotion={reducedMotion} />
+      )}
       <SideIslets
         edition={edition}
         height={height}
@@ -1675,7 +1902,8 @@ function GameScene({
         compact={compact}
         climb={climbProgress * sceneryIntensity}
       />
-      <CloudBank height={height} horizon={horizon} rise={cloudRise} reducedMotion={reducedMotion} />
+      <CloudBank height={height} horizon={horizon} rise={cloudRise} night={upperEdge} reducedMotion={reducedMotion} />
+      {towerHeight >= UPPER_EDGE_FROM - 2 && <WorldEdge height={height} horizon={horizon} edge={upperEdge} reducedMotion={reducedMotion} />}
       <BirdFlock active={towerHeight >= 8} reducedMotion={reducedMotion} />
       <WindStreaks height={height} direction={windDirection} visible={windStrength >= 6} reducedMotion={reducedMotion} />
 
@@ -2014,6 +2242,8 @@ function App() {
     if (next.stack.length <= current.stack.length) return
 
     playSound({ kind: 'stone' })
+    // Reaching 100 lights the beacon constellation in the sky; it gets the full chime.
+    if (heightOf(next) === 100) playSound({ kind: 'celebration' }, 0.7)
     if (next.lastDropWasPerfect) {
       playSound({ kind: 'perfect', streak: next.perfectStreak }, 0.03)
       if (next.perfectStreak % 5 === 0) playSound({ kind: 'celebration' }, 0.24)
