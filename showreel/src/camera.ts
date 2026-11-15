@@ -66,12 +66,12 @@ export function cameraAt(frame: number, layout: Layout): Camera {
     [92, 1, EASE.inOut],
     [290, 1.12, EASE.linear],
     [372, 1.16, EASE.linear],
-    [394, 0.86, EASE.inOut],
-    [600, 0.8, EASE.linear],
-    [608, 1.12, EASE.whipOut],
-    [690, 1.2, EASE.linear],
+    // The seven courses swap around the island, then one unbroken climb from the sea to the stars.
+    [470, 1.1, EASE.linear],
+    [490, 0.86, EASE.inOut],
+    [690, 0.78, EASE.linear],
     // Above the sky: wide, so the night, the lanterns and the constellation have room around the tower.
-    [704, 0.74, EASE.whipOut],
+    [760, 0.74, EASE.inOut],
     [960, 0.7, EASE.linear],
     [1006, 0.86, EASE.inOut],
     [1018, 0.88, EASE.linear],
@@ -81,17 +81,16 @@ export function cameraAt(frame: number, layout: Layout): Camera {
   ]) + punch(frame)
   // Portrait lowers the tower in close-ups so the stacked type has the sky above it.
   const anchorDrop = portrait
-    ? track(frame, [[0, 210], [70, 210], [92, 0, EASE.inOut], [380, 0], [394, 60], [600, 60], [608, 170, EASE.whipOut], [690, 170], [704, SKY_LIFT.portrait, EASE.whipOut], [960, SKY_LIFT.portrait], [1006, 300], [MATCH_CUT, 120]])
-    : track(frame, [[690, 0], [704, SKY_LIFT.landscape, EASE.whipOut], [960, SKY_LIFT.landscape], [1006, 120], [MATCH_CUT, 0]])
+    ? track(frame, [[0, 210], [70, 210], [92, 0, EASE.inOut], [380, 0], [478, 0], [492, 60, EASE.inOut], [690, 60], [760, SKY_LIFT.portrait, EASE.inOut], [960, SKY_LIFT.portrait], [1006, 300], [MATCH_CUT, 120]])
+    : track(frame, [[690, 0], [760, SKY_LIFT.landscape, EASE.inOut], [960, SKY_LIFT.landscape], [1006, 120], [MATCH_CUT, 0]])
   const rotY = track(frame, [
-    [0, 5], [90, -2, EASE.linear], [380, 3, EASE.linear],
-    [410, -16, EASE.whipOut], [592, 13, EASE.inOut], [608, 2, EASE.whipOut], [690, -2, EASE.linear],
-    [712, 6, EASE.whipOut], [980, -5, EASE.inOut], [1030, 0],
+    [0, 5], [90, -2, EASE.linear], [380, 3, EASE.linear], [470, 0, EASE.linear],
+    [496, -16, EASE.whipOut], [690, 10, EASE.inOut], [980, -5, EASE.inOut], [1030, 0],
   ])
-  const rotX = track(frame, [[0, 0], [392, 0], [412, 9, EASE.whipOut], [592, 3, EASE.inOut], [608, 0, EASE.whipOut]])
+  const rotX = track(frame, [[0, 0], [476, 0], [498, 9, EASE.whipOut], [690, 3, EASE.inOut], [760, 0, EASE.inOut]])
   const whipX = carouselSwitches.reduce((total, at) => total + whip(frame, at, layout.W * 0.14), 0)
-  // Beat 2 into beat 3: the frame whips upward as the climb starts.
-  const whipY = whip(frame, 394, -layout.H * 0.22, 8) + whip(frame, 694, -layout.H * 0.22, 8)
+  // The frame whips upward once, as the climb starts.
+  const whipY = whip(frame, 478, -layout.H * 0.22, 8)
   const tilt = track(frame, [[MATCH_CUT, 0], [1106, layout.Vh * 1.5, EASE.inOut], [1200, layout.Vh * 1.62, EASE.linear]])
   return {
     zoom,

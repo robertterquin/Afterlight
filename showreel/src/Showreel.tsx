@@ -19,7 +19,7 @@ function Soundtrack() {
       <Audio
         src={sfx('bed.wav')}
         durationInFrames={DURATION}
-        volume={(f) => interpolate(f, [0, 4, 390, 420, 690, 720, MATCH_CUT, 1160, DURATION], [0, 0.42, 0.42, 0.55, 0.55, 0.62, 0.7, 0.6, 0], clamp)}
+        volume={(f) => interpolate(f, [0, 4, BEATS.climb, BEATS.climb + 30, 690, 720, MATCH_CUT, 1160, DURATION], [0, 0.42, 0.42, 0.55, 0.55, 0.62, 0.7, 0.6, 0], clamp)}
       />
       {DROPS.map((drop, index) => (
         <Audio key={`stone-${drop.frame}`} from={drop.frame} durationInFrames={60} src={sfx(`stone-${(index % 3) + 1}.m4a`)} volume={drop.quick ? (drop.frame >= BEATS.sky && drop.frame < 900 ? 0.16 : 0.26) : 0.62} />
@@ -52,8 +52,8 @@ function Soundtrack() {
         <Audio key={`star-${at}`} from={at} durationInFrames={100} src={sfx(`bell-${index + 3}.wav`)} volume={0.5} />
       ))}
       <Audio from={final.frame} durationInFrames={140} src={sfx('celebration.wav')} volume={0.6} />
-      {[70, 386, 688, ...carouselSwitches.map((at) => at - 6)].map((at) => (
-        <Audio key={`whoosh-${at}`} from={at} durationInFrames={42} src={sfx('whoosh.wav')} volume={at >= 600 && at < 680 ? 0.32 : 0.6} />
+      {[70, BEATS.climb - 2, ...carouselSwitches.map((at) => at - 6)].map((at) => (
+        <Audio key={`whoosh-${at}`} from={at} durationInFrames={42} src={sfx('whoosh.wav')} volume={carouselSwitches.includes(at + 6) ? 0.32 : 0.6} />
       ))}
       {[...carouselSwitches, MATCH_CUT + 62, MATCH_CUT + 86].map((at) => (
         <Audio key={`click-${at}`} from={at} durationInFrames={9} src={sfx('click.wav')} volume={0.35} />

@@ -105,12 +105,12 @@ function StreakMeter({ frame, layout }: { frame: number; layout: Layout }) {
 }
 
 function CourseChip({ frame, layout }: { frame: number; layout: Layout }) {
-  if (frame < CAROUSEL.start || frame > 690) return null
+  if (frame < CAROUSEL.start || frame > 474) return null
   const step = carouselSwitches.filter((at) => at <= frame).length - 1
   const edition = DAILY_EDITIONS[editionIndexAt(frame)]!
   const at = carouselSwitches[step]!
   const portrait = layout.format === 'portrait'
-  const leave = interpolate(frame, [678, 690], [0, 1], { ...clamp, easing: EASE.whipIn })
+  const leave = interpolate(frame, [462, 474], [0, 1], { ...clamp, easing: EASE.whipIn })
   return (
     <div style={{ marginTop: portrait ? 40 : 34, opacity: 1 - leave }}>
       <div style={{ ...headline(portrait ? 76 : 64), fontStyle: 'italic', color: blendColor(edition.stone.activeTop, '#ffffff', 0.1), height: '1.1em' }}>
@@ -335,29 +335,29 @@ export function Overlay({ frame, layout, vx, vy }: { frame: number; layout: Layo
         </div>
       </Block>
 
-      {/* Beat 3, callout 1: the climb past the clouds, with the floor count. */}
+      {/* Beat 4, callout 1: the climb past the clouds, with the floor count. */}
       <Block layout={layout} top={portrait ? 300 : 300}>
-        {frame >= 426 && frame < 560 && (
-          <div style={{ ...label(portrait ? 30 : 26), opacity: interpolate(frame, [426, 436, 540, 552], [0, 1, 1, 0], clamp), fontVariantNumeric: 'tabular-nums' }}>
+        {frame >= 512 && frame < 646 && (
+          <div style={{ ...label(portrait ? 30 : 26), opacity: interpolate(frame, [512, 522, 626, 638], [0, 1, 1, 0], clamp), fontVariantNumeric: 'tabular-nums' }}>
             Floor {String(floors).padStart(2, '0')}
           </div>
         )}
         <div style={{ ...headline(portrait ? 132 : 120), marginTop: 18 }}>
-          <div><Word frame={frame} at={432} exit={540}>Past the</Word></div>
-          <div style={{ color: GOLD, fontStyle: 'italic' }}><Word frame={frame} at={441} exit={543}>clouds.</Word></div>
+          <div><Word frame={frame} at={518} exit={626}>Past the</Word></div>
+          <div style={{ color: GOLD, fontStyle: 'italic' }}><Word frame={frame} at={527} exit={629}>clouds.</Word></div>
         </div>
       </Block>
 
-      {/* Beat 3, callout 2: seven courses, one a day. */}
+      {/* Beat 3: seven courses swap around the island, one a day. */}
       <Block layout={layout} top={portrait ? 300 : 280}>
         <div style={headline(portrait ? 124 : 112)}>
-          <div><Word frame={frame} at={CAROUSEL.start} exit={678} snap>Seven tides.</Word></div>
-          <div style={{ color: GOLD, fontStyle: 'italic' }}><Word frame={frame} at={CAROUSEL.start + 10} exit={681}>One a day.</Word></div>
+          <div><Word frame={frame} at={CAROUSEL.start} exit={462} snap>Seven tides.</Word></div>
+          <div style={{ color: GOLD, fontStyle: 'italic' }}><Word frame={frame} at={CAROUSEL.start + 10} exit={465}>One a day.</Word></div>
         </div>
         <CourseChip frame={frame} layout={layout} />
       </Block>
 
-      {/* Beat 4: above the sky, the floor count racing up through the night. */}
+      {/* Beat 4, callout 2: above the sky, the floor count racing up through the night. */}
       <Block layout={layout} top={portrait ? 300 : 300}>
         {frame >= 714 && frame < 900 && (
           <div style={{ ...label(portrait ? 30 : 26), opacity: interpolate(frame, [714, 724, 876, 888], [0, 1, 1, 0], clamp), fontVariantNumeric: 'tabular-nums' }}>

@@ -29,12 +29,12 @@ type Step = {
 }
 
 const CLIMB_OFFSETS = [0, 0, 0, 16, 0, 0, 0, -16, 0, 0, 0, 0, 0, 18, 0, 0, 0, 0, -18, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0]
-export const CLIMB_START = 404
-export const CLIMB_END = 598
+export const CLIMB_START = 490
+export const CLIMB_END = 690
 
 // Floors 39 to 93: mostly perfect, with a few near misses so the stones keep their trimmed edges.
 const SKY_OFFSETS = Array.from({ length: 55 }, (_, index) => (index % 11 === 5 ? (index % 22 === 5 ? 14 : -14) : 0))
-export const SKY_START = 700
+export const SKY_START = 697
 export const SKY_END = 888
 
 const STEPS: Step[] = [
@@ -49,12 +49,12 @@ const STEPS: Step[] = [
   { offset: 0, frame: 238, from: 204 },
   { offset: 0, frame: 268, from: 238 },
   { offset: 0, frame: 298, from: 268 },
-  // Beat 3: the climb as a time-lapse.
+  // Beat 4: one unbroken climb, first as a time-lapse up through the clouds to dawn...
   ...CLIMB_OFFSETS.map((offset, index) => {
     const frame = Math.round(CLIMB_START + (index * (CLIMB_END - CLIMB_START)) / (CLIMB_OFFSETS.length - 1))
     return { offset, frame, from: frame - 1, quick: true }
   }),
-  // Beat 4: above the sky, a faster time-lapse from floor 39 to 93 through the night...
+  // ...then faster, from floor 39 to 93, on into the night...
   ...SKY_OFFSETS.map((offset, index) => {
     const frame = Math.round(SKY_START + (index * (SKY_END - SKY_START)) / (SKY_OFFSETS.length - 1))
     return { offset, frame, from: frame - 1, quick: true }

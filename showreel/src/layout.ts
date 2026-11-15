@@ -5,7 +5,7 @@ export const FPS = 60
 export const DURATION = 1200
 
 /** Beat boundaries shared by both formats. */
-export const BEATS = { open: 0, escalate: 90, depth: 390, sky: 690, climax: 1000, end: 1200 } as const
+export const BEATS = { open: 0, escalate: 90, tides: 380, climb: 474, sky: 690, climax: 1000, end: 1200 } as const
 
 export type Format = 'landscape' | 'portrait'
 
@@ -111,8 +111,8 @@ export function perfectsAt(frame: number) {
 /** Drops that completed a five-perfect streak: the beacon awakens. */
 export const CELEBRATIONS = DROPS.filter((drop) => drop.after.lastDropWasPerfect && drop.after.perfectStreak % 5 === 0)
 
-// The seven-course carousel in beat 3: each course holds for 11 frames, then a whip swaps the palette.
-export const CAROUSEL = { start: 606, step: 11, courses: [1, 2, 3, 4, 5, 6, 0] } as const
+// The seven-course carousel at sea level, before the climb: each course holds for 11 frames, then a whip swaps the palette.
+export const CAROUSEL = { start: 384, step: 11, courses: [1, 2, 3, 4, 5, 6, 0] } as const
 export const carouselSwitches = CAROUSEL.courses.map((_, index) => CAROUSEL.start + index * CAROUSEL.step)
 
 export function editionIndexAt(frame: number) {
