@@ -3,7 +3,7 @@ import { AbsoluteFill, interpolate, staticFile, useCurrentFrame } from 'remotion
 import { cameraAt } from './camera.ts'
 import { DAILY_EDITIONS } from './editions.ts'
 import './fonts.ts'
-import { carouselSwitches, CELEBRATIONS, clamp, DURATION, editionIndexAt, LAYOUTS, MATCH_CUT, type Format } from './layout.ts'
+import { BEATS, carouselSwitches, CELEBRATIONS, clamp, DURATION, editionIndexAt, LAYOUTS, MATCH_CUT, type Format } from './layout.ts'
 import { Overlay } from './Overlay.tsx'
 import { DROPS } from './run.ts'
 import { Stage } from './Stage.tsx'
@@ -19,12 +19,13 @@ function Soundtrack() {
       <Audio
         src={sfx('bed.wav')}
         durationInFrames={DURATION}
-        volume={(f) => interpolate(f, [0, 4, 390, 420, 700, MATCH_CUT, 860, DURATION], [0, 0.42, 0.42, 0.55, 0.55, 0.7, 0.6, 0], clamp)}
+        volume={(f) => interpolate(f, [0, 4, 390, 420, 690, 720, MATCH_CUT, 1160, DURATION], [0, 0.42, 0.42, 0.55, 0.55, 0.62, 0.7, 0.6, 0], clamp)}
       />
       {DROPS.map((drop, index) => (
-        <Audio key={`stone-${drop.frame}`} from={drop.frame} durationInFrames={60} src={sfx(`stone-${(index % 3) + 1}.m4a`)} volume={drop.quick ? 0.26 : 0.62} />
+        <Audio key={`stone-${drop.frame}`} from={drop.frame} durationInFrames={60} src={sfx(`stone-${(index % 3) + 1}.m4a`)} volume={drop.quick ? (drop.frame >= BEATS.sky && drop.frame < 900 ? 0.16 : 0.26) : 0.62} />
       ))}
-      {DROPS.filter((drop) => drop.after.lastDropWasPerfect && drop.after.perfectStreak % 5 !== 0).map((drop) => (
+      {/* The night climb is too quick for a bell on every perfect; it keeps the stone ticks only. */}
+      {DROPS.filter((drop) => drop.after.lastDropWasPerfect && drop.after.perfectStreak % 5 !== 0 && !(drop.quick && drop.frame >= BEATS.sky && drop.frame < 900)).map((drop) => (
         <Audio
           key={`bell-${drop.frame}`}
           from={drop.frame}
@@ -37,7 +38,7 @@ function Soundtrack() {
         // Offcuts reach the water about 26 frames after the drop.
         <Audio key={`plunk-${drop.frame}`} from={drop.frame + 26} durationInFrames={36} src={sfx('plunk.wav')} volume={0.7} />
       ))}
-      {CELEBRATIONS.map((drop) => (
+      {CELEBRATIONS.filter((drop) => drop.frame < BEATS.sky).map((drop) => (
         <Audio key={`celebration-${drop.frame}`} from={drop.frame} durationInFrames={140} src={sfx('celebration.wav')} volume={drop.quick ? 0.26 : 0.55} />
       ))}
       {[8, 60, 298, final.frame, MATCH_CUT].map((at) => (
@@ -45,11 +46,16 @@ function Soundtrack() {
       ))}
       {/* Risers resolve exactly on the growth drop and on the match-cut. */}
       <Audio from={298 - 96} durationInFrames={96} src={sfx('riser.wav')} volume={(f) => interpolate(f, [0, 90, 96], [0, 0.55, 0.55], clamp)} />
-      <Audio from={MATCH_CUT - 96} durationInFrames={96} src={sfx('riser.wav')} volume={0.6} />
-      {[70, 386, ...carouselSwitches.map((at) => at - 6)].map((at) => (
-        <Audio key={`whoosh-${at}`} from={at} durationInFrames={42} src={sfx('whoosh.wav')} volume={at >= 600 ? 0.32 : 0.6} />
+      {/* Above the sky: a whoosh into the night, a bell for each third of the constellation, a riser into floor 100. */}
+      <Audio from={final.frame - 96} durationInFrames={96} src={sfx('riser.wav')} volume={0.6} />
+      {[902, 930, 958].map((at, index) => (
+        <Audio key={`star-${at}`} from={at} durationInFrames={100} src={sfx(`bell-${index + 3}.wav`)} volume={0.5} />
       ))}
-      {[...carouselSwitches, 806, 830].map((at) => (
+      <Audio from={final.frame} durationInFrames={140} src={sfx('celebration.wav')} volume={0.6} />
+      {[70, 386, 688, ...carouselSwitches.map((at) => at - 6)].map((at) => (
+        <Audio key={`whoosh-${at}`} from={at} durationInFrames={42} src={sfx('whoosh.wav')} volume={at >= 600 && at < 680 ? 0.32 : 0.6} />
+      ))}
+      {[...carouselSwitches, MATCH_CUT + 62, MATCH_CUT + 86].map((at) => (
         <Audio key={`click-${at}`} from={at} durationInFrames={9} src={sfx('click.wav')} volume={0.35} />
       ))}
       <Audio from={MATCH_CUT} durationInFrames={DURATION - MATCH_CUT} src={sfx('gong.wav')} volume={(f) => interpolate(f, [0, 120, DURATION - MATCH_CUT], [0.55, 0.45, 0], clamp)} />

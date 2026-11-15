@@ -15,7 +15,7 @@ export { BLOCK_HEIGHT, WORLD_WIDTH } from '../../supabase/functions/_shared/game
 export type { Block, FallingPiece }
 
 // 2026-11-12 is an Ember tide day (UTC day number % 7 === 0), the course the reel opens and closes on.
-const DATE = '2026-11-12'
+export const DATE = '2026-11-12'
 
 type Step = {
   /** Moving stone's centre minus the supporting stone's centre at the drop; 0 means a perfect drop. */
@@ -31,6 +31,11 @@ type Step = {
 const CLIMB_OFFSETS = [0, 0, 0, 16, 0, 0, 0, -16, 0, 0, 0, 0, 0, 18, 0, 0, 0, 0, -18, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0]
 export const CLIMB_START = 404
 export const CLIMB_END = 598
+
+// Floors 39 to 93: mostly perfect, with a few near misses so the stones keep their trimmed edges.
+const SKY_OFFSETS = Array.from({ length: 55 }, (_, index) => (index % 11 === 5 ? (index % 22 === 5 ? 14 : -14) : 0))
+export const SKY_START = 700
+export const SKY_END = 888
 
 const STEPS: Step[] = [
   // Beat 1: cold open, already mid-slide at frame 0.
@@ -49,8 +54,18 @@ const STEPS: Step[] = [
     const frame = Math.round(CLIMB_START + (index * (CLIMB_END - CLIMB_START)) / (CLIMB_OFFSETS.length - 1))
     return { offset, frame, from: frame - 1, quick: true }
   }),
-  // Beat 4: the final perfect drop at dawn.
-  { offset: 0, frame: 708, from: 682 },
+  // Beat 4: above the sky, a faster time-lapse from floor 39 to 93 through the night...
+  ...SKY_OFFSETS.map((offset, index) => {
+    const frame = Math.round(SKY_START + (index * (SKY_END - SKY_START)) / (SKY_OFFSETS.length - 1))
+    return { offset, frame, from: frame - 1, quick: true }
+  }),
+  // ...then floors 94 to 99 slow down so the constellation can be seen forming a third at a time.
+  ...[0, 0, 0, 0, 0, 0].map((offset, index) => {
+    const frame = 902 + index * 14
+    return { offset, frame, from: frame - 1, quick: true }
+  }),
+  // Beat 5: the final perfect drop, floor 100, lights the constellation's brightest star.
+  { offset: 0, frame: 1006, from: 982 },
 ]
 
 export type Drop = Step & {
@@ -101,6 +116,9 @@ export function dropIndexAt(frame: number) {
   while (index + 1 < DROPS.length && DROPS[index + 1]!.frame <= frame) index += 1
   return index
 }
+
+/** Video frame of the drop that first reaches `floor` (stones above the base). */
+export const floorFrame = (floor: number) => DROPS.find((drop) => drop.after.stack.length - 1 >= floor)?.frame ?? Infinity
 
 /** The stack as it stands at `frame` (the base stone plus every landed drop). */
 export function stackAt(frame: number): Block[] {

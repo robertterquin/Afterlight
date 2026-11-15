@@ -49,12 +49,18 @@ export type DailyEdition = {
   }
   reflection: readonly [string, string]
   stone: StonePalette
+  /** Cloud sea tones, as the game's CloudPalette. */
+  clouds: { lit: readonly [string, string]; shade: readonly [string, string]; belt: readonly [string, string] }
+  /** The sky above the clouds (40+ stones), as the game's NightPalette. */
+  night: { sky: readonly [string, string, string]; cloudLit: string; cloudShade: string; rim: string; line: string }
 }
 
 // Seven courses, one per day of a weekly loop, alternating warm and cool skies.
 export const DAILY_EDITIONS: readonly DailyEdition[] = [
   {
     name: 'Ember tide',
+    clouds: { lit: ['#f7e0d4', '#c8a0a2'], shade: ['#e8c3b8', '#a7798a'], belt: ['#f0d6cf', '#f9e8e0'] },
+    night: { sky: ['#0d0814', '#2a1530', '#55304c'], cloudLit: '#7f5c78', cloudShade: '#3a2238', rim: '#ffb48a', line: '#f2c58f' },
     sky: ['#252b43', '#60516b', '#b77876', '#4f7477'],
     dawnSky: ['#9b7d8c', '#c77b74', '#eea16e', '#f4c794'],
     sea: ['#5b7379', '#243a4a'],
@@ -75,6 +81,8 @@ export const DAILY_EDITIONS: readonly DailyEdition[] = [
   },
   {
     name: 'Frost tide',
+    clouds: { lit: ['#f3f7fb', '#b9c9db'], shade: ['#d9e4ef', '#8aa1bb'], belt: ['#e6edf5', '#f6f9fc'] },
+    night: { sky: ['#030a16', '#10243c', '#2a4c72'], cloudLit: '#7290b4', cloudShade: '#1f3552', rim: '#d6ecff', line: '#e4eef7' },
     sky: ['#1a2a44', '#3f5f86', '#9fb9d0', '#6f93ae'],
     dawnSky: ['#a9bfd4', '#cdd4e0', '#f0d6c4', '#fbe7d6'],
     sea: ['#5f87a3', '#1b3550'],
@@ -95,6 +103,8 @@ export const DAILY_EDITIONS: readonly DailyEdition[] = [
   },
   {
     name: 'First light',
+    clouds: { lit: ['#eff2e7', '#b3c3b6'], shade: ['#d4ddd0', '#869d93'], belt: ['#e2e8dd', '#f3f5ee'] },
+    night: { sky: ['#04100f', '#12302d', '#2c544e'], cloudLit: '#6d9086', cloudShade: '#1e3b37', rim: '#ffd2a2', line: '#f2d9b0' },
     sky: ['#26394c', '#5b7180', '#a6a9a5', '#5d8581'],
     dawnSky: ['#91a3aa', '#c4a797', '#e8ae86', '#f3ca9d'],
     sea: ['#527d80', '#1f4651'],
@@ -116,6 +126,8 @@ export const DAILY_EDITIONS: readonly DailyEdition[] = [
   },
   {
     name: 'Violet hour',
+    clouds: { lit: ['#f0e3f2', '#b8a3cd'], shade: ['#d9c4e3', '#8d78ad'], belt: ['#e6d7ea', '#f5ecf6'] },
+    night: { sky: ['#0a0718', '#22173f', '#433070'], cloudLit: '#7d6caa', cloudShade: '#2a2250', rim: '#f8b9cb', line: '#f2c58f' },
     sky: ['#231d3d', '#4e3d6b', '#9a7aa6', '#5b6b8a'],
     dawnSky: ['#8a7fa6', '#c48fae', '#eab0a0', '#f6d3b0'],
     sea: ['#5a6688', '#1f2440'],
@@ -136,6 +148,8 @@ export const DAILY_EDITIONS: readonly DailyEdition[] = [
   },
   {
     name: 'Salt moon',
+    clouds: { lit: ['#f3e2df', '#b9a0b1'], shade: ['#d9c3c9', '#83748f'], belt: ['#efdfe1', '#f6eaea'] },
+    night: { sky: ['#03060f', '#0b1030', '#1b1f48'], cloudLit: '#6a6596', cloudShade: '#2a2a52', rim: '#ffcf9e', line: '#e9cfa2' },
     sky: ['#17263a', '#4b526d', '#bb8c8c', '#365f6c'],
     dawnSky: ['#a9909a', '#d18e83', '#e9a678', '#f0c18f'],
     sea: ['#4b7780', '#142e42'],
@@ -156,6 +170,8 @@ export const DAILY_EDITIONS: readonly DailyEdition[] = [
   },
   {
     name: 'Basalt night',
+    clouds: { lit: ['#e4e3e4', '#a2a3aa'], shade: ['#c3c2c7', '#6f727d'], belt: ['#d9d8db', '#eceaec'] },
+    night: { sky: ['#020306', '#0b0e16', '#1d2230'], cloudLit: '#4c525e', cloudShade: '#151a22', rim: '#f1c58e', line: '#f2c58f' },
     sky: ['#0b0f1a', '#1b2233', '#3a3f55', '#22303d'],
     dawnSky: ['#4a4d63', '#8a6f78', '#d29a78', '#f1c58e'],
     sea: ['#2a3a48', '#070c14'],
@@ -176,6 +192,8 @@ export const DAILY_EDITIONS: readonly DailyEdition[] = [
   },
   {
     name: 'Storm glass',
+    clouds: { lit: ['#eaeeeb', '#a9b6b3'], shade: ['#c9d2cf', '#7a8b89'], belt: ['#dde3e0', '#f0f3f1'] },
+    night: { sky: ['#04080b', '#131e24', '#2c3d44'], cloudLit: '#6c7d82', cloudShade: '#1c2b31', rim: '#e8eef0', line: '#dfe6e6' },
     sky: ['#1c2328', '#3d4a52', '#7f8b8c', '#4b5c60'],
     dawnSky: ['#8c9796', '#b0aa98', '#dcc28e', '#efd9a8'],
     sea: ['#4a5c62', '#151f25'],

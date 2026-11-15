@@ -4,7 +4,10 @@ import { cameraAt, towerToScreen } from './camera.ts'
 import { blendColor, DAILY_EDITIONS } from './editions.ts'
 import { DISPLAY, UI } from './fonts.ts'
 import { CAROUSEL, carouselSwitches, clamp, EASE, editionIndexAt, MATCH_CUT, SPRINGS, springAt, type Layout } from './layout.ts'
-import { BLOCK_HEIGHT, DROPS, dropIndexAt, FINAL, stackAt } from './run.ts'
+import { zodiacForDate } from '../../src/zodiac.ts'
+import { BLOCK_HEIGHT, DATE, DROPS, dropIndexAt, FINAL, stackAt } from './run.ts'
+
+const SIGN_NAME = zodiacForDate(DATE).name
 
 const GOLD = '#f2c58f'
 const INK = '#eef0e6'
@@ -202,28 +205,30 @@ function MatchCutMark({ frame, layout }: { frame: number; layout: Layout }) {
 }
 
 function TitleLockup({ frame, layout }: { frame: number; layout: Layout }) {
-  if (frame < 760) return null
+  // Timed from the match-cut: the title arrives as the mark settles.
+  const at = (offset: number) => MATCH_CUT + offset
+  if (frame < at(16)) return null
   const portrait = layout.format === 'portrait'
   const mark = markPlacement(layout)
   const top = mark.y + 92 * mark.scale + (portrait ? 30 : 16)
   const title = 'Afterlight'
-  const settle = springAt(frame, SPRINGS.title, 772)
-  const rule = interpolate(frame, [834, 870], [0, 1], { ...clamp, easing: EASE.out })
+  const settle = springAt(frame, SPRINGS.title, at(28))
+  const rule = interpolate(frame, [at(90), at(126)], [0, 1], { ...clamp, easing: EASE.out })
   return (
     <div style={{ position: 'absolute', left: portrait ? 80 : 0, width: portrait ? 840 : layout.W, top, textAlign: 'center' }}>
       <div style={{ ...headline(portrait ? 196 : 188), letterSpacing: `${(0.04 - 0.075 * settle).toFixed(4)}em`, color: '#f6efe0' }}>
         {title.split('').map((letter, index) => (
-          <Word key={index} frame={frame} at={772 + index * 2} exit={9999}>{letter}</Word>
+          <Word key={index} frame={frame} at={at(28) + index * 2} exit={9999}>{letter}</Word>
         ))}
       </div>
       <div style={{ ...headline(portrait ? 60 : 50), fontStyle: 'italic', fontWeight: 300, color: '#e9dcc6', marginTop: portrait ? 26 : 18, letterSpacing: '-0.01em' }}>
         {'Build a beacon before dawn.'.split(' ').map((word, index) => (
-          <Word key={index} frame={frame} at={806 + index * 4} exit={9999}>{word}&nbsp;</Word>
+          <Word key={index} frame={frame} at={at(62) + index * 4} exit={9999}>{word}&nbsp;</Word>
         ))}
       </div>
       <div style={{ display: 'inline-block', marginTop: portrait ? 56 : 42 }}>
         <div style={{ ...label(portrait ? 30 : 26), letterSpacing: '0.16em', textTransform: 'none' }}>
-          <Word frame={frame} at={830} exit={9999}>playafterlight.vercel.app</Word>
+          <Word frame={frame} at={at(86)} exit={9999}>playafterlight.vercel.app</Word>
         </div>
         <div style={{ height: 2, marginTop: 12, background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`, scale: `${rule} 1` }} />
       </div>
@@ -235,7 +240,7 @@ function TitleLockup({ frame, layout }: { frame: number; layout: Layout }) {
 
 /** Ember motes drifting up through the frame; brighter once the beacon is awake. */
 function Motes({ frame, layout }: { frame: number; layout: Layout }) {
-  const glow = interpolate(frame, [700, 760], [0.5, 1], clamp)
+  const glow = interpolate(frame, [MATCH_CUT - 44, MATCH_CUT + 16], [0.5, 1], clamp)
   return (
     <svg width={layout.W} height={layout.H} style={{ position: 'absolute', inset: 0 }}>
       {Array.from({ length: 46 }, (_, index) => {
@@ -294,7 +299,7 @@ export function Overlay({ frame, layout, vx, vy }: { frame: number; layout: Layo
   const big = portrait ? 150 : 150
   const floors = stackAt(frame).length - 1
   const flash = flashAt(frame)
-  const veil = interpolate(frame, [MATCH_CUT, 800], [0, 1], clamp)
+  const veil = interpolate(frame, [MATCH_CUT, MATCH_CUT + 56], [0, 1], clamp)
   return (
     <AbsoluteFill>
       {/* A navy veil gathers behind the title so the gold reads at any course's dawn. */}
@@ -305,7 +310,7 @@ export function Overlay({ frame, layout, vx, vy }: { frame: number; layout: Layo
           background: portrait
             ? 'linear-gradient(180deg, rgba(10, 25, 38, .5), rgba(10, 25, 38, .22) 38%, transparent 55%)'
             : 'linear-gradient(90deg, rgba(10, 25, 38, .5), rgba(10, 25, 38, .2) 40%, transparent 58%)',
-          opacity: interpolate(frame, [0, 690, 740], [1, 1, 0], clamp),
+          opacity: interpolate(frame, [0, 1000, 1046], [1, 1, 0], clamp),
         }}
       />
       <Motes frame={frame} layout={layout} />
@@ -350,6 +355,32 @@ export function Overlay({ frame, layout, vx, vy }: { frame: number; layout: Layo
           <div style={{ color: GOLD, fontStyle: 'italic' }}><Word frame={frame} at={CAROUSEL.start + 10} exit={681}>One a day.</Word></div>
         </div>
         <CourseChip frame={frame} layout={layout} />
+      </Block>
+
+      {/* Beat 4: above the sky, the floor count racing up through the night. */}
+      <Block layout={layout} top={portrait ? 300 : 300}>
+        {frame >= 714 && frame < 900 && (
+          <div style={{ ...label(portrait ? 30 : 26), opacity: interpolate(frame, [714, 724, 876, 888], [0, 1, 1, 0], clamp), fontVariantNumeric: 'tabular-nums' }}>
+            Floor {String(floors).padStart(2, '0')}
+          </div>
+        )}
+        <div style={{ ...headline(portrait ? 132 : 120), marginTop: 18 }}>
+          <div><Word frame={frame} at={718} exit={876}>Higher still.</Word></div>
+          <div style={{ color: GOLD, fontStyle: 'italic' }}><Word frame={frame} at={728} exit={879}>Into the stars.</Word></div>
+        </div>
+      </Block>
+
+      {/* Beat 5: the season's constellation forms, and floor 100 lights its brightest star. */}
+      <Block layout={layout} top={portrait ? 300 : 300}>
+        {frame >= 1006 && (
+          <div style={{ ...label(portrait ? 30 : 26), opacity: interpolate(frame, [1006, 1016, 1036, 1046], [0, 1, 1, 0], clamp) }}>
+            Floor 100 · {SIGN_NAME}
+          </div>
+        )}
+        <div style={{ ...headline(portrait ? 132 : 120), marginTop: 18 }}>
+          <div><Word frame={frame} at={906} exit={1036} snap>Reach 100.</Word></div>
+          <div style={{ color: GOLD, fontStyle: 'italic' }}><Word frame={frame} at={934} exit={1039}>Wake the stars.</Word></div>
+        </div>
       </Block>
 
       <MatchCutMark frame={frame} layout={layout} />

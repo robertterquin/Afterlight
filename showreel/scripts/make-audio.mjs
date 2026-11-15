@@ -145,9 +145,9 @@ function write(name, data) {
   write('gong', data)
 }
 
-// Ambient bed: a slow open-fifth drone over a sea wash, 16 seconds.
+// Ambient bed: a slow open-fifth drone over a sea wash, 21 seconds (the reel is 20).
 {
-  const seconds = 16
+  const seconds = 21
   const data = buffer(seconds)
   const voices = [[55, 0.22], [82.4, 0.14], [110.3, 0.1], [164.8, 0.05], [220.6, 0.03]]
   for (const [frequency, amplitude] of voices) {

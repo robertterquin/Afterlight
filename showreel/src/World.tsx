@@ -416,11 +416,13 @@ export function IsletsLayer({ edition, layout, frame, dawn, climb }: { edition: 
 
 // ---------------------------------------------------------------- cloud sea
 
-export function CloudBankLayer({ layout, frame, rise }: { layout: Layout; frame: number; rise: number }) {
+export function CloudBankLayer({ layout, frame, rise, edition, night }: { layout: Layout; frame: number; rise: number; edition: DailyEdition; night: number }) {
   const box = bounds(layout, 1.4)
+  const { clouds } = edition
   const rows = useMemo(() => {
     const random = seededRandom(31)
-    const tones = [['#f3e2df', '#d9c3c9'], ['#e9d3d3', '#c9b0bd'], ['#dcc3c8', '#b49cb0'], ['#cbb0bb', '#9a86a0'], ['#b9a0b1', '#83748f']] as const
+    // As in the game: five rows shading from the course's lightest cloud tone to its deepest.
+    const tones = [0, 1, 2, 3, 4].map((row) => [blendColor(clouds.lit[0], clouds.lit[1], row / 4), blendColor(clouds.shade[0], clouds.shade[1], row / 4)] as const)
     const depth = layout.Vh - layout.horizon + 40
     return tones.map(([lit, shade], row) => {
       const y = round1(layout.horizon - 12 + Math.pow(row / tones.length, 1.5) * depth)
@@ -435,17 +437,45 @@ export function CloudBankLayer({ layout, frame, rise }: { layout: Layout; frame:
       }
       return { lit, shade, tops, undersides, y, bandHeight: round1(nextY - y + size * 0.3) }
     })
-  }, [layout, box.left, box.right, box.bottom])
+  }, [layout, box.left, box.right, box.bottom, clouds])
   if (rise <= 0) return null
+  const palette = edition.night
+  // Above the clouds at night (40+ stones) the cloud sea takes on the course's night tones.
+  const shade = (color: string) => (night > 0 ? blendColor(color, palette.cloudShade, night * 0.7) : color)
+  const lit = (color: string) => (night > 0 ? blendColor(color, palette.cloudLit, night * 0.62) : color)
+  const top = layout.horizon - 12
+  const bulge = round1(Math.min(46, layout.horizon * 0.12) * 1.6)
+  const curve = `M${box.left - 400} ${top + bulge * 2.2}Q${layout.x0 + layout.Vw / 2} ${top - bulge} ${box.right + 400} ${top + bulge * 2.2}`
   return (
     <g>
       {rows.map((band, index) => (
         <g key={index} opacity={smoothstep(index / rows.length, (index + 1.4) / rows.length, rise)} transform={`translate(${round1(frame * (0.08 + index * 0.06))} 0)`}>
-          <rect x={box.left - 400} y={band.y} width={box.right - box.left + 800} height={band.bandHeight} fill={band.shade} />
-          <path d={band.undersides} fill={band.shade} />
-          <path d={band.tops} fill={band.lit} />
+          <rect x={box.left - 400} y={band.y} width={box.right - box.left + 800} height={band.bandHeight} fill={shade(band.shade)} />
+          <path d={band.undersides} fill={shade(band.shade)} />
+          <path d={band.tops} fill={lit(band.lit)} />
         </g>
       ))}
+      {/* The world's edge: the cloud sea darkens and its far edge curves, lit by a thin rim of the course's colour. */}
+      {night > 0 && (
+        <g opacity={night}>
+          <defs>
+            <linearGradient id="world-shadow" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={top - bulge} y2={box.bottom}>
+              <stop stopColor={blendColor(palette.cloudShade, palette.cloudLit, 0.25)} stopOpacity=".9" />
+              <stop offset=".3" stopColor={palette.cloudShade} stopOpacity=".82" />
+              <stop offset="1" stopColor={blendColor(palette.cloudShade, '#04060c', 0.5)} stopOpacity=".9" />
+            </linearGradient>
+            <linearGradient id="world-rim" gradientUnits="userSpaceOnUse" x1={box.left} x2={box.right} y1="0" y2="0">
+              <stop stopColor={palette.rim} stopOpacity="0" />
+              <stop offset=".3" stopColor={palette.rim} stopOpacity=".9" />
+              <stop offset=".7" stopColor={palette.rim} stopOpacity=".9" />
+              <stop offset="1" stopColor={palette.rim} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={`${curve}V${box.bottom + 400}H${box.left - 400}Z`} fill="url(#world-shadow)" />
+          <path d={curve} transform="translate(0 -4)" stroke={blendColor(palette.rim, palette.cloudLit, 0.5)} strokeOpacity=".3" strokeWidth="10" fill="none" />
+          <path d={curve} stroke="url(#world-rim)" strokeWidth="2.5" fill="none" />
+        </g>
+      )}
     </g>
   )
 }

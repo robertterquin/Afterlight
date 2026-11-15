@@ -4,6 +4,7 @@ import type { Camera } from './camera.ts'
 import type { DailyEdition } from './editions.ts'
 import { MATCH_CUT, OVERSCAN, smoothFloors, smoothstep, type Layout } from './layout.ts'
 import { BLOCK_HEIGHT } from './run.ts'
+import { UpperSkyLayer } from './UpperSky.tsx'
 import { CloudBankLayer, IsletsLayer, SkyLayer, TowerLayer } from './World.tsx'
 
 const PERSPECTIVE = 2600
@@ -48,11 +49,15 @@ export function Stage({ layout, camera, edition, frame, blur }: { layout: Layout
         <Plane layout={layout} camera={camera} depth={0.18} z={-1400}>
           <SkyLayer edition={edition} layout={layout} frame={frame} dawn={dawn} highSky={highSky} />
         </Plane>
+        {/* The sky above the clouds, still like the game's: it ignores the camera's zoom, climb and tilt. */}
+        <Plane layout={layout} camera={camera} depth={0} z={-1050}>
+          <UpperSkyLayer layout={layout} frame={frame} edition={edition} height={height} />
+        </Plane>
         <Plane layout={layout} camera={camera} depth={0.4} z={-700}>
           <IsletsLayer edition={edition} layout={layout} frame={frame} dawn={dawn} climb={climb} />
         </Plane>
         <Plane layout={layout} camera={camera} depth={0.55} z={-350}>
-          <CloudBankLayer layout={layout} frame={frame} rise={cloudRise} />
+          <CloudBankLayer layout={layout} frame={frame} rise={cloudRise} edition={edition} night={smoothstep(40, 55, height)} />
         </Plane>
         <Plane layout={layout} camera={camera} depth={1} z={0}>
           <TowerLayer edition={edition} layout={layout} frame={frame} shift={camera.shift} dawn={dawn} hideTop={frame >= MATCH_CUT ? 3 : 0} />

@@ -2,10 +2,10 @@ import { Easing, interpolate, spring } from 'remotion'
 import { BLOCK_HEIGHT, DROPS, dropIndexAt } from './run.ts'
 
 export const FPS = 60
-export const DURATION = 900
+export const DURATION = 1200
 
 /** Beat boundaries shared by both formats. */
-export const BEATS = { open: 0, escalate: 90, depth: 390, climax: 690, end: 900 } as const
+export const BEATS = { open: 0, escalate: 90, depth: 390, sky: 690, climax: 1000, end: 1200 } as const
 
 export type Format = 'landscape' | 'portrait'
 
@@ -124,4 +124,4 @@ export function editionIndexAt(frame: number) {
 }
 
 /** The match-cut from the tower's top stones into the logo mark. */
-export const MATCH_CUT = 744
+export const MATCH_CUT = 1050
