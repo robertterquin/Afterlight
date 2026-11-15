@@ -1,14 +1,6 @@
 import "@supabase/functions-js/edge-runtime.d.ts"
 import { withSupabase } from "@supabase/server"
-import {
-  advanceGame,
-  createGame,
-  getUtcDate,
-  heightOf,
-  placeBlock,
-  seedForDate,
-  startGame,
-} from "../_shared/game-engine.ts"
+import { verifyRun } from "../_shared/verify-run.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,72 +26,16 @@ const submit = withSupabase({ auth: "user" }, async (req, ctx) => {
   } catch {
     return json({ error: "Invalid request body." }, 400)
   }
-  if (!body || typeof body !== "object" || Array.isArray(body)) {
-    return json({ error: "Invalid request body." }, 400)
-  }
-
-  const { challengeDate, placementTicks } = body as {
-    challengeDate?: unknown
-    placementTicks?: unknown
-  }
-  if (typeof challengeDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(challengeDate)) {
-    return json({ error: "Invalid challenge date." }, 400)
-  }
-
-  const parsedDate = new Date(`${challengeDate}T00:00:00.000Z`)
-  if (Number.isNaN(parsedDate.getTime()) || getUtcDate(parsedDate) !== challengeDate) {
-    return json({ error: "Invalid challenge date." }, 400)
-  }
-
-  const today = getUtcDate()
-  const yesterdayDate = new Date(`${today}T00:00:00.000Z`)
-  yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1)
-  const yesterday = getUtcDate(yesterdayDate)
-  if (challengeDate !== today && challengeDate !== yesterday) {
-    return json({ error: "This daily challenge has expired." }, 400)
-  }
-
-  if (
-    !Array.isArray(placementTicks)
-    || placementTicks.length < 1
-    || placementTicks.length > 500
-    || !placementTicks.every((tick) => Number.isSafeInteger(tick) && tick >= 0 && tick <= 180_000)
-  ) {
-    return json({ error: "Invalid placement history." }, 400)
-  }
-
-  let game = startGame(createGame({ date: challengeDate, seed: seedForDate(challengeDate) }))
-  let previousTick = -1
-  const perfectLevels: number[] = []
-  for (const tick of placementTicks as number[]) {
-    if (tick < previousTick || game.phase !== "playing") {
-      return json({ error: "The run could not be verified." }, 400)
-    }
-    while (game.tick < tick) game = advanceGame(game)
-    if (game.tick !== tick || game.phase !== "playing") {
-      return json({ error: "The run could not be verified." }, 400)
-    }
-    game = placeBlock(game)
-    if (game.lastDropWasPerfect) perfectLevels.push(heightOf(game))
-    previousTick = tick
-  }
-
-  const height = heightOf(game)
-  if (height < 1) return json({ error: "Place at least one stone to submit a score." }, 400)
-  const towerProfile = {
-    blocks: game.stack.map(({ x, width }) => ({
-      x: Math.round(x * 10) / 10,
-      width: Math.round(width * 10) / 10,
-    })),
-    perfectLevels,
-  }
+  const run = verifyRun(body)
+  if ("error" in run) return json({ error: run.error }, 400)
+  const { challengeDate } = body as { challengeDate: string }
 
   const { data: personalBest, error } = await ctx.supabaseAdmin.rpc("record_daily_score", {
     p_player_id: playerId,
     p_challenge_date: challengeDate,
-    p_height: height,
-    p_perfects: game.perfects,
-    p_tower_profile: towerProfile,
+    p_height: run.height,
+    p_perfects: run.perfects,
+    p_tower_profile: run.towerProfile,
   })
 
   if (error) {
@@ -107,7 +43,7 @@ const submit = withSupabase({ auth: "user" }, async (req, ctx) => {
     return json({ error: "Your score could not be saved. Please try again." }, 500)
   }
 
-  return json({ accepted: true, personalBest: personalBest === true, height, perfects: game.perfects })
+  return json({ accepted: true, personalBest: personalBest === true, height: run.height, perfects: run.perfects })
 })
 
 export default {
