@@ -8,7 +8,6 @@ export type ShareCardInput = {
   perfects: number
   rank: number | null
   url: string
-  /** The finished tower, foundation first, in world units (0–1000 across). */
   stack: Block[]
   sky: readonly [string, string, string, string]
   sea: readonly [string, string]
@@ -16,9 +15,7 @@ export type ShareCardInput = {
   mountains: readonly [string, string]
   island: { deep: string; top: string }
   stone: { top: string; front: string; side: string }
-  /** The course's night above the clouds, used for runs of 40+ stones. */
   night: { sky: readonly [string, string, string]; cloudLit: string; cloudShade: string; rim: string; line: string }
-  /** The season's zodiac constellation, shown on 100+ runs as it was reached in the game. */
   sign: Zodiac
 }
 
@@ -26,29 +23,24 @@ const WIDTH = 1080
 const HEIGHT = 1350
 const HORIZON = 1000
 const GOLD = { top: '#ffe3bc', front: '#f2c58f', side: '#c9935f' }
-// Runs this high are shown above the clouds, as the game shows them.
 const HIGH_FROM = 40
 const LANTERNS_FROM = 42
 const SHOOTING_STAR_FROM = 62
 const CONSTELLATION_AT = 100
-// The cloud sea's curved top: highest in the middle, falling away at the edges like the world below.
 const cloudTopY = (x: number) => 1000 + ((x - WIDTH / 2) / (WIDTH / 2)) ** 2 * 45
 
-/** A stone counts as perfect when its centre sits exactly on the one below, as the game snaps it. */
 export const perfectStones = (stack: Block[]) =>
   stack.slice(1).map((block, index) => {
     const below = stack[index]
     return Math.abs(block.x + block.width / 2 - (below.x + below.width / 2)) < 0.01
   })
 
-/** The text for when the picture can't be shared (desktop copy, older browsers): one line and the link. */
 export function shareText(input: Pick<ShareCardInput, 'courseName' | 'dateLabel' | 'height' | 'perfects' | 'rank' | 'url'>) {
   const rank = input.rank ? ` · #${input.rank} today` : ''
   const stones = `${input.height} ${input.height === 1 ? 'stone' : 'stones'}`
   return `Afterlight · ${input.courseName} · ${input.dateLabel}: ${stones} · ${input.perfects} perfect${rank}\n${input.url}`
 }
 
-/** Draws the run as a 1080×1350 picture: the actual tower on today's course, with the score on top. */
 export async function drawShareCard(input: ShareCardInput): Promise<Blob | null> {
   const canvas = document.createElement('canvas')
   canvas.width = WIDTH
@@ -63,7 +55,6 @@ export async function drawShareCard(input: ShareCardInput): Promise<Blob | null>
   const high = input.height >= HIGH_FROM
   if (high) drawNightBackdrop(ctx, input)
   else {
-    // Sky, sea and moon from today's course.
     const sky = ctx.createLinearGradient(0, 0, 0, HORIZON)
     input.sky.forEach((color, index) => sky.addColorStop([0, 0.45, 0.85, 1][index], color))
     ctx.fillStyle = sky
@@ -80,7 +71,6 @@ export async function drawShareCard(input: ShareCardInput): Promise<Blob | null>
       ctx.arc(x, y, 2, 0, Math.PI * 2)
       ctx.fill()
     }
-    // Always top right, clear of the score.
     const moonX = 880
     const moonR = input.moon.radius * 1.5
     const glow = ctx.createRadialGradient(moonX, 300, 0, moonX, 300, moonR * 4)
@@ -93,13 +83,11 @@ export async function drawShareCard(input: ShareCardInput): Promise<Blob | null>
     ctx.arc(moonX, 300, moonR, 0, Math.PI * 2)
     ctx.fill()
 
-    // Far hills on the horizon, then the home island.
     ctx.fillStyle = input.mountains[1]
     ctx.beginPath()
     ctx.moveTo(0, HORIZON)
     ;[[0, 978], [160, 960], [330, 984], [520, 956], [720, 980], [900, 962], [1080, 982], [1080, HORIZON]].forEach(([x, y]) => ctx.lineTo(x, y))
     ctx.fill()
-    // The home island: a rock base under a rounded, lit top, as in the game.
     ctx.fillStyle = input.island.deep
     ctx.beginPath()
     ctx.moveTo(262, 1052)
@@ -121,7 +109,6 @@ export async function drawShareCard(input: ShareCardInput): Promise<Blob | null>
     ctx.fillRect(250, 1046, 580, 8)
   }
 
-  // The tower: squeezed to fit, gold where the drop was perfect.
   const perfect = perfectStones(input.stack)
   const stoneHeight = Math.min(46, 540 / input.stack.length)
   const offsetX = (WIDTH - 1000) / 2
@@ -151,7 +138,6 @@ export async function drawShareCard(input: ShareCardInput): Promise<Blob | null>
   ctx.fill()
   if (high) drawHighDetails(ctx, input, { x: lightX, y: lightY })
 
-  // Score, top left, over a soft shade so it reads on any sky.
   const shade = ctx.createRadialGradient(240, 200, 0, 240, 200, 420)
   shade.addColorStop(0, 'rgba(8, 18, 28, .45)')
   shade.addColorStop(1, 'rgba(8, 18, 28, 0)')
@@ -171,7 +157,6 @@ export async function drawShareCard(input: ShareCardInput): Promise<Blob | null>
   const rank = input.rank ? ` · #${input.rank} today` : ''
   ctx.fillText(`${input.height === 1 ? 'stone' : 'stones'} · ${input.perfects} perfect${rank}`, 72, 384)
 
-  // Footer: the mark, the name and where to play.
   ctx.fillStyle = 'rgba(11, 22, 34, .78)'
   ctx.fillRect(0, HEIGHT - 120, WIDTH, 120)
   const markX = 64
@@ -200,7 +185,6 @@ export async function drawShareCard(input: ShareCardInput): Promise<Blob | null>
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
 }
 
-/** 40+ stones: the course's night sky, its stars, and the curved cloud sea with a dawn rim. */
 function drawNightBackdrop(ctx: CanvasRenderingContext2D, input: ShareCardInput) {
   const { night } = input
   const sky = ctx.createLinearGradient(0, 0, 0, 1060)
@@ -223,7 +207,6 @@ function drawNightBackdrop(ctx: CanvasRenderingContext2D, input: ShareCardInput)
     ctx.fill()
   }
 
-  // The cloud sea, darkened to the course's night, its edge lit by the dawn below.
   const clouds = ctx.createLinearGradient(0, 960, 0, HEIGHT)
   clouds.addColorStop(0, night.cloudLit)
   clouds.addColorStop(0.35, night.cloudShade)
@@ -244,7 +227,6 @@ function drawNightBackdrop(ctx: CanvasRenderingContext2D, input: ShareCardInput)
   ctx.globalAlpha = 1
 }
 
-/** 40+ stones, drawn over the tower: cloud tufts around its base, then lanterns, a shooting star or the constellation. */
 function drawHighDetails(ctx: CanvasRenderingContext2D, input: ShareCardInput, light: { x: number; y: number }) {
   const { night } = input
   ctx.fillStyle = night.cloudLit
@@ -257,7 +239,6 @@ function drawHighDetails(ctx: CanvasRenderingContext2D, input: ShareCardInput, l
   ctx.globalAlpha = 1
 
   if (input.height >= LANTERNS_FROM && input.height < SHOOTING_STAR_FROM) {
-    // Sky lanterns drifting up out of the clouds, clear of the score and the tower.
     for (const [x, y, size] of [[180, 700, 1.25], [880, 600, 1.05], [790, 820, 0.85]]) {
       const glow = ctx.createRadialGradient(x, y, 0, x, y, 46 * size)
       glow.addColorStop(0, 'rgba(255, 213, 154, .75)')
@@ -290,7 +271,6 @@ function drawHighDetails(ctx: CanvasRenderingContext2D, input: ShareCardInput, l
   }
 
   if (input.height >= CONSTELLATION_AT) {
-    // The season's constellation, top right and clear of the score, with its brightest star lit.
     const { sign } = input
     const place = (x: number, y: number) => ({ x: 720 + x * 3, y: 60 + y * 3 })
     const stars = sign.stars.map(([x, y, magnitude, color]) => ({ ...place(x, y), r: Math.max(2.4, 3 + (5 - magnitude) * 2.1), color }))

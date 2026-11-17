@@ -3,7 +3,6 @@ import { motion } from 'motion/react'
 import type { LeaderboardEntry } from './leaderboard'
 import { streakLine, type Streak } from './streak'
 
-// Mirrors PERFECTS_TO_AWAKEN in the game engine: the fifth perfect in a row grows the stone.
 const PERFECTS_TO_GROW = 5
 
 function countdownToUtcMidnight() {
@@ -52,7 +51,6 @@ export function ReadyOverlay({
         <span className="ready-countdown">New course in <b className="num">{countdown}</b></span>
         {streakText && (
           <div className="ready-streak">
-            {/* The last seven days as beacons: lit when climbed; today waits, pulsing, until you play. */}
             <span className="streak-week" aria-hidden="true">
               {streak.week.map((climbed, index) => (
                 <i key={index} className={climbed ? 'is-lit' : index === 6 ? 'is-today' : undefined} />
@@ -97,7 +95,6 @@ export function ReadyOverlay({
   )
 }
 
-/** `hint` adds the "… grows the stone" reminder; it is dropped high up, where players know it and the sky needs the room. */
 export function StreakPill({ streak, hint = true }: { streak: number; hint?: boolean }) {
   const filled = Math.min(streak, PERFECTS_TO_GROW)
   const remaining = PERFECTS_TO_GROW - filled
@@ -130,7 +127,6 @@ export function HeightLadder({ entries, height }: { entries: LeaderboardEntry[];
   const top = Math.max(height, ...marks.map((mark) => mark.value)) + 2
   const position = (value: number) => LADDER_HEIGHT - (value / top) * LADDER_HEIGHT
 
-  // Push labels apart from the top down so close scores stay readable.
   const placed = [...marks]
     .sort((a, b) => b.value - a.value)
     .reduce<Array<(typeof marks)[number] & { y: number }>>((list, mark) => {

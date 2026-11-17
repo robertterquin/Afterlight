@@ -1,5 +1,4 @@
 #!/bin/sh
-# Renders the review stills for both formats into out/stills/.
 cd "$(dirname "$0")/.." || exit 1
 npx remotion bundle --out-dir=build >/dev/null || exit 1
 for comp in ShowreelLandscape ShowreelPortrait; do

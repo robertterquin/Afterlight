@@ -64,7 +64,6 @@ type DailyEdition = {
     light: string
     body: string
     shade: string
-    /** Crescent courses: how far the dark side is pushed across the moon, as a share of its radius. */
     phase?: number
   }
   mountains: readonly [string, string]
@@ -86,16 +85,11 @@ type DailyEdition = {
   }
   reflection: readonly [string, string]
   stone: StonePalette
-  /**
-   * The clouds (7–36 stones): the cloud sea's lit tops and shaded undersides, each from the nearest row (first)
-   * to the farthest (second), and the passing clouds behind and in front of the tower.
-   */
   clouds: {
     lit: readonly [string, string]
     shade: readonly [string, string]
     belt: readonly [string, string]
   }
-  /** Above the clouds (40+ stones): the night overhead, the cloud sea, its horizon rim and the star lines. */
   night: {
     sky: readonly [string, string, string]
     cloudLit: string
@@ -105,7 +99,6 @@ type DailyEdition = {
   }
 }
 
-// Seven courses, one per day of a weekly loop, alternating warm and cool skies.
 const DAILY_EDITIONS: readonly DailyEdition[] = [
   {
     name: 'Ember tide',
@@ -159,7 +152,6 @@ const DAILY_EDITIONS: readonly DailyEdition[] = [
     dawnSky: ['#91a3aa', '#c4a797', '#e8ae86', '#f3ca9d'],
     sea: ['#527d80', '#1f4651'],
     dawnSea: ['#c9aa97', '#568184'],
-    // Kept left of centre so it never sits behind the course title or countdown.
     moon: { x: 300, y: 0.36, radius: 34, light: '#f7d5ad', body: '#f1d3ad', shade: '#bc927e' },
     mountains: ['#627783', '#41616e'],
     islands: {
@@ -264,10 +256,6 @@ const DAILY_EDITIONS: readonly DailyEdition[] = [
   },
 ]
 
-/**
- * Computers (mouse or trackpad) get a Save image link: their share sheets, where they exist, can't save
- * to disk. Phones don't need it; their share sheet already offers Save Image.
- */
 const offerSaveImage = (() => {
   try {
     const canSharePictures = typeof navigator.canShare === 'function'
@@ -278,7 +266,6 @@ const offerSaveImage = (() => {
   }
 })()
 
-/** Everything the share card and its text need from a finished run. */
 function shareInputFor(finished: GameState, rank: number | null): ShareCardInput {
   const edition = dailyEditionForDate(finished.challenge.date)
   return {
@@ -300,7 +287,6 @@ function shareInputFor(finished: GameState, rank: number | null): ShareCardInput
   }
 }
 
-/** Picks the course by UTC day number, so the courses run in order and none repeats within a week. */
 function dailyEditionForDate(utcDate: string) {
   const day = Math.floor(Date.parse(utcDate) / 86_400_000)
   return DAILY_EDITIONS[day % DAILY_EDITIONS.length]!
@@ -388,7 +374,6 @@ function useScenePreferences() {
   return preferences
 }
 
-// Memoised: the game loop re-renders the scene 60 times a second, but a placed stone never changes.
 const BlockShape = memo(function BlockShape({
   block,
   y,
@@ -425,7 +410,6 @@ const BlockShape = memo(function BlockShape({
   const weatheredFront = blendColor(stonePalette.front, '#b59c78', stoneWarmth)
   const weatheredSide = blendColor(stonePalette.side, '#77635a', stoneWarmth)
   const weatheredJoint = blendColor(stonePalette.joint, '#876f5d', stoneWarmth)
-  // Stones far below the top fade toward the sky, so the climb reads as distance.
   const hazed = (color: string) => haze > 0 ? blendColor(color, '#8f95ad', haze) : color
   const top = hazed(active ? stonePalette.activeTop : cleanStone ? blendColor(weatheredTop, '#f6e8c8', .18) : weatheredTop)
   const front = hazed(active ? stonePalette.activeFront : cleanStone ? blendColor(weatheredFront, '#c9ad85', .2) : weatheredFront)
@@ -455,7 +439,6 @@ const BlockShape = memo(function BlockShape({
       style={{ transformBox: 'fill-box', transformOrigin: 'center bottom' }}
     >
         {active && (
-          // A soft shadow from layered shapes: a blur filter here would be recomputed every frame as the stone slides.
           <g fill="#071824" pointerEvents="none">
             <rect x={block.x - 6} y={y + bevel + 2} width={block.width + 12} height={faceHeight + 14} rx="12" opacity=".07" />
             <rect x={block.x - 3} y={y + bevel + 4} width={block.width + 6} height={faceHeight + 8} rx="8" opacity=".1" />
@@ -735,10 +718,6 @@ function LandingFeedback({
   )
 }
 
-/**
- * A standing waystone with the same glowing slit as the tower's stones; (x, y) is its foot.
- * It stays plain stone until lit, as if the island is answering the beacon.
- */
 function Waystone({
   x,
   y,
@@ -752,14 +731,12 @@ function Waystone({
   y: number
   lit: boolean
   stone: StonePalette
-  /** 1 is about a third of a tower stone; nearer islands use larger sizes. */
   size?: number
   celebration?: number
   sequence?: number
 }) {
   return (
     <g className={lit ? 'waystone is-lit' : 'waystone'} transform={`translate(${x} ${y}) scale(${size})`}>
-      {/* A tapered standing stone in the tower's own colours. */}
       <path d="M-5 0L-3.6 -18Q0 -23 3.6 -18L5 0Z" fill={stone.front} />
       <path d="M0 -21.6Q2.4 -20.6 3.6 -18L5 0H0Z" fill={stone.side} />
       <path d="M-3.6 -18Q0 -23 3.6 -18" stroke={stone.top} strokeWidth="1.4" fill="none" />
@@ -784,7 +761,6 @@ function Waystone({
   )
 }
 
-/** A tiered pine with a trunk and a shaded right side; (x, base) is the foot of the trunk. Proportions scale with height. */
 function Pine({ x, base, height, color }: { x: number; base: number; height: number; color: string }) {
   const width = height * 0.5
   const shade = blendColor(color, '#0b1622', 0.3)
@@ -806,10 +782,6 @@ function Pine({ x, base, height, color }: { x: number; base: number; height: num
   )
 }
 
-/**
- * The rock face between an island's grass and the sea: it tapers slightly to the waterline, has a
- * lit upper band and a few cracks, and darkens where the water wets it. The grass is drawn over its top.
- */
 function IslandCliff({
   left,
   right,
@@ -830,7 +802,6 @@ function IslandCliff({
   light: string
 }) {
   const height = waterline - top
-  // Nudged toward a stone grey so the rock never blends into the sea behind it.
   const rock = blendColor(deep, '#8a8783', 0.32)
   const lit = blendColor(rock, light, 0.5)
   return (
@@ -849,7 +820,6 @@ function IslandCliff({
     </g>
   )
 }
-
 
 function BirdFlock({ presence, reducedMotion }: { presence: number; reducedMotion: boolean }) {
   return (
@@ -937,7 +907,6 @@ function WindSignature({ windPercent }: { windPercent: number }) {
 
 type ImpactSurface = 'water' | 'cloud' | 'none'
 
-/** Where a trimmed stone meets the world: a splash at the island's waterline, a puff in the cloud sea, or nothing when it falls out of frame. */
 function WaterImpact({
   piece,
   surfaceY,
@@ -951,14 +920,10 @@ function WaterImpact({
   surfaceY: number
   surface: ImpactSurface
   forceful?: boolean
-  /** 0 to 1 as the upper sky darkens (40–55 stones): the puff takes on the night clouds' colour. */
   night?: number
-  /** The course's night colours, which the puff takes on above the clouds. */
   palette: NightPalette
-  /** The course's cloud colours for the puff below 40 stones. */
   clouds: CloudPalette
 }) {
-  // Slivers sink quietly; a splash for every tiny trim reads as noise.
   if (surface === 'none' || (surface === 'water' && piece.width < 20 && !forceful)) return null
   const center = piece.x + piece.width / 2
   const impactDelay = forceful ? 0.78 : 0.64
@@ -984,7 +949,6 @@ function WaterImpact({
         ))}
         {night > 0.2 && (
           <>
-            {/* Moonlight catching the top of the stirred-up cloud. */}
             <motion.path
               d={`M${center - 46 * size} ${surfaceY - 2 * size}q${22 * size} ${-14 * size} ${45 * size} ${-12 * size}M${center - 18 * size} ${surfaceY - 9 * size}q${18 * size} ${-8 * size} ${36 * size} ${-2 * size}`}
               fill="none"
@@ -996,7 +960,6 @@ function WaterImpact({
               animate={{ pathLength: 1 }}
               transition={{ duration: 0.5, delay: impactDelay - 0.02, ease: 'easeOut' }}
             />
-            {/* A little of the beacon's light carried down, rising and fading. */}
             {[[-0.3, 0.9, 1.8], [0.15, 0.7, 1.4], [0.45, 0.55, 1.2]].map(([dx, peak, radius], index) => (
               <motion.circle
                 key={`spark-${index}`}
@@ -1035,7 +998,6 @@ function WaterImpact({
   )
 }
 
-/** Five perfect drops: light climbs through the streak's stones, then a halo opens around the top stone. */
 function BeaconPulse({ block, topY, fromY }: { block: Block; topY: number; fromY: number }) {
   const centerX = block.x + block.width / 2
   return (
@@ -1094,7 +1056,6 @@ function BeaconPulse({ block, topY, fromY }: { block: Block; topY: number; fromY
   )
 }
 
-// Deterministic so the sea looks the same on every render and every device.
 function seededRandom(seed: number) {
   let state = seed
   return () => {
@@ -1109,11 +1070,6 @@ function islandTopPath(groundY: number) {
   return `M240 ${groundY - 14}q46-45 108-32 55-49 118-24 61-46 122-10 71-25 124 21 60 5 88 45-44 19-104 10-66 23-122 4-67 22-127 3-74 22-123-1-42 10-84-16z`
 }
 
-/**
- * Sky, horizon and open sea. Memoised and free of per-frame props, so the
- * 60 Hz game loop never re-renders it; it only changes when dawn advances.
- * Waves and light paths are merged into a handful of paths to stay cheap.
- */
 const SeaBackdrop = memo(function SeaBackdrop({
   edition,
   height,
@@ -1144,7 +1100,6 @@ const SeaBackdrop = memo(function SeaBackdrop({
       stars[y < horizon * 0.45 && random() > 0.35 ? 0 : 1] += `M${x - radius} ${y}a${radius} ${radius} 0 1 0 ${radius * 2} 0a${radius} ${radius} 0 1 0 ${-radius * 2} 0`
     }
 
-    // Wave strokes get longer and further apart toward the viewer.
     const waves = ['', '', '']
     const rows = Math.round(sea / 8)
     for (let row = 0; row < rows; row += 1) {
@@ -1273,7 +1228,6 @@ const SeaBackdrop = memo(function SeaBackdrop({
         <ellipse cx="380" cy={round1(horizon * 0.9)} rx="340" ry="8" fill="#f2b79e" opacity=".26" />
       </g>
 
-      {/* Distant islands, a village and a boat sit on the horizon. */}
       <path
         d={`M-10 ${horizon}q30-14 60-10 24-18 52-8 30-8 50 18zM140 ${horizon}q18-6 40-4 10-6 30 4zM420 ${horizon}q24-22 56-18 30-14 54 0 24-8 46 18zM700 ${horizon}q16-8 34-6 14-6 26 6z`}
         fill={edition.mountains[0]}
@@ -1317,7 +1271,6 @@ const SeaBackdrop = memo(function SeaBackdrop({
   )
 })
 
-/** The cottage islet and the lighthouse rock, drawn as in the open-sea design. Re-renders only when a placement changes them. */
 const SideIslets = memo(function SideIslets({
   edition,
   height,
@@ -1340,7 +1293,6 @@ const SideIslets = memo(function SideIslets({
   climb: number
 }) {
   const sea = height - horizon
-  // Nearer things sink faster below the horizon as the climber rises.
   const drift = (factor: number) => ({
     initial: false as const,
     animate: { y: reducedMotion ? 0 : climb * factor },
@@ -1394,7 +1346,6 @@ const SideIslets = memo(function SideIslets({
         <rect x={lx - 9} y={ly - 110} width="18" height="13" rx="2" fill="#ffe7b0" />
         <path d={`M${lx - 11} ${ly - 110}l11-10 11 10z`} fill="#33445a" />
         <circle cx={lx} cy={ly - 103} r="22" fill="#ffe4a8" opacity=".7" className="bloom" filter="url(#soft-bloom)" />
-        {/* Dawn dims the beam on the wrapper, so the pulse inside never restarts. */}
         <motion.g initial={false} animate={{ opacity: 1 - dawnProgress * 0.55 }} transition={reducedMotion ? { duration: 0 } : { duration: 1.6, ease: 'easeInOut' as const }}>
           <motion.path
             d={`M${lx - 6} ${ly - 104}L${lx - 420} ${ly - 150}L${lx - 420} ${ly - 70}Z`}
@@ -1437,7 +1388,6 @@ const SideIslets = memo(function SideIslets({
   )
 })
 
-/** A soft mirror of the home island and its lowest stones; skips the per-frame work of a real reflection filter. */
 const IslandReflection = memo(function IslandReflection({
   edition,
   groundY,
@@ -1462,7 +1412,6 @@ const IslandReflection = memo(function IslandReflection({
           </g>
         ))}
       </g>
-      {/* Broken water lines across the mirror read as ripples without a filter. */}
       <path
         d={`M250 ${waterline + 12}h120m40 0h200m50 0h90M290 ${waterline + 28}h160m60 0h170M330 ${waterline + 48}h110m70 0h150M380 ${waterline + 74}h90m60 0h110`}
         stroke={edition.sea[0]}
@@ -1486,10 +1435,6 @@ function cloudPuff(x: number, y: number, width: number) {
     + ellipse(x + width * 0.22, y - width * 0.12, width * 0.38, width * 0.21)
 }
 
-/**
- * Clouds pinned to floors 8 to 15 of the tower, so they slide past as the camera climbs.
- * The front layer is thin and kept to the sides so it never hides the moving stone.
- */
 const CloudBelt = memo(function CloudBelt({ groundY, layer, palette, reducedMotion }: { groundY: number; layer: 'back' | 'front'; palette: CloudPalette; reducedMotion: boolean }) {
   const floor = (level: number) => groundY - level * BLOCK_HEIGHT
   if (layer === 'back') {
@@ -1509,19 +1454,12 @@ const CloudBelt = memo(function CloudBelt({ groundY, layer, palette, reducedMoti
   )
 })
 
-/**
- * Once the climber leaves the passing clouds, a sea of cloud forms below them. Like any layer seen
- * from above, it appears at the horizon first and spreads toward the viewer, row by row, so it moves
- * the same way as the rest of the world instead of rising against it.
- */
 const CloudBank = memo(function CloudBank({ height, horizon, rise, night, clouds, palette, reducedMotion }: { height: number; horizon: number; rise: number; night: number; clouds: CloudPalette; palette: NightPalette; reducedMotion: boolean }) {
   const rows = useMemo(() => {
     const random = seededRandom(31)
-    // Five rows from the horizon toward the viewer, shading from the course's lightest cloud tone to its deepest.
     const tones = [0, 1, 2, 3, 4].map((row) => [blendColor(clouds.lit[0], clouds.lit[1], row / 4), blendColor(clouds.shade[0], clouds.shade[1], row / 4)])
     const depth = height - horizon + 40
     return tones.map(([lit, shade], row) => {
-      // Rows bunch up near the horizon and spread out toward the viewer.
       const y = round1(horizon - 12 + Math.pow(row / tones.length, 1.5) * depth)
       const nextY = row === tones.length - 1 ? height + 40 : round1(horizon - 12 + Math.pow((row + 1) / tones.length, 1.5) * depth)
       const size = 46 + row * 26
@@ -1545,7 +1483,6 @@ const CloudBank = memo(function CloudBank({ height, horizon, rise, night, clouds
           animate={{ opacity: smoothstep(index / rows.length, (index + 1.4) / rows.length, rise) }}
           transition={reducedMotion ? { duration: 0 } : { duration: 1.2, ease: 'easeInOut' }}
         >
-          {/* Above the clouds at night (40+ stones) the cloud sea takes on the dark lavender of the upper sky. */}
           <rect y={band.y} width={WORLD_WIDTH} height={band.bandHeight} fill={night > 0 ? blendColor(band.shade, palette.cloudShade, night * 0.7) : band.shade} />
           <path d={band.undersides} fill={night > 0 ? blendColor(band.shade, palette.cloudShade, night * 0.7) : band.shade} />
           <path d={band.tops} fill={night > 0 ? blendColor(band.lit, palette.cloudLit, night * 0.62) : band.lit} />
@@ -1555,7 +1492,6 @@ const CloudBank = memo(function CloudBank({ height, horizon, rise, night, clouds
   )
 })
 
-/** Deep sky, extra stars, an aurora and the odd shooting star once the tower reaches floor 26 and beyond. */
 const HighSky = memo(function HighSky({ horizon, presence, reducedMotion }: { horizon: number; presence: number; reducedMotion: boolean }) {
   const stars = useMemo(() => {
     const random = seededRandom(23)
@@ -1597,28 +1533,17 @@ const HighSky = memo(function HighSky({ horizon, presence, reducedMotion }: { ho
   )
 })
 
-/*
- * The sky above the clouds, for climbs past 36 stones. Three stages, each tied to height:
- * 40–55  the edge of the sky: night returns overhead, stars come out, the cloud sea curves like the world below.
- * 62–80  among the stars: every second stone, the beacon links one more star into a gold chain.
- * 94–100 the season's constellation: the zodiac sign of the current date appears star by star, and at 100 its
- *        brightest star (Antares for Scorpio, Spica for Virgo…) lights up.
- * Everything here is static paths and gradients that only change when a stone lands, so phones stay smooth.
- */
 const UPPER_EDGE_FROM = 40
 const UPPER_EDGE_TO = 55
 const STAR_CHAIN_FROM = 62
 const STAR_CHAIN_STEP = 2
 const BEACON_CONSTELLATION_FROM = 94
 
-// Chain stars as [x in world units, y as a share of the horizon height].
 const STAR_CHAIN = [[200, 0.7], [255, 0.48], [310, 0.62], [370, 0.3], [440, 0.12], [560, 0.08], [700, 0.22], [720, 0.6], [770, 0.42], [800, 0.7]] as const
 
-/** How many links of the star chain are drawn at this height. */
 const starLinks = (height: number) =>
   Math.max(0, Math.min(STAR_CHAIN.length - 1, Math.floor((height - STAR_CHAIN_FROM) / STAR_CHAIN_STEP) + 1))
 
-/** 0 before 94, then a third more of the constellation's stars every two stones; at 100 (4) its brightest star lights. */
 const beaconConstellationStage = (height: number) =>
   height < BEACON_CONSTELLATION_FROM ? 0 : Math.min(4, Math.floor((height - BEACON_CONSTELLATION_FROM) / 2) + 1)
 
@@ -1637,12 +1562,9 @@ const UpperSky = memo(function UpperSky({
   edge: number
   links: number
   constellation: number
-  /** Where the beacon sits on screen, for the flash that reaches out to each newly linked star. */
   beam: { x: number; y: number }
-  /** Tall phone screens: the chain and constellation sit lower, clear of the height counter. */
   portrait: boolean
   palette: NightPalette
-  /** The zodiac constellation of the current season. */
   sign: Zodiac
   reducedMotion: boolean
 }) {
@@ -1661,15 +1583,12 @@ const UpperSky = memo(function UpperSky({
     return { faint, bright }
   }, [horizon])
   const chain = STAR_CHAIN.map(([x, share]) => ({ x, y: round1(horizon * (portrait ? 0.27 + share * 0.6 : share)) }))
-  // The constellation sits straight above the tower: clear of the height counter and streak pill on desktop,
-  // below them on tall phone screens.
   const scale = portrait ? 3 : 2.6
   const originX = WORLD_WIDTH / 2 - 50 * scale
   const originY = round1(horizon * (portrait ? 0.34 : 0.07))
   const signStars = sign.stars.map(([x, y, magnitude, color]) => ({
     x: round1(originX + x * scale),
     y: round1(originY + y * scale),
-    // Sized by real brightness: each magnitude brighter is a clearly bigger star.
     r: round1(Math.max(1.3, 1.7 + (5 - magnitude) * 1.25)),
     color,
   }))
@@ -1693,15 +1612,12 @@ const UpperSky = memo(function UpperSky({
         </radialGradient>
       </defs>
 
-      {/* Night returns overhead and the stars come out. */}
       <motion.g initial={false} animate={{ opacity: edge }} transition={{ duration: reducedMotion ? 0 : 1.6, ease: 'easeInOut' }}>
         <rect width={WORLD_WIDTH} height={horizon} fill="url(#upper-night)" />
         <path d={stars.faint} fill="#f4ecdc" opacity=".75" />
         <path className={reducedMotion ? undefined : 'star-sparkle'} d={stars.bright} fill="#fff6e6" />
       </motion.g>
 
-      {/* The star chain: each link draws itself as the beacon reaches the next star. Kept faint, so the
-          beacon constellation is the only bright figure at the end. */}
       {links > 0 && (
         <g>
           {chain.slice(1, links + 1).map((star, index) => (
@@ -1713,7 +1629,6 @@ const UpperSky = memo(function UpperSky({
               strokeLinecap="round"
               fill="none"
               initial={reducedMotion ? false : { pathLength: 0, opacity: 0.24 }}
-              // Once the constellation starts forming, the chain's lines fade and only its stars stay.
               animate={{ pathLength: 1, opacity: constellation > 0 ? 0 : 0.24 }}
               transition={drawn}
             />
@@ -1737,14 +1652,12 @@ const UpperSky = memo(function UpperSky({
         />
       )}
 
-      {/* The season's constellation: its stars appear a third at a time from 94; at 100 the brightest one lights. */}
       {constellation > 0 && (
         <g>
           {sign.lines.filter(([from, to]) => from < revealed && to < revealed).map(([from, to]) => {
             const a = signStars[from]
             const b = signStars[to]
             const length = Math.hypot(b.x - a.x, b.y - a.y)
-            // Like a star chart, each line stops just short of its stars.
             const gapA = (a.r + 5) / length
             const gapB = (b.r + 5) / length
             if (gapA + gapB >= 1) return null
@@ -1776,7 +1689,6 @@ const UpperSky = memo(function UpperSky({
           ))}
           {constellation === 4 && (
             <>
-              {/* Its brightest star is the hero: a soft glow in its own colour and a thin four-point sparkle. */}
               <motion.circle
                 cx={signStars[hero].x}
                 cy={signStars[hero].y}
@@ -1797,7 +1709,6 @@ const UpperSky = memo(function UpperSky({
                 transition={{ duration: reducedMotion ? 0 : 0.9, delay: reducedMotion ? 0 : 0.15, ease: 'easeOut' }}
                 style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
               />
-              {/* In its own colour (Antares stays red, Spica blue-white), with a small white-hot core. */}
               <circle cx={signStars[hero].x} cy={signStars[hero].y} r={round1(signStars[hero].r * 1.35)} fill={signStars[hero].color} />
               <circle cx={signStars[hero].x} cy={signStars[hero].y} r={round1(signStars[hero].r * 0.55)} fill="#fffaf2" />
             </>
@@ -1808,12 +1719,6 @@ const UpperSky = memo(function UpperSky({
   )
 })
 
-/*
- * Sky lanterns: from 42 to 60 stones, one warm paper lantern is released every third stone. It rises from behind
- * the cloud sea, sways and fades among the stars over about ten seconds, as if people below are sending light up
- * to the beacon. Past 60 the climber has risen above them, and shooting stars take over (see ShootingStars).
- * Each lantern animates once while it flies (no loops), and only the last few are kept.
- */
 const LANTERNS_FROM = 42
 const LANTERNS_UNTIL = 60
 const LANTERN_EVERY = 3
@@ -1822,7 +1727,6 @@ function SkyLanterns({ horizon, towerHeight, portrait }: { horizon: number; towe
   const newest = Math.floor(towerHeight / LANTERN_EVERY)
   const first = Math.ceil(LANTERNS_FROM / LANTERN_EVERY)
   const last = Math.floor(LANTERNS_UNTIL / LANTERN_EVERY)
-  // The last four releases, so a lantern let go just before 60 still finishes its flight.
   const ids = [newest - 3, newest - 2, newest - 1, newest].filter((id) => id >= first && id <= last)
   const startY = horizon + 8
   const endY = round1(horizon * (portrait ? 0.3 : 0.12))
@@ -1836,7 +1740,6 @@ function SkyLanterns({ horizon, towerHeight, portrait }: { horizon: number; towe
       </defs>
       {ids.map((id) => {
         const random = seededRandom(id * 7919 + 13)
-        // Left or right of the tower, never straight up its middle.
         const x = round1(random() < 0.5 ? 130 + random() * 270 : 600 + random() * 270)
         const scale = round1((1.1 + random() * 0.5) * (portrait ? 1.35 : 1))
         const sway = round1(6 + random() * 8)
@@ -1866,10 +1769,6 @@ function SkyLanterns({ horizon, towerHeight, portrait }: { horizon: number; towe
   )
 }
 
-/*
- * Shooting stars: above 62 stones, every fourth stone sends one short, bright streak across the night sky. Each is
- * a single one-second animation started by a landing (nothing loops), so phones only draw it while it flies.
- */
 const SHOOTING_STARS_FROM = 62
 const SHOOTING_STAR_EVERY = 4
 
@@ -1881,7 +1780,6 @@ function ShootingStars({ horizon, towerHeight, portrait }: { horizon: number; to
     <g pointerEvents="none">
       {ids.map((id) => {
         const random = seededRandom(id * 104729 + 7)
-        // Desktop keeps them right of the height counter and above the streak pill, falling left to right.
         const x = round1(portrait ? 180 + random() * 640 : 400 + random() * 220)
         const y = round1(horizon * (portrait ? 0.38 + random() * 0.2 : 0.06 + random() * 0.18))
         const direction = portrait && random() < 0.5 ? -1 : 1
@@ -1904,7 +1802,6 @@ function ShootingStars({ horizon, towerHeight, portrait }: { horizon: number; to
   )
 }
 
-/** In front of the cloud sea: it darkens to night and its far edge curves like the world, lit by a thin dawn rim. */
 const WorldEdge = memo(function WorldEdge({ height, horizon, edge, palette, reducedMotion }: { height: number; horizon: number; edge: number; palette: NightPalette; reducedMotion: boolean }) {
   const top = horizon - 12
   const bulge = round1(Math.min(46, horizon * 0.12))
@@ -1933,7 +1830,6 @@ const WorldEdge = memo(function WorldEdge({ height, horizon, edge, palette, redu
   )
 })
 
-/** Faint streaks that blow past when the wind is strong. */
 const WindStreaks = memo(function WindStreaks({ height, direction, visible, reducedMotion }: { height: number; direction: number; visible: boolean; reducedMotion: boolean }) {
   const lines = [0.22, 0.34, 0.47, 0.6].map((row, index) => {
     const y = round1(height * row)
@@ -1955,7 +1851,6 @@ const WindStreaks = memo(function WindStreaks({ height, direction, visible, redu
   )
 })
 
-/** A small pennant on every tenth stone, so the tower records its own height. */
 function Pennant({ block, y, floor, fresh }: { block: Block; y: number; floor: number; fresh: boolean }) {
   const x = block.x + block.width - 16
   return (
@@ -1972,8 +1867,6 @@ function Pennant({ block, y, floor, fresh }: { block: Block; y: number; floor: n
   )
 }
 
-// On phones the scene shows only the play lanes (x 80 to 920, where the moving stone travels),
-// so everything draws about a fifth larger without hiding the stone at either end.
 const PHONE_VIEW_WIDTH = 840
 
 function GameScene({
@@ -1988,7 +1881,6 @@ function GameScene({
   isWaking?: boolean
 }) {
   const { compact, reducedMotion } = useScenePreferences()
-  // Count celebrations while rendering (React's "adjust state on prop change" pattern), not in an effect.
   const placement = game.placementTicks.length
   const celebrating = game.lastDropWasPerfect && game.perfectStreak > 0 && game.perfectStreak % 5 === 0
   const [celebration, setCelebration] = useState({ count: 0, placement })
@@ -1996,8 +1888,6 @@ function GameScene({
     setCelebration({ count: celebration.count + Number(celebrating), placement })
   }
   const beaconCelebration = celebration.count
-  // The engine only keeps the latest drop's trimmed pieces; keep the previous drop's too so a quick
-  // next placement does not cut a piece off mid-fall.
   const [debris, setDebris] = useState({ placement, pieces: [] as Array<FallingPiece & { born: number }> })
   if (debris.placement !== placement) {
     const carried = placement > debris.placement ? debris.pieces.filter((piece) => piece.born >= placement - 1) : []
@@ -2008,13 +1898,10 @@ function GameScene({
   const groundY = height - 105
   const activeY = groundY - (game.stack.length + 1) * BLOCK_HEIGHT
   const tallMobileViewport = compact && height > viewWidth * 1.15
-  // On tall phones the full-height stage needs the tower higher, clear of the Start button and play hint.
-  // Before the climb the island must clear the Start button; once climbing, sit lower so less empty sea shows below.
   const targetY = height * (tallMobileViewport ? (game.phase === 'ready' ? 0.52 : 0.6) : compact ? 0.48 : 0.43)
   const cameraShift = targetY - activeY
   const climbProgress = game.stack.length * BLOCK_HEIGHT
   const horizon = Math.round(height * 0.42)
-  // The island now stands on a rock face, so the sea meets it lower down.
   const waterline = groundY + 26
   const waterY = height - 47
   const dawnStage = Math.min(heightOf(game) / 36, 1)
@@ -2036,19 +1923,14 @@ function GameScene({
   const blockSway = Math.min(2.3, windStrength * 0.28)
   const blockSwayDuration = Math.max(1.65, 3.2 - windStrength * 0.12)
   const towerHeight = heightOf(game)
-  // Starts once the top stone has climbed out of the passing clouds (floors 7 to 15).
   const cloudRise = smoothstep(14, 22, towerHeight)
   const highSky = smoothstep(26, 36, towerHeight)
   const upperEdge = smoothstep(UPPER_EDGE_FROM, UPPER_EDGE_TO, towerHeight)
   const links = starLinks(towerHeight)
   const constellation = beaconConstellationStage(towerHeight)
   const topStone = game.stack.at(-1)!
-  // The beacon light sits just above the top stone; the camera keeps that stone at targetY + one stone.
   const beam = { x: topStone.x + topStone.width / 2, y: targetY + BLOCK_HEIGHT - 26 }
-  // How far below the horizon the cloud sea currently reaches.
   const cloudCover = horizon - 12 + cloudRise * (height - horizon + 52)
-  // Trimmed stones fall in front of the island: they splash in open water, sink into cloud where it already
-  // covers the sea, or fall out of frame when the island is off-screen and nothing below is covered.
   const splashY = waterline + 26 + cameraShift
   const splashVisible = splashY <= height - 16
   const impactSurface: ImpactSurface = splashVisible
@@ -2069,7 +1951,6 @@ function GameScene({
         <filter id="soft-bloom" x="-100%" y="-100%" width="300%" height="300%">
           <feGaussianBlur stdDeviation="5" />
         </filter>
-        {/* Phones swap the blur filters for these gradients (see App.css): Safari redraws blurs too slowly. */}
         <radialGradient id="lite-glow">
           <stop stopColor="#fff0c9" />
           <stop offset=".45" stopColor="#ffe2a8" stopOpacity=".75" />
@@ -2101,11 +1982,9 @@ function GameScene({
       />
       <CloudBank height={height} horizon={horizon} rise={cloudRise} night={upperEdge} clouds={edition.clouds} palette={edition.night} reducedMotion={reducedMotion} />
       {towerHeight >= UPPER_EDGE_FROM - 2 && <WorldEdge height={height} horizon={horizon} edge={upperEdge} palette={edition.night} reducedMotion={reducedMotion} />}
-      {/* Birds belong to the low sky: they arrive at 8 stones and stay below as you climb past the dawn (36–42). */}
       <BirdFlock presence={towerHeight >= 8 ? 1 - smoothstep(36, 42, towerHeight) : 0} reducedMotion={reducedMotion} />
       <WindStreaks height={height} direction={windDirection} visible={windStrength >= 6} reducedMotion={reducedMotion} />
 
-      {/* The beacon island and tower follow the camera as the stack climbs. */}
       <motion.g
         initial={false}
         animate={{ y: cameraShift }}
@@ -2128,7 +2007,6 @@ function GameScene({
         <path d={islandTopPath(groundY)} fill="url(#home-grass)" />
         <path d={`M262 ${waterline + 1}q256 12 518 0`} stroke="#eef4ee" strokeOpacity=".45" strokeWidth="2" fill="none" />
         <path d={`M286 ${waterline + 9}q232 10 470 0`} stroke="#eef4ee" strokeOpacity=".2" strokeWidth="1.5" fill="none" />
-        {/* Sized against the tower: a stone is about 1.5 m, so the pines stand roughly two stones tall. */}
         <Pine x={330} base={groundY - 34} height={124} color={edition.tower.trees} />
         <Pine x={762} base={groundY - 28} height={102} color={edition.tower.trees} />
         <Waystone stone={edition.stone} size={1.6} x={282} y={groundY - 26} lit={Math.floor(game.perfects / 5) >= 5} celebration={celebrating ? beaconCelebration : 0} sequence={1} />
@@ -2144,11 +2022,8 @@ function GameScene({
         )}
 
         <CloudBelt groundY={groundY} layer="back" palette={edition.clouds} reducedMotion={reducedMotion} />
-        {/* The tower stays mounted between drops (rebuilding every stone caused a hitch on phones); a perfect drop bounces it from the effect above. */}
         <g ref={towerScope}>
         {game.stack.map((block, index) => {
-          // Only stones near the screen are drawn; a tall tower would otherwise draw every stone below the
-          // bottom edge. The wider margin below covers the camera still easing up after a drop.
           const screenY = groundY - (index + 1) * BLOCK_HEIGHT + cameraShift
           if (screenY < -BLOCK_HEIGHT * 2 || screenY > height + BLOCK_HEIGHT * 3) return null
           const support = game.stack[index - 1]
@@ -2283,13 +2158,9 @@ function App() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null)
   const [nameSaving, setNameSaving] = useState(false)
-  // The run-over card ignores taps until it has faded in, so a player still tapping when the run ends
-  // can't hit its invisible "Climb again" button and skip the result.
   const [overCardReady, setOverCardReady] = useState(false)
   const [streakRecord, setStreakRecord] = useState(readStreak)
-  // The player's rank on yesterday's board, shown on the ready screen only after a top-3 finish.
   const [yesterdayRank, setYesterdayRank] = useState<number | null>(null)
-  // The day number shown on the run-over screen, only for the day's first finished climb of a streak.
   const [streakKeptDay, setStreakKeptDay] = useState(0)
   const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'saved' | 'not-best' | 'failed' | 'offline'>('idle')
   const [submissionError, setSubmissionError] = useState('')
@@ -2312,7 +2183,6 @@ function App() {
 
   const commitGame = useCallback((next: GameState) => {
     if (gameRef.current.challenge.date !== next.challenge.date) setLeaderboardEntries([])
-    // A run that ends with at least one stone counts toward today's streak.
     if (next.phase === 'over' && gameRef.current.phase !== 'over' && heightOf(next) >= 1) {
       const { record, firstToday } = saveClimb(next.challenge.date)
       setStreakRecord(record)
@@ -2350,7 +2220,6 @@ function App() {
           return
         }
         const { id, name } = await connectAnonymousPlayer()
-        // Send runs that failed to sync last visit before the board first loads.
         await retryPendingRuns()
         if (cancelled) return
         setPlayerId(id)
@@ -2385,14 +2254,11 @@ function App() {
         const you = (await getDailyLeaderboard(yesterday)).find((entry) => entry.is_you)
         if (!cancelled) setYesterdayRank(you && you.rank <= 3 ? you.rank : null)
       } catch {
-        // A missing line is fine; the ready screen just shows nothing extra.
       }
     })()
     return () => { cancelled = true }
   }, [authInitialized, game.challenge.date, playerId])
 
-  // Keep the board current while the page is open: every 30 seconds, and on coming back to the tab.
-  // Skipped mid-run so play stays smooth; the run's own submit refreshes it at the end.
   useEffect(() => {
     if (!authInitialized || !playerId) return
     const refresh = () => {
@@ -2411,13 +2277,10 @@ function App() {
     if (soundEnabledRef.current) sounds.play(cue, delay)
   }, [sounds])
 
-  // Short vibrations on Android phones (iPhones don't let websites vibrate). The sound button switches them off too.
   const buzz = useCallback((pattern: number | number[]) => {
     if (soundEnabledRef.current && typeof navigator.vibrate === 'function') navigator.vibrate(pattern)
   }, [])
 
-  // Browsers only allow audio after a user gesture, so the sound board is built while the page is idle
-  // (that part is slow) and only switched on by the first tap or key.
   useEffect(() => {
     const idle = window.requestIdleCallback
       ? window.requestIdleCallback(() => sounds.prepare(), { timeout: 2000 })
@@ -2435,10 +2298,8 @@ function App() {
     }
   }, [sounds])
 
-  /** Sound for one placement: the stone landing, a rising glass bell for each perfect, and offcuts meeting the sea. */
   const playPlacement = useCallback((current: GameState, next: GameState) => {
     const climbed = heightOf(current)
-    // Offcuts fall into the cloud sea once it covers the water; lower down they plunk into the sea, fainter the higher you are.
     const intoCloud = climbed >= 19
 
     if (next.phase === 'over') {
@@ -2449,7 +2310,6 @@ function App() {
     if (next.stack.length <= current.stack.length) return
 
     playSound({ kind: 'stone' })
-    // Reaching 100 lights the beacon constellation in the sky; it gets the full chime.
     if (heightOf(next) === 100) {
       playSound({ kind: 'celebration' }, 0.7)
       buzz([18, 60, 18, 60, 18, 60, 45])
@@ -2510,7 +2370,6 @@ function App() {
         if (runIdRef.current === submissionRunId) setSubmissionStatus('offline')
         return
       }
-      // Saved before sign-in too, so a run that ends offline is still sent on the next visit.
       api.rememberPendingRun(finishedGame.challenge.date, finishedGame.placementTicks, heightOf(finishedGame))
       let userId = playerId
       if (!userId) {
@@ -2541,12 +2400,9 @@ function App() {
     void submitRun(game)
   }, [authInitialized, game, submitRun])
 
-  // This run's rank, once the board shows it (only when this run is the player's best today).
   const you = leaderboardEntries.find((entry) => entry.is_you)
   const runRank = game.phase === 'over' && you && you.height === heightOf(game) ? you.rank : null
 
-  // The card is drawn as soon as the run ends, so Share can open the share sheet straight from the tap
-  // (Safari refuses a share that follows slow work).
   const shareFileRef = useRef<File | null>(null)
   useEffect(() => {
     shareFileRef.current = null
@@ -2558,7 +2414,6 @@ function App() {
     return () => { cancelled = true }
   }, [game, runRank])
 
-  // On computers the card can also be saved as a file, to upload anywhere.
   const saveImage = useCallback(async () => {
     let file = shareFileRef.current
     if (!file) {
@@ -2580,7 +2435,6 @@ function App() {
     const text = shareText(shareInputFor(finished, runRank))
     const file = shareFileRef.current
     try {
-      // The picture already carries the score, so it travels with just the link.
       if (file && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], text: window.location.origin })
         return
@@ -2593,11 +2447,9 @@ function App() {
       setShareNote('Copied')
       window.setTimeout(() => setShareNote(''), 2000)
     } catch {
-      // Closing the share sheet rejects; nothing to report.
     }
   }, [runRank])
 
-  // A new personal best gets a bright two-note chime once the server confirms it.
   useEffect(() => {
     if (submissionStatus !== 'saved') return
     playSound({ kind: 'best' }, 0.1)
@@ -2650,7 +2502,6 @@ function App() {
     try {
       window.localStorage.setItem('afterlight.sound', soundEnabled ? 'on' : 'off')
     } catch {
-      // The preference still applies for this session when storage is unavailable.
     }
   }, [soundEnabled])
 
@@ -2839,7 +2690,6 @@ function App() {
 
           {inRun && leaderboardEntries.length > 0 && <HeightLadder entries={leaderboardEntries} height={height} />}
 
-          {/* Only a first-drop hint; once a stone is placed the player knows the move. */}
           <AnimatePresence>
           {game.phase === 'playing' && !isWaking && game.placementTicks.length === 0 && (
             <motion.div
@@ -2930,11 +2780,9 @@ function App() {
                 transition={{ duration: reducedMotion ? 0.2 : 0.36, delay: reducedMotion ? 0 : 1.18, ease: 'easeOut' }}
                 style={overCardReady ? undefined : { pointerEvents: 'none' }}
                 onAnimationComplete={(definition) => {
-                  // Only the fade-in arms it; the fade-out on retry must not.
                   if ((definition as { opacity?: number }).opacity === 1) setOverCardReady(true)
                 }}
               >
-                {/* A miss records a placement that never joined the stack; ending from pause does not. */}
                 <h1 id="over-title" className="eyebrow over-eyebrow">{game.placementTicks.length > height ? 'The tide keeps it' : 'The beacon rests'}</h1>
                 <p className="over-score">
                   <strong>{height}</strong>
@@ -2964,7 +2812,6 @@ function App() {
                     </button>
                   )}
                 </div>
-                {/* Only problems are worth a line here; a clean save needs no message. */}
                 {(submissionStatus === 'failed' || submissionStatus === 'offline') && (
                   <p className="result-submission is-failed" role="status">
                     {submissionStatus === 'offline' ? 'Offline · score not saved.' : (submissionError || 'Could not sync this run.')}

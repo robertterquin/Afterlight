@@ -17,8 +17,6 @@ export async function ensureAnonymousUser() {
     anonymousUserRequest = (async () => {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
       if (!sessionError && sessionData.session?.user) return sessionData.session.user
-      // A saved session can no longer refresh when its player was removed (idle players with no scores are
-      // cleaned up daily): drop it on this device and start a fresh anonymous player instead of failing.
       if (sessionError) await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined)
 
       const { data, error } = await supabase.auth.signInAnonymously()

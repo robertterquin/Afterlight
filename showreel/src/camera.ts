@@ -3,30 +3,24 @@ import { DROPS } from './run.ts'
 
 export type Camera = {
   zoom: number
-  /** Screen point (view units) the focus lands on. */
   ax: number
   ay: number
-  /** Focus point in the tower layer's screen space. */
   fx: number
   fy: number
   rotX: number
   rotY: number
-  /** Screen-space slide (px) for whip pans. */
   whipX: number
   whipY: number
-  /** Upward tilt after the match-cut (view units), applied with parallax. */
   tilt: number
   shakeX: number
   shakeY: number
   shift: number
 }
 
-// The fast night climb outruns the camera spring by a few floors; the anchor drops to keep the top stone in frame.
 const SKY_LIFT = { landscape: 140, portrait: 90 }
 
 const SHAKE: Record<number, number> = { 8: 16, 34: 9, 60: 11, 298: 14, [DROPS.at(-1)!.frame]: 18 }
 
-/** Decaying, seeded shake from every impact. */
 function shake(frame: number, axis: 0 | 1) {
   let total = 0
   DROPS.forEach((drop, index) => {
@@ -38,7 +32,6 @@ function shake(frame: number, axis: 0 | 1) {
   return total
 }
 
-/** Zoom punch on the impacts that matter. */
 function punch(frame: number) {
   let total = 0
   for (const [at, amount] of [[8, -0.32], [34, -0.1], [60, -0.12], [298, 0.07], [DROPS.at(-1)!.frame, 0.08]] as const) {
@@ -48,7 +41,6 @@ function punch(frame: number) {
   return total
 }
 
-/** A whip pan: the frame slides off one way and the next arrives from the other, swapping at `at`. */
 function whip(frame: number, at: number, distance: number, half = 6) {
   const t = frame - at
   if (t <= -half || t >= half) return 0
@@ -66,11 +58,9 @@ export function cameraAt(frame: number, layout: Layout): Camera {
     [92, 1, EASE.inOut],
     [290, 1.12, EASE.linear],
     [372, 1.16, EASE.linear],
-    // The seven courses swap around the island, then one unbroken climb from the sea to the stars.
     [470, 1.1, EASE.linear],
     [490, 0.86, EASE.inOut],
     [690, 0.78, EASE.linear],
-    // Above the sky: wide, so the night, the lanterns and the constellation have room around the tower.
     [760, 0.74, EASE.inOut],
     [960, 0.7, EASE.linear],
     [1006, 0.86, EASE.inOut],
@@ -79,7 +69,6 @@ export function cameraAt(frame: number, layout: Layout): Camera {
     [1126, 1.7, EASE.out],
     [1200, 1.6, EASE.linear],
   ]) + punch(frame)
-  // Portrait lowers the tower in close-ups so the stacked type has the sky above it.
   const anchorDrop = portrait
     ? track(frame, [[0, 210], [70, 210], [92, 0, EASE.inOut], [380, 0], [478, 0], [492, 60, EASE.inOut], [690, 60], [760, SKY_LIFT.portrait, EASE.inOut], [960, SKY_LIFT.portrait], [1006, 300], [MATCH_CUT, 120]])
     : track(frame, [[690, 0], [760, SKY_LIFT.landscape, EASE.inOut], [960, SKY_LIFT.landscape], [1006, 120], [MATCH_CUT, 0]])
@@ -89,7 +78,6 @@ export function cameraAt(frame: number, layout: Layout): Camera {
   ])
   const rotX = track(frame, [[0, 0], [476, 0], [498, 9, EASE.whipOut], [690, 3, EASE.inOut], [760, 0, EASE.inOut]])
   const whipX = carouselSwitches.reduce((total, at) => total + whip(frame, at, layout.W * 0.14), 0)
-  // The frame whips upward once, as the climb starts.
   const whipY = whip(frame, 478, -layout.H * 0.22, 8)
   const tilt = track(frame, [[MATCH_CUT, 0], [1106, layout.Vh * 1.5, EASE.inOut], [1200, layout.Vh * 1.62, EASE.linear]])
   return {
@@ -109,7 +97,6 @@ export function cameraAt(frame: number, layout: Layout): Camera {
   }
 }
 
-/** Where a tower-layer point lands on screen, in pixels (exact while the stage is unrotated). */
 export function towerToScreen(x: number, y: number, camera: Camera, layout: Layout) {
   const vx = (x - camera.fx) * camera.zoom + camera.ax
   const vy = (y + camera.shift - camera.fy) * camera.zoom + camera.ay + camera.tilt

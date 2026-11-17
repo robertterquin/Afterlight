@@ -83,7 +83,6 @@
   animation-delay: -2s;
 }
 
-/* Opacity only, so the shimmer never forces the sea to be redrawn from scratch. */
 .light-path {
   animation: light-path 5.5s ease-in-out infinite;
 }
@@ -1043,11 +1042,6 @@
   }
 }
 
-/* ===================================================================
-   Redesign layer: glass panels, warm accent, editorial type.
-   Kept after the base rules so it wins without !important.
-   =================================================================== */
-
 :root {
   --accent: #f2c58f;
   --accent-strong: #e9b276;
@@ -1106,7 +1100,6 @@
 }
 
 .stage {
-  /* Height lives in the base rule so the phone breakpoints above can still fill the screen. */
   border: 0;
   border-radius: 28px;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, .07), 0 40px 80px -40px rgba(0, 0, 0, .8);
@@ -1121,8 +1114,6 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .09);
   pointer-events: none;
 }
-
-/* Shared pieces ---------------------------------------------------- */
 
 .eyebrow {
   display: inline-flex;
@@ -1216,8 +1207,6 @@
   font: 700 11px/1 var(--font-ui);
   letter-spacing: .08em;
 }
-
-/* Panels ------------------------------------------------------------ */
 
 .leaderboard {
   height: min(80svh, 800px);
@@ -1330,7 +1319,6 @@
   color: var(--accent);
 }
 
-/* Ranks 4 to 10 sit in tighter rows under the podium. */
 .leaderboard-row.rank-4 .leaderboard-row-button {
   min-height: 50px;
   padding-block: 6px;
@@ -1421,8 +1409,6 @@
   line-height: 1.55;
 }
 
-/* Ready: centred, mirroring the run-over screen ---------------------- */
-
 .ready-state {
   padding: 0;
   align-items: stretch;
@@ -1468,7 +1454,6 @@
   font-weight: 600;
 }
 
-/* Daily streak: seven small beacons and one line under the countdown. */
 .ready-streak {
   display: flex;
   flex-direction: column;
@@ -1480,7 +1465,6 @@
   text-shadow: 0 1px 3px rgba(5, 20, 31, .95), 0 0 16px rgba(5, 20, 31, .9);
 }
 
-/* "Yesterday you finished #2": only after a top-3 finish, with the board's own rank badge. */
 .ready-yesterday {
   display: inline-flex;
   align-items: center;
@@ -1579,8 +1563,6 @@
   color: var(--text-muted);
   font-size: 13px;
 }
-
-/* Playing ----------------------------------------------------------- */
 
 .run-hud {
   position: absolute;
@@ -1772,8 +1754,6 @@
   letter-spacing: .08em;
 }
 
-/* Pause and run over ----------------------------------------------- */
-
 .state-card {
   border-radius: 28px;
   color: var(--text);
@@ -1791,7 +1771,6 @@
   filter: saturate(.8) brightness(.68);
 }
 
-/* The run-over result sits straight on the dimmed scene, no card. */
 .state-card.over-card {
   top: auto;
   bottom: clamp(24px, 4vw, 44px);
@@ -1811,7 +1790,6 @@
   -webkit-backdrop-filter: none;
 }
 
-/* A soft shadow pool keeps the text readable over bright islands without a box. */
 .state-card.over-card::before {
   content: '';
   position: absolute;
@@ -1890,8 +1868,6 @@
   margin: -8px auto 0;
 }
 
-/* Narrow screens ---------------------------------------------------- */
-
 @media (max-width: 1100px) {
   .play-layout {
     grid-template-columns: minmax(0, 1fr) 320px;
@@ -1909,7 +1885,6 @@
 }
 
 @media (max-width: 700px) {
-  /* Phones: the game area fills the screen under the header, with the same gap below it as above. */
   .app-shell {
     height: 100svh;
     display: flex;
@@ -1984,9 +1959,6 @@
 
 }
 
-/* Height cues --------------------------------------------------------
-   All transform/opacity only, on a few small layers. */
-
 .cloud-pass {
   animation: cloud-pass 14s ease-in-out infinite alternate;
 }
@@ -2038,7 +2010,6 @@
   50% { transform: skewY(4deg) scaleX(.9); }
 }
 
-/* The phone board sheet slides up instead of appearing at once. */
 @media (max-width: 900px) {
   .leaderboard.is-open {
     animation: sheet-up .32s cubic-bezier(.2, .8, .2, 1) both;
@@ -2059,8 +2030,6 @@
   to { opacity: 1; }
 }
 
-/* Phones and tablets redraw the whole scene for every looping animation inside it, so the subtle
-   decorative loops hold still there. Wind streaks keep moving: they show the wind's direction. */
 @media (max-width: 700px), (pointer: coarse) {
   .star-field,
   .star-sparkle,
@@ -2077,10 +2046,7 @@
   }
 }
 
-/* Phones and tablets: Safari redraws blur effects too slowly on older iPhones, so the scene trades
-   them for cheap look-alikes. Desktop keeps the full versions. */
 @media (max-width: 700px), (pointer: coarse) {
-  /* Glows: a soft radial gradient instead of a blur filter. */
   .game-scene .bloom {
     filter: none;
     fill: url(#lite-glow);
@@ -2103,7 +2069,6 @@
     filter: none;
   }
 
-  /* Panels: solid, slightly see-through backgrounds instead of frosted glass. */
   * {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
@@ -2117,7 +2082,6 @@
     background: rgba(10, 20, 31, .8);
   }
 
-  /* End of a run: fade the scene instead of re-colouring every pixel with a filter. */
   .game-scene {
     transition: opacity .72s ease .78s;
   }

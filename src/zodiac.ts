@@ -1,13 +1,8 @@
-// The 100-stone reward: the zodiac constellation of the current season. Star patterns are simplified from the
-// real constellations to read at game size. Positions are in a 100×100 box, brightness is the star's real
-// magnitude (lower is brighter), and colours follow the real stars (blue-white, white, yellow, orange, red).
 export type ZodiacStar = readonly [x: number, y: number, magnitude: number, color: string]
 
 export type Zodiac = {
   name: string
-  /** The brightest star, which lights up at 100 stones. */
   brightest: string
-  /** First day of the sign's season, as [month 1–12, day]. */
   from: readonly [number, number]
   stars: readonly ZodiacStar[]
   lines: ReadonlyArray<readonly [number, number]>
@@ -34,11 +29,9 @@ export const ZODIAC: readonly Zodiac[] = [
   { name: 'Sagittarius', brightest: 'Kaus Australis', from: [11, 22], stars: [[32, 40, 2.8, ORANGE], [20, 56, 2.7, ORANGE], [26, 76, 1.8, BLUE], [46, 76, 2.6, WHITE], [58, 54, 2.05, BLUE], [46, 44, 3.2, BLUE], [42, 24, 3.5, ORANGE], [74, 40, 3.3, WHITE]], lines: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0], [0, 6], [6, 5], [4, 7]] },
 ]
 
-/** The sign whose season contains this UTC date (YYYY-MM-DD). */
 export function zodiacForDate(utcDate: string): Zodiac {
   const month = Number(utcDate.slice(5, 7))
   const day = Number(utcDate.slice(8, 10))
-  // The latest sign that has started by this date; before Jan 20 it is still Capricorn from December.
   let current = ZODIAC[0]
   for (const sign of ZODIAC) {
     const [fromMonth, fromDay] = sign.from
@@ -48,6 +41,5 @@ export function zodiacForDate(utcDate: string): Zodiac {
   return current
 }
 
-/** The index of the brightest star (the lowest magnitude). */
 export const brightestStar = (sign: Zodiac) =>
   sign.stars.reduce((best, star, index) => (star[2] < sign.stars[best][2] ? index : best), 0)

@@ -1,6 +1,3 @@
-// Synthesizes the reel's sound stems as WAV files into public/audio/ and copies the game's stone
-// landings next to them. The recipes follow src/sound.ts (glass bell, plunk, gong) so the reel
-// sounds like the game. Output is deterministic: noise comes from a seeded generator.
 import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -18,7 +15,6 @@ const random = () => {
 
 const buffer = (seconds) => new Float32Array(Math.ceil(seconds * RATE))
 
-/** Exponential attack/decay like the Web Audio envelope in sound.ts. */
 const envelope = (t, attack, decay) =>
   t < 0 ? 0 : t < attack ? t / attack : Math.exp((-(t - attack) / decay) * 6.9)
 
@@ -39,7 +35,6 @@ function glassBell(data, start, frequency, volume) {
   }
 }
 
-/** Filtered noise; `cutoff(t)` in Hz drives a two-pole state-variable filter. */
 function noise(data, start, seconds, gain, cutoff, mode = 'low', q = 0.8) {
   let low = 0
   let band = 0
@@ -77,21 +72,18 @@ function write(name, data) {
   writeFileSync(join(out, `${name}.wav`), bytes)
 }
 
-// Perfect drops 1 to 5 climb the same major steps as the game.
 ;[0, 2, 4, 5, 7].forEach((step, index) => {
   const data = buffer(1.8)
   glassBell(data, 0, note(880, step), 0.5)
   write(`bell-${index + 1}`, data)
 })
 
-// The fifth perfect: the game's rising arpeggio.
 {
   const data = buffer(2.4)
   ;[0, 4, 7, 12].forEach((step, index) => glassBell(data, index * 0.11, note(880, step), 0.42))
   write('celebration', data)
 }
 
-// Sub hit: a pitch-dropping sine with a short click on top, for impacts and cuts.
 {
   const data = buffer(1.2)
   tone(data, 0, (t) => 38 + 70 * Math.exp(-t * 18), 0.95, 0.9)
@@ -99,7 +91,6 @@ function write(name, data) {
   write('sub', data)
 }
 
-// Offcut into the sea: falling bubble note and a short wash.
 {
   const data = buffer(0.6)
   tone(data, 0, (t) => 810 * (240 / 810) ** Math.min(1, t / 0.07), 0.5, 0.09)
@@ -107,14 +98,12 @@ function write(name, data) {
   write('plunk', data)
 }
 
-// Whoosh for whip pans: band-passed noise sweeping up then down.
 {
   const data = buffer(0.7)
   noise(data, 0, 0.7, (t) => Math.sin(Math.PI * Math.min(1, t / 0.6)) ** 2 * 2.2, (t) => 400 + 3800 * Math.sin(Math.PI * Math.min(1, t / 0.6)), 'band', 1.4)
   write('whoosh', data)
 }
 
-// Riser into the climb and into the title: noise and a tone gliding up, cut off at the peak.
 {
   const seconds = 1.6
   const data = buffer(seconds)
@@ -128,14 +117,12 @@ function write(name, data) {
   write('riser', data)
 }
 
-// Soft wooden tick for kinetic type.
 {
   const data = buffer(0.15)
   tone(data, 0, (t) => 1400 * 0.6 ** Math.min(1, t / 0.05), 0.45, 0.07, (p) => (2 / Math.PI) * Math.asin(Math.sin(p)))
   write('click', data)
 }
 
-// Title gong: the game's slow beating low bell, a fifth higher, with a glass bell on top.
 {
   const data = buffer(4)
   for (const [ratio, amplitude, decay] of [[1, 1, 2.6], [1.006, 0.7, 2.4], [2.76, 0.25, 1.2], [5.4, 0.08, 0.5]]) {
@@ -145,7 +132,6 @@ function write(name, data) {
   write('gong', data)
 }
 
-// Ambient bed: a slow open-fifth drone over a sea wash, 21 seconds (the reel is 20).
 {
   const seconds = 21
   const data = buffer(seconds)

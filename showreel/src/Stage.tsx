@@ -9,10 +9,6 @@ import { CloudBankLayer, IsletsLayer, SkyLayer, TowerLayer } from './World.tsx'
 
 const PERSPECTIVE = 2600
 
-/**
- * One parallax plane: an overscanned SVG that follows the camera by `depth` (0 still, 1 locked to
- * the tower), pushed back `z` px in 3D and scaled up so it lines up again when the stage is flat.
- */
 function Plane({ layout, camera, depth, z, children }: { layout: Layout; camera: Camera; depth: number; z: number; children: ReactNode }) {
   const zoom = 1 + (camera.zoom - 1) * depth
   const fx = camera.ax + (camera.fx - camera.ax) * depth
@@ -32,7 +28,6 @@ function Plane({ layout, camera, depth, z, children }: { layout: Layout; camera:
 
 export function Stage({ layout, camera, edition, frame, blur }: { layout: Layout; camera: Camera; edition: DailyEdition; frame: number; blur: number }) {
   const height = smoothFloors(frame) - 1
-  // As in the game: dawn over the first 36 floors, the cloud sea from floor 14, the high sky from 26.
   const dawnStage = Math.min(height / 36, 1)
   const dawn = dawnStage * dawnStage * (3 - 2 * dawnStage)
   const cloudRise = smoothstep(14, 22, height)
@@ -49,7 +44,6 @@ export function Stage({ layout, camera, edition, frame, blur }: { layout: Layout
         <Plane layout={layout} camera={camera} depth={0.18} z={-1400}>
           <SkyLayer edition={edition} layout={layout} frame={frame} dawn={dawn} highSky={highSky} />
         </Plane>
-        {/* The sky above the clouds, still like the game's: it ignores the camera's zoom, climb and tilt. */}
         <Plane layout={layout} camera={camera} depth={0} z={-1050}>
           <UpperSkyLayer layout={layout} frame={frame} edition={edition} height={height} />
         </Plane>

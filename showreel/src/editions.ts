@@ -1,6 +1,3 @@
-// Copied from src/App.tsx (DAILY_EDITIONS and blendColor) so the reel uses the game's exact palettes.
-// shortcut: a copy, not an import (App.tsx pulls in the whole app); re-copy if the courses change.
-
 export type StonePalette = {
   top: string
   front: string
@@ -27,7 +24,6 @@ export type DailyEdition = {
     light: string
     body: string
     shade: string
-    /** Crescent courses: how far the dark side is pushed across the moon, as a share of its radius. */
     phase?: number
   }
   mountains: readonly [string, string]
@@ -49,13 +45,10 @@ export type DailyEdition = {
   }
   reflection: readonly [string, string]
   stone: StonePalette
-  /** Cloud sea tones, as the game's CloudPalette. */
   clouds: { lit: readonly [string, string]; shade: readonly [string, string]; belt: readonly [string, string] }
-  /** The sky above the clouds (40+ stones), as the game's NightPalette. */
   night: { sky: readonly [string, string, string]; cloudLit: string; cloudShade: string; rim: string; line: string }
 }
 
-// Seven courses, one per day of a weekly loop, alternating warm and cool skies.
 export const DAILY_EDITIONS: readonly DailyEdition[] = [
   {
     name: 'Ember tide',
@@ -109,7 +102,6 @@ export const DAILY_EDITIONS: readonly DailyEdition[] = [
     dawnSky: ['#91a3aa', '#c4a797', '#e8ae86', '#f3ca9d'],
     sea: ['#527d80', '#1f4651'],
     dawnSea: ['#c9aa97', '#568184'],
-    // Kept left of centre so it never sits behind the course title or countdown.
     moon: { x: 300, y: 0.36, radius: 34, light: '#f7d5ad', body: '#f1d3ad', shade: '#bc927e' },
     mountains: ['#627783', '#41616e'],
     islands: {

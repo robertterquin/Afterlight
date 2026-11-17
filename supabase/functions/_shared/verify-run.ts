@@ -1,6 +1,3 @@
-// The anti-cheat check behind submit-score: a run is only the moment of each tap. The server replays those taps
-// through the same engine the game runs, on the day's course, and keeps only what the replay produces.
-// Kept free of Deno and Supabase imports so `npm test` can run it (scripts/verify-run.test.ts).
 import {
   advanceGame,
   createGame,
@@ -23,11 +20,9 @@ export type VerifiedRun = {
   }
 }
 
-/** Replays a submitted run. Returns the verified result, or the reason it was refused. */
 export function verifyRun(body: unknown, now = new Date()): VerifiedRun | { error: string } {
   if (!body || typeof body !== "object" || Array.isArray(body)) return { error: "Invalid request body." }
 
-  // Anything else in the body (a claimed height, say) is ignored: only the taps count.
   const { challengeDate, placementTicks } = body as { challengeDate?: unknown; placementTicks?: unknown }
   if (typeof challengeDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(challengeDate)) {
     return { error: "Invalid challenge date." }
@@ -57,9 +52,7 @@ export function verifyRun(body: unknown, now = new Date()): VerifiedRun | { erro
   let previousTick = -1
   const perfectLevels: number[] = []
   for (const tick of placementTicks as number[]) {
-    // Taps must go forward in time, and none may come after the run has ended.
     if (tick < previousTick || game.phase !== "playing") return { error: "The run could not be verified." }
-    // The phase test also keeps the loop finite: an ended game never advances its tick.
     while (game.tick < tick && game.phase === "playing") game = advanceGame(game)
     if (game.tick !== tick || game.phase !== "playing") return { error: "The run could not be verified." }
     game = placeBlock(game)

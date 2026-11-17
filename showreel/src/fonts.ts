@@ -3,7 +3,6 @@ import manrope from '@fontsource-variable/manrope/files/manrope-latin-wght-norma
 import newsreader from '@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2'
 import newsreaderItalic from '@fontsource-variable/newsreader/files/newsreader-latin-wght-italic.woff2'
 
-// The game's own type: Newsreader Variable for display, Manrope Variable for UI.
 export const DISPLAY = "'Newsreader Variable', Georgia, serif"
 export const UI = "'Manrope Variable', 'Avenir Next', sans-serif"
 

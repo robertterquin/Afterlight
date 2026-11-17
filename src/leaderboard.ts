@@ -80,13 +80,11 @@ export async function savePlayerName(userId: string, displayName: string) {
     .eq('user_id', userId)
     .select('display_name')
     .single()
-  // The database rejects offensive names with a message meant for the player.
   if (error?.code === '23514') throw new Error(error.message)
   if (error) throw error
   return data.display_name
 }
 
-// Runs that have not reached the server yet, one (the highest) per challenge date.
 const PENDING_RUNS_KEY = 'afterlight.pendingRuns'
 type PendingRuns = Record<string, { placementTicks: number[]; height: number }>
 
@@ -104,7 +102,6 @@ function writePendingRuns(runs: PendingRuns) {
     if (Object.keys(runs).length > 0) window.localStorage.setItem(PENDING_RUNS_KEY, JSON.stringify(runs))
     else window.localStorage.removeItem(PENDING_RUNS_KEY)
   } catch {
-    // Without storage the run is only kept until the page closes.
   }
 }
 
@@ -131,7 +128,6 @@ export async function submitDailyScore(challengeDate: string, placementTicks: nu
   }
 
   const status = error instanceof FunctionsHttpError ? (error.context as Response).status : 0
-  // 400/413 mean the server will never accept this run (expired or invalid), so stop retrying it.
   if (status === 400 || status === 413) {
     forgetPendingRun(challengeDate, placementTicks)
     const body = await (error.context as Response).json().catch(() => null)

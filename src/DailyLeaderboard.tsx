@@ -14,7 +14,6 @@ type Props = {
   onClose: () => void
 }
 
-// The daily course turns over at UTC midnight; show that moment in the player's own clock.
 const resetTime = new Date(Date.UTC(2000, 0, 1)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
 type TowerGlyphFloor = {
@@ -164,7 +163,6 @@ export const Leaderboard = memo(function Leaderboard({
   const [draftName, setDraftName] = useState(playerName)
   const [nameError, setNameError] = useState<string | null>(null)
   const [expandedRank, setExpandedRank] = useState<number | null>(null)
-  // The server sends the top ten, plus the player's own row when they rank lower.
   const topTen = entries.filter((entry) => entry.rank <= 10)
   const personalEntry = entries.find((entry) => entry.is_you && entry.rank > 10)
 

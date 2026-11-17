@@ -1,5 +1,3 @@
-// The game's scene, ported from src/App.tsx with every Motion animation replaced by frame math.
-// Glows use radial gradients instead of blur filters so 900 frames render quickly.
 import { useMemo } from 'react'
 import { interpolate } from 'remotion'
 import { blendColor, type DailyEdition, type StonePalette } from './editions.ts'
@@ -37,16 +35,12 @@ export function lensGeometry(block: Block, y: number) {
   return { x, y: lensY, width, height, centerX: x + width / 2, centerY: lensY + height / 2 }
 }
 
-/** The world rect each layer must cover: the frame plus overscan, wider still for the sky. */
 export function bounds(layout: Layout, extra = 1) {
   const padX = layout.Vw * OVERSCAN * extra
   const padY = layout.Vh * OVERSCAN * extra
   return { left: layout.x0 - padX, right: layout.x0 + layout.Vw + padX, top: -padY, bottom: layout.Vh + padY }
 }
 
-// ---------------------------------------------------------------- sky and sea
-
-// How far the sky reaches above the frame, for the upward tilt into the title.
 const top = -2600
 
 export function SkyLayer({ edition, layout, frame, dawn, highSky }: { edition: DailyEdition; layout: Layout; frame: number; dawn: number; highSky: number }) {
@@ -103,7 +97,6 @@ export function SkyLayer({ edition, layout, frame, dawn, highSky }: { edition: D
       }
       return path
     })()
-    // A soft, wavy aurora ribbon that thickens and thins along its length.
     const auroraTop: string[] = []
     const auroraBottom: string[] = []
     for (let x = box.left; x <= box.right; x += 40) {
@@ -118,9 +111,7 @@ export function SkyLayer({ edition, layout, frame, dawn, highSky }: { edition: D
 
   const night = 1 - dawn
   const wide = { x: box.left, width: box.right - box.left }
-  // Twinkle: each star group breathes on its own slow cycle.
   const twinkle = (phase: number) => 0.55 + 0.45 * Math.sin(frame / 23 + phase)
-  // The sea's surface drifts sideways, each depth at its own pace.
   const drift = (speed: number) => `translate(${round1(Math.sin(frame / 90) * speed)} 0)`
 
   return (
@@ -236,7 +227,6 @@ export function SkyLayer({ edition, layout, frame, dawn, highSky }: { edition: D
         <path d={art.aurora} fill="url(#aurora)" opacity=".75" transform={`translate(${round1(Math.sin(frame / 70) * 60)} ${round1(Math.sin(frame / 53) * 10)})`} />
       </g>
 
-      {/* Distant islands, a village and a boat on the horizon. */}
       <path
         d={`M${-10 - layout.spread} ${horizon}q30-14 60-10 24-18 52-8 30-8 50 18zM140 ${horizon}q18-6 40-4 10-6 30 4zM420 ${horizon}q24-22 56-18 30-14 54 0 24-8 46 18zM${700 + layout.spread} ${horizon}q16-8 34-6 14-6 26 6z`}
         fill={edition.mountains[0]}
@@ -274,8 +264,6 @@ export function SkyLayer({ edition, layout, frame, dawn, highSky }: { edition: D
     </g>
   )
 }
-
-// ---------------------------------------------------------------- side islets
 
 function Waystone({ x, y, lit, stone, size, flash }: { x: number; y: number; lit: boolean; stone: StonePalette; size: number; flash: number }) {
   return (
@@ -330,7 +318,6 @@ function IslandCliff({ left, right, top, waterline, inset, cracks, deep, light }
   )
 }
 
-/** Shared glow gradient; every layer defines its own copy under the same id. */
 export const GlowDefs = () => (
   <defs>
     <radialGradient id="glow">
@@ -346,7 +333,6 @@ export function IsletsLayer({ edition, layout, frame, dawn, climb }: { edition: 
   const lx = 885 + layout.spread
   const ly = round1(layout.horizon + Math.min(34, sea * 0.06))
   const lit = Math.floor(perfectsAt(frame) / 5)
-  // The fifth perfect makes the lighthouse flare and the waystones answer in sequence.
   const celebration = CELEBRATIONS.filter((drop) => drop.frame <= frame).at(-1)
   const since = celebration ? frame - celebration.frame : 999
   const lighthouseFlash = interpolate(since, [33, 45, 110], [0, 1, 0], clamp)
@@ -414,14 +400,11 @@ export function IsletsLayer({ edition, layout, frame, dawn, climb }: { edition: 
   )
 }
 
-// ---------------------------------------------------------------- cloud sea
-
 export function CloudBankLayer({ layout, frame, rise, edition, night }: { layout: Layout; frame: number; rise: number; edition: DailyEdition; night: number }) {
   const box = bounds(layout, 1.4)
   const { clouds } = edition
   const rows = useMemo(() => {
     const random = seededRandom(31)
-    // As in the game: five rows shading from the course's lightest cloud tone to its deepest.
     const tones = [0, 1, 2, 3, 4].map((row) => [blendColor(clouds.lit[0], clouds.lit[1], row / 4), blendColor(clouds.shade[0], clouds.shade[1], row / 4)] as const)
     const depth = layout.Vh - layout.horizon + 40
     return tones.map(([lit, shade], row) => {
@@ -440,7 +423,6 @@ export function CloudBankLayer({ layout, frame, rise, edition, night }: { layout
   }, [layout, box.left, box.right, box.bottom, clouds])
   if (rise <= 0) return null
   const palette = edition.night
-  // Above the clouds at night (40+ stones) the cloud sea takes on the course's night tones.
   const shade = (color: string) => (night > 0 ? blendColor(color, palette.cloudShade, night * 0.7) : color)
   const lit = (color: string) => (night > 0 ? blendColor(color, palette.cloudLit, night * 0.62) : color)
   const top = layout.horizon - 12
@@ -455,7 +437,6 @@ export function CloudBankLayer({ layout, frame, rise, edition, night }: { layout
           <path d={band.tops} fill={lit(band.lit)} />
         </g>
       ))}
-      {/* The world's edge: the cloud sea darkens and its far edge curves, lit by a thin rim of the course's colour. */}
       {night > 0 && (
         <g opacity={night}>
           <defs>
@@ -479,8 +460,6 @@ export function CloudBankLayer({ layout, frame, rise, edition, night }: { layout
     </g>
   )
 }
-
-// ---------------------------------------------------------------- tower
 
 type StoneLook = { active?: boolean; clean?: boolean; signal?: boolean; trimmedLeft?: number; trimmedRight?: number; warmth?: number; haze?: number }
 
@@ -532,7 +511,6 @@ export function Stone({ block, y, palette, look = {} }: { block: Block; y: numbe
   )
 }
 
-/** Seeded spark burst from a point, `t` frames after it fired. */
 function Sparks({ x, y, t, seed, count, spread, color }: { x: number; y: number; t: number; seed: number; count: number; spread: number; color: string }) {
   if (t < 0 || t > 40) return null
   const random = seededRandom(seed)
@@ -552,7 +530,6 @@ function Sparks({ x, y, t, seed, count, spread, color }: { x: number; y: number;
 
 export function TowerLayer({ edition, layout, frame, shift, dawn, hideTop = 0 }: {
   edition: DailyEdition; layout: Layout; frame: number; shift: number; dawn: number
-  /** Top stones handed over to the logo mark after the match-cut. */
   hideTop?: number
 }) {
   const { groundY } = layout
@@ -565,7 +542,6 @@ export function TowerLayer({ edition, layout, frame, shift, dawn, hideTop = 0 }:
   const floorY = (level: number) => groundY - level * BLOCK_HEIGHT
   const moving = movingAt(frame)
   const incoming = DROPS[index + 1]
-  // Time-lapse drops fall in from above over the 5 frames before their impact.
   const dropIn = incoming?.quick && frame >= incoming.frame - 5 ? incoming : null
   const minScreen = -BLOCK_HEIGHT * 4 - shift
   const maxScreen = layout.Vh * (1 + OVERSCAN) + BLOCK_HEIGHT * 3 - shift
@@ -582,7 +558,6 @@ export function TowerLayer({ edition, layout, frame, shift, dawn, hideTop = 0 }:
           <stop offset="1" stopColor={blendColor(edition.tower.top, '#4f6d66', 0.3)} />
         </linearGradient>
       </defs>
-      {/* Reflection of the island and its lowest stones. */}
       <g transform={`translate(0 ${waterline * 2}) scale(1 -1)`} opacity=".22">
         <path d={`M250 ${groundY - 12}H792L776 ${waterline}H266Z`} fill={edition.tower.deep} />
         <path d={islandTopPath(groundY)} fill={edition.tower.top} />
@@ -600,7 +575,6 @@ export function TowerLayer({ edition, layout, frame, shift, dawn, hideTop = 0 }:
       <Waystone stone={palette} size={1.6} x={282} y={groundY - 26} lit={perfectsAt(frame) >= 25} flash={0} />
       <Waystone stone={palette} size={1.6} x={690} y={groundY - 50} lit={perfectsAt(frame) >= 30} flash={0} />
 
-      {/* Clouds pinned to floors 8 to 15, behind the tower. */}
       <g fill="#efdfe1" transform={`translate(${round1(frame * 0.1)} 0)`}>
         <path d={cloudPuff(170 - layout.spread, floorY(8.2), 150) + cloudPuff(840 + layout.spread, floorY(9.4), 170)} opacity=".42" />
         <path d={cloudPuff(560 + layout.spread, floorY(11), 210) + cloudPuff(130 - layout.spread, floorY(12.6), 160)} opacity=".36" />
@@ -615,7 +589,6 @@ export function TowerLayer({ edition, layout, frame, shift, dawn, hideTop = 0 }:
         const drop = DROPS[level - 1]!
         const t = frame - drop.frame
         const clean = Math.abs(block.x + block.width / 2 - (support.x + support.width / 2)) < 0.01
-        // The game's landing: drops in 13 units, squashed, and springs back; a grown stone also stretches out.
         const settle = t < 60 ? springAt(frame, SPRINGS.landing, drop.frame) : 1
         const grow = drop.after.lastDropGrew && t < 90 ? springAt(frame, SPRINGS.grow, drop.frame) : 1
         const scaleX = drop.after.lastDropGrew ? interpolate(grow, [0, 1], [0.8, 1]) : 1
@@ -642,7 +615,6 @@ export function TowerLayer({ edition, layout, frame, shift, dawn, hideTop = 0 }:
         )
       })}
 
-      {/* Beacon signal: light threads between the lenses of the current perfect streak. */}
       {streak > 0 && latest && stack.slice(Math.max(1, stack.length - streak), visibleStones).map((block, offset) => {
         const level = Math.max(1, stack.length - streak) + offset
         const upper = lensGeometry(block, floorY(level + 1))
@@ -662,7 +634,6 @@ export function TowerLayer({ edition, layout, frame, shift, dawn, hideTop = 0 }:
         )
       })}
 
-      {/* Beacon pulse: the fifth perfect sends light up the streak, then rings out from the new stone. */}
       {CELEBRATIONS.map((drop) => {
         const t = frame - drop.frame
         if (t < 0 || t > 100) return null
@@ -702,7 +673,6 @@ export function TowerLayer({ edition, layout, frame, shift, dawn, hideTop = 0 }:
         )
       })}
 
-      {/* Landing feedback: a ring and sparks for a perfect, dust off the cut edge otherwise. */}
       {latest && frame - latest.frame < 40 && (() => {
         const t = frame - latest.frame
         const block = latest.after.stack.at(-1)!
@@ -720,7 +690,6 @@ export function TowerLayer({ edition, layout, frame, shift, dawn, hideTop = 0 }:
         )
       })()}
 
-      {/* Offcuts tumble into the sea. */}
       {DROPS.map((drop) => drop.after.fallingPieces.map((piece) => {
         const t = frame - drop.frame
         if (t < 0 || t > 80) return null
@@ -746,7 +715,6 @@ export function TowerLayer({ edition, layout, frame, shift, dawn, hideTop = 0 }:
         )
       }))}
 
-      {/* The sliding stone, or a time-lapse stone falling into place. */}
       {moving && <Stone block={moving} y={floorY(stack.length + 1)} palette={palette} look={{ active: true }} />}
       {dropIn && (
         <Stone
@@ -757,7 +725,6 @@ export function TowerLayer({ edition, layout, frame, shift, dawn, hideTop = 0 }:
         />
       )}
 
-      {/* Thin front clouds at the sides, drifting with the wind. */}
       <g fill="#f6eaea" transform={`translate(${round1(-frame * 0.25)} 0)`}>
         <path d={cloudPuff(60 - layout.spread, floorY(9.8), 120) + cloudPuff(950 + layout.spread, floorY(12.2), 130)} opacity=".5" />
         <path d={cloudPuff(940 + layout.spread, floorY(7.4), 110) + cloudPuff(70 - layout.spread, floorY(14.4), 120)} opacity=".38" />

@@ -1,25 +1,18 @@
-// The daily streak lives on this device only: no account or server needed.
 const STORAGE_KEY = 'afterlight.streak'
 const DAY_MS = 86_400_000
 
 export type StreakRecord = {
-  /** UTC date (YYYY-MM-DD) of the latest day with a finished climb. */
   last: string | null
-  /** Consecutive days ending on `last`. */
   run: number
   best: number
-  /** The most recent climbed days, newest last, for the week view. */
   days: string[]
 }
 
 export type Streak = {
-  /** Consecutive days still alive (ending today or yesterday); 0 once a day is missed. */
   current: number
   best: number
   climbedToday: boolean
-  /** The last seven course days, oldest first, ending with today. */
   week: boolean[]
-  /** Climbed on some day before today, so there is a streak to talk about. */
   returning: boolean
 }
 
@@ -40,7 +33,6 @@ export function summarize(record: StreakRecord, today: string): Streak {
   }
 }
 
-/** Adds a finished climb on `today`. `firstToday` is false for later runs the same day. */
 export function addClimb(record: StreakRecord, today: string): { record: StreakRecord; firstToday: boolean } {
   if (record.last === today) return { record, firstToday: false }
   const continues = record.last !== null && dayNumber(today) - dayNumber(record.last) === 1
@@ -63,7 +55,6 @@ export function readStreak(): StreakRecord {
       }
     }
   } catch {
-    // Private mode or corrupt data: start fresh.
   }
   return EMPTY
 }
@@ -73,12 +64,10 @@ export function saveClimb(today: string) {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(result.record))
   } catch {
-    // Storage can be blocked; the streak just won't persist.
   }
   return result
 }
 
-/** The one line the ready screen shows, or null when there's nothing worth saying yet. */
 export function streakLine(streak: Streak): string | null {
   if (!streak.returning) return null
   if (streak.current > 0 && !streak.climbedToday) {

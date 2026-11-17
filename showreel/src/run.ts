@@ -1,5 +1,3 @@
-// The reel's gameplay is a real run of the game's deterministic engine: a scripted player
-// drops each stone at a planned offset, and the video replays the resulting states.
 import {
   advanceGame,
   createGame,
@@ -14,17 +12,12 @@ import {
 export { BLOCK_HEIGHT, WORLD_WIDTH } from '../../supabase/functions/_shared/game-engine.ts'
 export type { Block, FallingPiece }
 
-// 2026-11-12 is an Ember tide day (UTC day number % 7 === 0), the course the reel opens and closes on.
 export const DATE = '2026-11-12'
 
 type Step = {
-  /** Moving stone's centre minus the supporting stone's centre at the drop; 0 means a perfect drop. */
   offset: number
-  /** Video frame of the impact. */
   frame: number
-  /** Video frame the moving stone appears; it covers its whole engine path between `from` and `frame`. */
   from: number
-  /** Time-lapse drops: no visible slide, the stone drops in from above. */
   quick?: boolean
 }
 
@@ -32,47 +25,38 @@ const CLIMB_OFFSETS = [0, 0, 0, 16, 0, 0, 0, -16, 0, 0, 0, 0, 0, 18, 0, 0, 0, 0,
 export const CLIMB_START = 490
 export const CLIMB_END = 690
 
-// Floors 39 to 93: mostly perfect, with a few near misses so the stones keep their trimmed edges.
 const SKY_OFFSETS = Array.from({ length: 55 }, (_, index) => (index % 11 === 5 ? (index % 22 === 5 ? 14 : -14) : 0))
 export const SKY_START = 697
 export const SKY_END = 888
 
 const STEPS: Step[] = [
-  // Beat 1: cold open, already mid-slide at frame 0.
   { offset: 0, frame: 8, from: -26 },
   { offset: 34, frame: 34, from: 8 },
   { offset: 0, frame: 60, from: 34 },
-  // Beat 2: an offcut, then five perfects in a quickening rhythm; the fifth grows the stone.
   { offset: -24, frame: 120, from: 60 },
   { offset: 0, frame: 166, from: 120 },
   { offset: 0, frame: 204, from: 166 },
   { offset: 0, frame: 238, from: 204 },
   { offset: 0, frame: 268, from: 238 },
   { offset: 0, frame: 298, from: 268 },
-  // Beat 4: one unbroken climb, first as a time-lapse up through the clouds to dawn...
   ...CLIMB_OFFSETS.map((offset, index) => {
     const frame = Math.round(CLIMB_START + (index * (CLIMB_END - CLIMB_START)) / (CLIMB_OFFSETS.length - 1))
     return { offset, frame, from: frame - 1, quick: true }
   }),
-  // ...then faster, from floor 39 to 93, on into the night...
   ...SKY_OFFSETS.map((offset, index) => {
     const frame = Math.round(SKY_START + (index * (SKY_END - SKY_START)) / (SKY_OFFSETS.length - 1))
     return { offset, frame, from: frame - 1, quick: true }
   }),
-  // ...then floors 94 to 99 slow down so the constellation can be seen forming a third at a time.
   ...[0, 0, 0, 0, 0, 0].map((offset, index) => {
     const frame = 902 + index * 14
     return { offset, frame, from: frame - 1, quick: true }
   }),
-  // Beat 5: the final perfect drop, floor 100, lights the constellation's brightest star.
   { offset: 0, frame: 1006, from: 982 },
 ]
 
 export type Drop = Step & {
-  /** Moving stone x for each engine tick from its spawn to the drop. */
   path: number[]
   width: number
-  /** State right after the drop. */
   after: GameState
 }
 
@@ -98,7 +82,6 @@ function simulate(): Drop[] {
     }
     const width = current.moving!.width
     const after = placeBlock(current)
-    // Self-check: the scripted player must land exactly the drops the beat sheet expects.
     if (after.phase !== 'playing' || after.lastDropWasPerfect !== (step.offset === 0)) {
       throw new Error(`Drop at frame ${step.frame} did not land as planned`)
     }
@@ -110,23 +93,19 @@ function simulate(): Drop[] {
 export const DROPS = simulate()
 export const FINAL = DROPS.at(-1)!.after
 
-/** Index of the last drop at or before `frame`, or -1 before the first impact. */
 export function dropIndexAt(frame: number) {
   let index = -1
   while (index + 1 < DROPS.length && DROPS[index + 1]!.frame <= frame) index += 1
   return index
 }
 
-/** Video frame of the drop that first reaches `floor` (stones above the base). */
 export const floorFrame = (floor: number) => DROPS.find((drop) => drop.after.stack.length - 1 >= floor)?.frame ?? Infinity
 
-/** The stack as it stands at `frame` (the base stone plus every landed drop). */
 export function stackAt(frame: number): Block[] {
   const index = dropIndexAt(frame)
   return index < 0 ? FINAL.stack.slice(0, 1) : DROPS[index]!.after.stack
 }
 
-/** The sliding stone at `frame`, if one is on screen. */
 export function movingAt(frame: number): Block | null {
   const next = DROPS[dropIndexAt(frame) + 1]
   if (!next || next.quick || frame < next.from) return null

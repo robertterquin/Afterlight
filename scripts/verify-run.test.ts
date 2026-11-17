@@ -1,6 +1,3 @@
-// Run with: npm test
-// The server's anti-cheat check (supabase/functions/_shared/verify-run.ts) must agree with the game on every
-// honest run, and refuse runs that could not have been played.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { advanceGame, createGame, heightOf, placeBlock, seedForDate, startGame, type GameState } from '../supabase/functions/_shared/game-engine.ts'
@@ -9,11 +6,6 @@ import { MAX_PLACEMENTS, MAX_TICK, verifyRun, type VerifiedRun } from '../supaba
 const DAY = '2026-11-15'
 const NOW = new Date(`${DAY}T12:00:00.000Z`)
 
-/**
- * Plays a run the way a player would, in the game's own engine: for each drop it waits until the moving stone's
- * centre is `offset` units from the stone below, then taps. Past about ±172 the stones overlap by less than the
- * minimum width, so the stone falls and the run ends. Returns the game as the player's screen ends it.
- */
 function play(offsets: number[], date = DAY): GameState {
   let game = startGame(createGame({ date, seed: seedForDate(date) }))
   for (const offset of offsets) {
@@ -25,7 +17,6 @@ function play(offsets: number[], date = DAY): GameState {
       reached = Math.sign(miss(game)) !== Math.sign(miss(next)) || miss(next) === 0
       if (!reached || Math.abs(miss(next)) < Math.abs(miss(game))) game = next
     }
-    // A mis-scripted offset must fail loudly, not quietly drop the stone somewhere else.
     if (!reached) throw new Error(`The moving stone never reaches offset ${offset}`)
     game = placeBlock(game)
     if (game.phase !== 'playing') break
@@ -85,9 +76,7 @@ test('a claimed height is ignored: only the taps decide the score', () => {
 })
 
 test('made-up taps cannot fake a tall tower', () => {
-  // 300 taps, one every half second: the stones never line up, so the run ends almost at once and the rest are refused.
   refused(verify({ challengeDate: DAY, placementTicks: Array.from({ length: 300 }, (_, index) => 30 + index * 30) }), 'The run could not be verified.')
-  // Taps after the run has ended are refused rather than ignored.
   const ended = play([0, 200])
   assert.equal(ended.phase, 'over')
   refused(verify({ challengeDate: DAY, placementTicks: [...ended.placementTicks, ended.placementTicks.at(-1)! + 60] }), 'The run could not be verified.')
@@ -96,7 +85,6 @@ test('made-up taps cannot fake a tall tower', () => {
 test("a run only replays on its own day's course", () => {
   const game = play([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
   const yesterday = verify({ challengeDate: '2026-11-14', placementTicks: game.placementTicks })
-  // Yesterday's course has a different seed, so the same taps cannot rebuild today's ten perfect stones.
   assert.ok('error' in yesterday || yesterday.height !== 10 || yesterday.perfects !== 10)
 })
 

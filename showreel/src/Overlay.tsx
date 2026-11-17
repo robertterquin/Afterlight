@@ -12,12 +12,6 @@ const SIGN_NAME = zodiacForDate(DATE).name
 const GOLD = '#f2c58f'
 const INK = '#eef0e6'
 
-// ---------------------------------------------------------------- kinetic type
-
-/**
- * A word behind a baseline mask: rises into place on `at`, optionally scale-snapping like an impact,
- * and leaves upward through the same mask on `exit`.
- */
 function Word({ frame, at, exit, snap = false, children, style }: { frame: number; at: number; exit: number; snap?: boolean; children: ReactNode; style?: CSSProperties }) {
   if (frame < at - 1) return null
   const reveal = springAt(frame, snap ? SPRINGS.landing : SPRINGS.reveal, at)
@@ -41,7 +35,6 @@ const headline = (size: number): CSSProperties => ({
   color: INK,
 })
 
-// A drop-shadow on the block, outside the reveal masks, so the masks never clip it into a box.
 const SHADOW: CSSProperties = { filter: 'drop-shadow(0 3px 18px rgba(5, 12, 24, .55))' }
 
 const label = (size: number): CSSProperties => ({
@@ -53,13 +46,11 @@ const label = (size: number): CSSProperties => ({
   color: GOLD,
 })
 
-/** Copy block positioned per format: left column in landscape, stacked high and centred in portrait. */
 function Block({ layout, children, top, align }: { layout: Layout; children: ReactNode; top?: number; align?: 'center' }) {
   const portrait = layout.format === 'portrait'
   return (
     <div
       style={portrait
-        // Safe area: clear of the top 220 px, the bottom 420 px and the right 140 px.
         ? { ...SHADOW, position: 'absolute', left: 80, width: 840, top: top ?? 300, textAlign: 'center' }
         : { ...SHADOW, position: 'absolute', left: 150, width: 760, top: top ?? 300, textAlign: align ?? 'left' }}
     >
@@ -68,7 +59,6 @@ function Block({ layout, children, top, align }: { layout: Layout; children: Rea
   )
 }
 
-/** Five stones that light up with the perfect streak, the game's own streak language. */
 function StreakMeter({ frame, layout }: { frame: number; layout: Layout }) {
   const appear = interpolate(frame, [150, 162], [0, 1], { ...clamp, easing: EASE.out })
   const leave = interpolate(frame, [372, 384], [0, 1], { ...clamp, easing: EASE.whipIn })
@@ -135,9 +125,6 @@ function CourseChip({ frame, layout }: { frame: number; layout: Layout }) {
   )
 }
 
-// ---------------------------------------------------------------- match-cut mark and title
-
-// The logo mark (src/assets/afterlight-mark.svg): three offset stones under a light, in its 96-unit box.
 const MARK_STONES = [
   { x: 35, y: 32, w: 32, face: '#EABD8A', band: '#FFE3BC' },
   { x: 24, y: 50, w: 44, face: '#C9D6C6', band: '#E8F0E4' },
@@ -150,7 +137,6 @@ function markPlacement(layout: Layout) {
     : { scale: 3, x: layout.W / 2 - 47 * 3, y: 170 }
 }
 
-/** The top three tower stones and the beacon become the logo mark, starting from exactly where they stood. */
 function MatchCutMark({ frame, layout }: { frame: number; layout: Layout }) {
   if (frame < MATCH_CUT) return null
   const camera = cameraAt(MATCH_CUT, layout)
@@ -205,7 +191,6 @@ function MatchCutMark({ frame, layout }: { frame: number; layout: Layout }) {
 }
 
 function TitleLockup({ frame, layout }: { frame: number; layout: Layout }) {
-  // Timed from the match-cut: the title arrives as the mark settles.
   const at = (offset: number) => MATCH_CUT + offset
   if (frame < at(16)) return null
   const portrait = layout.format === 'portrait'
@@ -236,9 +221,6 @@ function TitleLockup({ frame, layout }: { frame: number; layout: Layout }) {
   )
 }
 
-// ---------------------------------------------------------------- texture
-
-/** Ember motes drifting up through the frame; brighter once the beacon is awake. */
 function Motes({ frame, layout }: { frame: number; layout: Layout }) {
   const glow = interpolate(frame, [MATCH_CUT - 44, MATCH_CUT + 16], [0.5, 1], clamp)
   return (
@@ -267,7 +249,6 @@ function Grain({ frame, layout }: { frame: number; layout: Layout }) {
   )
 }
 
-/** Motion streaks during whip pans; `velocity` is the camera's screen speed in px per frame. */
 function SpeedLines({ layout, vx, vy }: { layout: Layout; vx: number; vy: number }) {
   const strength = Math.min(1, (Math.abs(vx) + Math.abs(vy)) / 90)
   if (strength < 0.05) return null
@@ -286,13 +267,10 @@ function SpeedLines({ layout, vx, vy }: { layout: Layout; vx: number; vy: number
   )
 }
 
-/** Light flashes that hide cuts and land with the impacts. */
 function flashAt(frame: number) {
   const pulse = (at: number, peak: number, length: number) => interpolate(frame, [at - 1, at, at + length], [0, peak, 0], clamp)
   return Math.max(pulse(8, 0.7, 12), pulse(298, 0.38, 16), pulse(DROPS.at(-1)!.frame, 0.32, 16), pulse(MATCH_CUT, 0.95, 18))
 }
-
-// ---------------------------------------------------------------- composition overlay
 
 export function Overlay({ frame, layout, vx, vy }: { frame: number; layout: Layout; vx: number; vy: number }) {
   const portrait = layout.format === 'portrait'
@@ -302,9 +280,7 @@ export function Overlay({ frame, layout, vx, vy }: { frame: number; layout: Layo
   const veil = interpolate(frame, [MATCH_CUT, MATCH_CUT + 56], [0, 1], clamp)
   return (
     <AbsoluteFill>
-      {/* A navy veil gathers behind the title so the gold reads at any course's dawn. */}
       <AbsoluteFill style={{ background: 'radial-gradient(ellipse 80% 70% at 50% 45%, rgba(10, 25, 38, .55), rgba(5, 10, 22, .2) 70%)', opacity: veil }} />
-      {/* A soft scrim on the copy side (left in landscape, top in portrait) keeps type legible over bright cloud. */}
       <AbsoluteFill
         style={{
           background: portrait
@@ -315,7 +291,6 @@ export function Overlay({ frame, layout, vx, vy }: { frame: number; layout: Layo
       />
       <Motes frame={frame} layout={layout} />
 
-      {/* Beat 1: three words, one per impact. */}
       <Block layout={layout} top={portrait ? 300 : 250}>
         <div style={headline(big)}>
           {([['Drop.', 8], ['Stack.', 34], ['Climb.', 60]] as const).map(([word, at], index) => (
@@ -326,7 +301,6 @@ export function Overlay({ frame, layout, vx, vy }: { frame: number; layout: Layo
         </div>
       </Block>
 
-      {/* Beat 2: streak feedback, then the growth callout on the fifth perfect. */}
       <Block layout={layout} top={portrait ? 300 : 330}>
         <StreakMeter frame={frame} layout={layout} />
         <div style={{ ...headline(portrait ? 128 : 116), marginTop: portrait ? 44 : 36 }}>
@@ -335,7 +309,6 @@ export function Overlay({ frame, layout, vx, vy }: { frame: number; layout: Layo
         </div>
       </Block>
 
-      {/* Beat 4, callout 1: the climb past the clouds, with the floor count. */}
       <Block layout={layout} top={portrait ? 300 : 300}>
         {frame >= 512 && frame < 646 && (
           <div style={{ ...label(portrait ? 30 : 26), opacity: interpolate(frame, [512, 522, 626, 638], [0, 1, 1, 0], clamp), fontVariantNumeric: 'tabular-nums' }}>
@@ -348,7 +321,6 @@ export function Overlay({ frame, layout, vx, vy }: { frame: number; layout: Layo
         </div>
       </Block>
 
-      {/* Beat 3: seven courses swap around the island, one a day. */}
       <Block layout={layout} top={portrait ? 300 : 280}>
         <div style={headline(portrait ? 124 : 112)}>
           <div><Word frame={frame} at={CAROUSEL.start} exit={462} snap>Seven tides.</Word></div>
@@ -357,7 +329,6 @@ export function Overlay({ frame, layout, vx, vy }: { frame: number; layout: Layo
         <CourseChip frame={frame} layout={layout} />
       </Block>
 
-      {/* Beat 4, callout 2: above the sky, the floor count racing up through the night. */}
       <Block layout={layout} top={portrait ? 300 : 300}>
         {frame >= 714 && frame < 900 && (
           <div style={{ ...label(portrait ? 30 : 26), opacity: interpolate(frame, [714, 724, 876, 888], [0, 1, 1, 0], clamp), fontVariantNumeric: 'tabular-nums' }}>
@@ -370,7 +341,6 @@ export function Overlay({ frame, layout, vx, vy }: { frame: number; layout: Layo
         </div>
       </Block>
 
-      {/* Beat 5: the season's constellation forms, and floor 100 lights its brightest star. */}
       <Block layout={layout} top={portrait ? 300 : 300}>
         {frame >= 1006 && (
           <div style={{ ...label(portrait ? 30 : 26), opacity: interpolate(frame, [1006, 1016, 1036, 1046], [0, 1, 1, 0], clamp) }}>

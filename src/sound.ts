@@ -1,9 +1,5 @@
-// Stone landings are CC0 recordings from Kenney's "Impact Sounds" (kenney.nl). Every other cue is
-// generated here with Web Audio, so the set stays one family: glass for the beacon's light, stone for
-// the tower and water for the tide.
 const STONES = ['stone-1', 'stone-2', 'stone-3'] as const
 
-/** Semitone steps for perfect drops 1 to 5 of a streak: a major-scale climb toward the stone growing. */
 const STREAK_STEPS = [0, 2, 4, 5, 7] as const
 const note = (base: number, semitones: number) => base * Math.pow(2, semitones / 12)
 
@@ -19,19 +15,11 @@ export type Cue =
   | { kind: 'tap'; high: boolean }
   | { kind: 'best' }
 
-/**
- * Plays the game's cues. Call prepare() when the page is idle and unlock() from input handlers before
- * the first cue.
- */
 export function createSoundBoard() {
   let context: AudioContext | null = null
   let master: GainNode | null = null
   const stones: AudioBuffer[] = []
 
-  /**
-   * Builds the audio engine ahead of time. Creating it is slow (up to a few hundred ms), so the page
-   * does this while idle; the engine starts suspended and unlock() only has to resume it.
-   */
   function prepare() {
     if (typeof window === 'undefined' || !window.AudioContext) return
     if (!context) {
@@ -50,13 +38,10 @@ export function createSoundBoard() {
     }
   }
 
-  /** Call from input handlers: browsers only let audio play after a user gesture. */
   function unlock() {
     prepare()
     if (context?.state === 'suspended') void context.resume().catch(() => undefined)
   }
-
-  // ---------- building blocks ----------
 
   function envelope(gain: GainNode, start: number, attack: number, peak: number, decay: number) {
     gain.gain.setValueAtTime(0.0001, start)
@@ -85,13 +70,11 @@ export function createSoundBoard() {
     return source
   }
 
-  /** Struck glass: inharmonic partials that ring and fade, like the light in the tower's lenses. */
   function glassBell(audio: AudioContext, out: AudioNode, frequency: number, volume: number, start: number) {
     const partials = [[1, 1, 1.5], [2.32, 0.45, 0.8], [4.25, 0.2, 0.45], [6.63, 0.1, 0.25]] as const
     for (const [ratio, amplitude, decay] of partials) tone(audio, out, frequency * ratio, amplitude * volume, decay, start)
   }
 
-  /** A small stone dropping into deep water: a falling bubble note and a short wash. */
   function plunk(audio: AudioContext, out: AudioNode, volume: number, start: number) {
     const bubble = audio.createOscillator()
     bubble.frequency.setValueAtTime(810, start)
@@ -116,7 +99,6 @@ export function createSoundBoard() {
     wash.start(start + 0.02)
   }
 
-  /** A whole stone hitting the sea: a low thump and a wash of water that settles. */
   function sploosh(audio: AudioContext, out: AudioNode, volume: number, start: number) {
     const thump = audio.createOscillator()
     thump.frequency.setValueAtTime(110, start)
@@ -141,7 +123,6 @@ export function createSoundBoard() {
     wash.start(start)
   }
 
-  /** Air through cloud: a faint, falling breath. */
   function puff(audio: AudioContext, out: AudioNode, volume: number, start: number) {
     const air = noise(audio, 0.5)
     const filter = audio.createBiquadFilter()
@@ -159,13 +140,11 @@ export function createSoundBoard() {
     air.start(start)
   }
 
-  /** A slow, slightly beating low bell for a run coming to rest. */
   function gong(audio: AudioContext, out: AudioNode, frequency: number, volume: number, start: number) {
     const partials = [[1, 1, 2.6], [1.006, 0.7, 2.4], [2.76, 0.25, 1.2], [5.4, 0.08, 0.5]] as const
     for (const [ratio, amplitude, decay] of partials) tone(audio, out, frequency * ratio, amplitude * volume, decay, start)
   }
 
-  /** A soft wooden knock for menus. */
   function tap(audio: AudioContext, out: AudioNode, frequency: number, volume: number, start: number) {
     const knock = audio.createOscillator()
     knock.type = 'triangle'
@@ -191,7 +170,6 @@ export function createSoundBoard() {
     source.start(start)
   }
 
-  /** Plays a cue, optionally after a delay in seconds (for example when a falling piece reaches the sea). */
   function play(cue: Cue, delay = 0) {
     if (!context || !master) return
     const audio = context
@@ -234,7 +212,6 @@ export function createSoundBoard() {
           break
       }
     } catch {
-      // Audio is optional; gameplay continues if the browser refuses.
     }
   }
 

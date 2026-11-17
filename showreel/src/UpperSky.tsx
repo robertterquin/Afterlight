@@ -1,6 +1,3 @@
-// The sky above the clouds (40+ stones), ported from the game's UpperSky, SkyLanterns and ShootingStars in
-// src/App.tsx with every animation driven by the frame. It sits on a still plane: like the game's sky, it does
-// not follow the camera, so the constellation stays put through the match-cut and the title.
 import { useMemo } from 'react'
 import { interpolate } from 'remotion'
 import { brightestStar, zodiacForDate } from '../../src/zodiac.ts'
@@ -21,8 +18,6 @@ function seededRandom(seed: number) {
 
 const dot = (x: number, y: number, r: number) => `M${x - r} ${y}a${r} ${r} 0 1 0 ${r * 2} 0a${r} ${r} 0 1 0 ${-r * 2} 0`
 
-// As in the game: night from 40 to 55, lanterns every third stone from 42 to 60, the star chain every second
-// stone from 62, the constellation a third at a time from 94, its brightest star at 100.
 const STAR_CHAIN = [[200, 0.7], [255, 0.48], [310, 0.62], [370, 0.3], [440, 0.12], [560, 0.08], [700, 0.22], [720, 0.6], [770, 0.42], [800, 0.7]] as const
 const LANTERN_FLOORS = [42, 45, 48, 51, 54, 57, 60]
 const LANTERN_FLIGHT = 170
@@ -30,7 +25,6 @@ const SHOOTING_FLOORS = [64, 76, 88]
 const SIGN = zodiacForDate(DATE)
 const HERO = brightestStar(SIGN)
 
-/** Where the constellation sits, in view units: right of the tower in landscape, below the title in portrait. */
 function signPlacement(layout: Layout) {
   return layout.format === 'portrait' ? { scale: 2.8, x: 655, y: 480 } : { scale: 3.4, x: 864, y: 40 }
 }
@@ -57,7 +51,6 @@ export function UpperSkyLayer({ layout, frame, edition, height }: { layout: Layo
   if (edge <= 0) return null
   const horizonShare = (horizon - box.top) / (horizon + 160 - box.top)
   const gapColor = blendColor(palette.sky[2], palette.cloudShade, 0.35)
-  // The tilt into the title moves the clouds away and reveals the sea at dawn again.
   const gapCover = interpolate(frame, [MATCH_CUT, MATCH_CUT + 50], [1, 0], clamp)
 
   const chain = STAR_CHAIN.map(([x, share]) => ({ x, y: round1(horizon * (portrait ? 0.27 + share * 0.6 : share)) }))
@@ -65,13 +58,11 @@ export function UpperSkyLayer({ layout, frame, edition, height }: { layout: Layo
   const signStars = SIGN.stars.map(([x, y, magnitude, color]) => ({
     x: round1(place.x + x * place.scale),
     y: round1(place.y + y * place.scale),
-    // Sized by real brightness, a little larger than in the game for a 1080p frame.
     r: round1(Math.max(1.6, 2.1 + (5 - magnitude) * 1.5)),
     color,
   }))
   const thirds = [94, 96, 98].map(floorFrame)
   const heroAt = floorFrame(100)
-  // Each star belongs to the third of the constellation it appears with.
   const starAt = (index: number) => thirds[Math.min(2, Math.floor((index * 3) / signStars.length))]!
   const sparkle = (index: number) => 0.7 + 0.3 * Math.sin(frame / 13 + index * 1.9)
 
@@ -84,7 +75,6 @@ export function UpperSkyLayer({ layout, frame, edition, height }: { layout: Layo
           <stop offset={round1(horizonShare * 1000) / 1000} stopColor={palette.sky[2]} stopOpacity=".5" />
           <stop offset="1" stopColor={palette.sky[2]} stopOpacity="0" />
         </linearGradient>
-        {/* Covers the gap the parallax opens between this still sky and the cloud sea, so no daytime sea shows. */}
         <linearGradient id="upper-gap" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={horizon - 60} y2={horizon + 40}>
           <stop stopColor={gapColor} stopOpacity="0" />
           <stop offset="1" stopColor={gapColor} stopOpacity=".94" />
@@ -100,7 +90,6 @@ export function UpperSkyLayer({ layout, frame, edition, height }: { layout: Layo
         </radialGradient>
       </defs>
 
-      {/* Night returns overhead and the stars come out. */}
       <g opacity={edge}>
         <rect x={box.left} y={box.top} width={box.right - box.left} height={horizon + 160 - box.top} fill="url(#upper-night)" />
         <rect x={box.left} y={horizon - 60} width={box.right - box.left} height={box.bottom - horizon + 60} fill="url(#upper-gap)" opacity={gapCover} />
@@ -108,7 +97,6 @@ export function UpperSkyLayer({ layout, frame, edition, height }: { layout: Layo
         <path d={stars.bright} fill="#fff6e6" opacity={0.75 + 0.25 * Math.sin(frame / 17)} />
       </g>
 
-      {/* Sky lanterns rise from behind the cloud sea, sway and fade among the stars. */}
       {LANTERN_FLOORS.map((floor) => {
         const t = frame - floorFrame(floor)
         if (t < 0 || t > LANTERN_FLIGHT) return null
@@ -134,7 +122,6 @@ export function UpperSkyLayer({ layout, frame, edition, height }: { layout: Layo
         )
       })}
 
-      {/* Shooting stars: one short streak each, drawn on and faded over about a second. */}
       {[...SHOOTING_FLOORS.map(floorFrame), 1100].map((at, index) => {
         const t = frame - at - 8
         if (t < 0 || t > 66) return null
@@ -161,7 +148,6 @@ export function UpperSkyLayer({ layout, frame, edition, height }: { layout: Layo
         )
       })}
 
-      {/* The star chain: a faint gold link per two stones from 62; its lines fade once the constellation forms. */}
       {chain.map((star, index) => {
         const at = floorFrame(62 + index * 2)
         if (frame < at) return null
@@ -185,14 +171,12 @@ export function UpperSkyLayer({ layout, frame, edition, height }: { layout: Layo
         )
       })}
 
-      {/* The season's constellation: a third of its stars at 94, 96 and 98; its brightest star lights at 100. */}
       {SIGN.lines.map(([from, to]) => {
         const at = Math.max(starAt(from), starAt(to))
         if (frame < at) return null
         const a = signStars[from]!
         const b = signStars[to]!
         const length = Math.hypot(b.x - a.x, b.y - a.y)
-        // Like a star chart, each line stops just short of its stars.
         const gapA = (a.r + 6) / length
         const gapB = (b.r + 6) / length
         if (gapA + gapB >= 1) return null
@@ -231,7 +215,6 @@ export function UpperSkyLayer({ layout, frame, edition, height }: { layout: Layo
               strokeLinecap="round"
               opacity={0.8 * Math.min(1, t / 20)}
             />
-            {/* In its own colour (Antares stays red), with a small white-hot core. */}
             <circle cx={hero.x} cy={hero.y} r={round1(hero.r * 1.35)} fill={blendColor(hero.color, '#ffffff', 0.05)} />
             <circle cx={hero.x} cy={hero.y} r={round1(hero.r * 0.55)} fill="#fffaf2" />
           </g>

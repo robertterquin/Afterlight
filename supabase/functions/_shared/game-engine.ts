@@ -69,7 +69,6 @@ export const createDailyChallenge = (date = new Date()): DailyChallenge => {
   return { date: utcDate, seed: seedForDate(utcDate) }
 }
 
-// Built once: creating a DateTimeFormat is slow, and the date label renders on every game frame.
 const dailyDateFormat = new Intl.DateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
